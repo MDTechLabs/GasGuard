@@ -1,24 +1,51 @@
-# Nestjs specific
-/dist
-/node_modules
-/build
-/tmp
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
 
-# Logs
-logs
-*.log
+# --- Node.js (Nest.js / API / Rules) ---
+node_modules/
+dist/
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
-# dotenv environment variable files
+# --- Rust (Engine) ---
+# This ignores the heavy build files generated when compiling Rust
+target/
+**/*.rs.bk
+Cargo.lock
+
+# --- Environment Secrets ---
+# Crucial: Never upload your private keys or API keys!
 .env
-.env.development
-.env.test
-.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
 
-# temp directory
-.temp
-.tmp
+# --- Testing ---
+coverage/
+.nyc_output
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# --- Drips / Blockchain ---
+# If you use Hardhat, Foundry, or Soroban-CLI for local testing
+cache/
+artifacts/
+out/
+.soroban/
