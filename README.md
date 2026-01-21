@@ -46,3 +46,28 @@ GasGuard/
 │   └── rules/         # Library of optimization rules and logic
 ├── .gitignore         # Optimized for Node.js and Rust
 └── LICENSE            # MIT Licensed
+```
+
+---
+
+## 🛡️ Rate Limiting
+
+The public API includes IP-based rate limiting to protect against abuse and ensure fair usage.
+
+| Setting | Value | Description |
+|---------|-------|-------------|
+| **Limit** | 10 requests | Maximum requests per IP address |
+| **Window** | 60 seconds | Time window for rate limit |
+| **Response** | HTTP 429 | Returned when limit is exceeded |
+
+Rate limiting is implemented using [`@nestjs/throttler`](https://docs.nestjs.com/security/rate-limiting) and applies globally to all public API endpoints.
+
+### Running the API
+
+```bash
+cd apps/api
+npm install
+npm run start
+```
+
+The API will be available at `http://localhost:3000`.
