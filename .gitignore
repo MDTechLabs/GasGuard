@@ -49,3 +49,14 @@ cache/
 artifacts/
 out/
 .soroban/
+
+
+# --- Planning with Files ---
+.claude/planning-with-files/task_plan.md
+.claude/planning-with-files/findings.md
+.claude/planning-with-files/progress.md
+.claude/ 
+CLAUDE.md
+progress.md
+task_plan.md
+findings.md
