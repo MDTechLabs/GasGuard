@@ -1,6 +1,6 @@
-use syn::{Item, ItemStruct, ItemImpl, Expr, Pat, Member};
-use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use syn::{Expr, Item, ItemImpl, ItemStruct, Member, Pat};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleViolation {
@@ -32,9 +32,7 @@ pub struct RuleEngine {
 
 impl RuleEngine {
     pub fn new() -> Self {
-        Self {
-            rules: Vec::new(),
-        }
+        Self { rules: Vec::new() }
     }
 
     pub fn add_rule(mut self, rule: Box<dyn Rule>) -> Self {
@@ -43,8 +41,7 @@ impl RuleEngine {
     }
 
     pub fn analyze(&self, code: &str) -> Result<Vec<RuleViolation>, String> {
-        let ast = syn::parse_file(code)
-            .map_err(|e| format!("Failed to parse Rust code: {}", e))?;
+        let ast = syn::parse_file(code).map_err(|e| format!("Failed to parse Rust code: {}", e))?;
 
         let mut violations = Vec::new();
         for rule in &self.rules {
@@ -57,7 +54,8 @@ impl RuleEngine {
 
 // Helper functions for AST analysis
 pub fn extract_struct_fields(struct_item: &ItemStruct) -> Vec<String> {
-    struct_item.fields
+    struct_item
+        .fields
         .iter()
         .filter_map(|field| field.ident.as_ref().map(|ident| ident.to_string()))
         .collect()
@@ -65,7 +63,7 @@ pub fn extract_struct_fields(struct_item: &ItemStruct) -> Vec<String> {
 
 pub fn find_variable_usage(impl_block: &ItemImpl) -> HashSet<String> {
     let mut used_vars = HashSet::new();
-    
+
     for item in &impl_block.items {
         if let syn::ImplItem::Fn(method) = item {
             // Check method body for variable usage
@@ -74,7 +72,7 @@ pub fn find_variable_usage(impl_block: &ItemImpl) -> HashSet<String> {
             }
         }
     }
-    
+
     used_vars
 }
 
@@ -90,6 +88,7 @@ fn extract_variables_from_stmt(stmt: &syn::Stmt, used_vars: &mut HashSet<String>
         syn::Stmt::Expr(expr, _) => {
             extract_variables_from_expr(expr, used_vars);
         }
+        syn::Stmt::Macro(_) => {}
     }
 }
 
@@ -146,9 +145,7 @@ fn extract_variables_from_expr(expr: &Expr, used_vars: &mut HashSet<String>) {
         Expr::Match(match_expr) => {
             extract_variables_from_expr(&match_expr.expr, used_vars);
             for arm in &match_expr.arms {
-                for stmt in &arm.body.stmts {
-                    extract_variables_from_stmt(stmt, used_vars);
-                }
+                extract_variables_from_expr(&arm.body, used_vars);
             }
         }
         Expr::While(while_expr) => {
@@ -209,14 +206,66 @@ fn extract_variables_from_pat(pat: &Pat, used_vars: &mut HashSet<String>) {
 }
 
 fn is_rust_keyword(ident: &str) -> bool {
-    matches!(ident,
-        "self" | "Self" | "super" | "crate" | "mod" | "use" | "pub" | "crate" | 
-        "const" | "static" | "let" | "fn" | "struct" | "enum" | "impl" | "trait" |
-        "where" | "for" | "while" | "loop" | "if" | "else" | "match" | "break" |
-        "continue" | "return" | "async" | "await" | "move" | "ref" | "mut" |
-        "unsafe" | "extern" | "type" | "union" | "macro" | "Some" | "None" |
-        "Ok" | "Err" | "Result" | "Option" | "Vec" | "String" | "str" | "bool" |
-        "u8" | "u16" | "u32" | "u64" | "u128" | "i8" | "i16" | "i32" | "i64" | "i128" |
-        "f32" | "f64" | "usize" | "isize"
+    matches!(
+        ident,
+        "self"
+            | "Self"
+            | "super"
+            | "crate"
+            | "mod"
+            | "use"
+            | "pub"
+            | "const"
+            | "static"
+            | "let"
+            | "fn"
+            | "struct"
+            | "enum"
+            | "impl"
+            | "trait"
+            | "where"
+            | "for"
+            | "while"
+            | "loop"
+            | "if"
+            | "else"
+            | "match"
+            | "break"
+            | "continue"
+            | "return"
+            | "async"
+            | "await"
+            | "move"
+            | "ref"
+            | "mut"
+            | "unsafe"
+            | "extern"
+            | "type"
+            | "union"
+            | "macro"
+            | "Some"
+            | "None"
+            | "Ok"
+            | "Err"
+            | "Result"
+            | "Option"
+            | "Vec"
+            | "String"
+            | "str"
+            | "bool"
+            | "u8"
+            | "u16"
+            | "u32"
+            | "u64"
+            | "u128"
+            | "i8"
+            | "i16"
+            | "i32"
+            | "i64"
+            | "i128"
+            | "f32"
+            | "f64"
+            | "usize"
+            | "isize"
     )
 }
