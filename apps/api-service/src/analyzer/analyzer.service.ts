@@ -6,6 +6,7 @@ import {
   StorageSavings,
   FormattedViolation,
 } from './interfaces/analyzer.interface';
+import { FindingMetadataFactory } from '../common/factories/finding-metadata.factory';
 
 @Injectable()
 export class AnalyzerService {
@@ -32,11 +33,27 @@ export class AnalyzerService {
   }
 
   private formatViolations(violations: RuleViolation[]): FormattedViolation[] {
-    return violations.map((violation) => ({
-      ...violation,
-      severityIcon: this.getSeverityIcon(violation.severity),
-      formattedMessage: this.formatViolationMessage(violation),
-    }));
+    return violations.map((violation) => {
+      const formatted: FormattedViolation = {
+        ...violation,
+        severityIcon: this.getSeverityIcon(violation.severity),
+        formattedMessage: this.formatViolationMessage(violation),
+      };
+
+      // Attach structured metadata if not already present
+      if (!formatted.metadata) {
+        try {
+          formatted.metadata = FindingMetadataFactory.createForRule(violation.ruleName);
+        } catch (error) {
+          // Gracefully fall back if metadata not available for this rule
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn(`No metadata configuration found for rule: ${violation.ruleName}`);
+          }
+        }
+      }
+
+      return formatted;
+    });
   }
 
   private getSeverityIcon(severity: string): string {

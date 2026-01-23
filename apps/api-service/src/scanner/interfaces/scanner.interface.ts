@@ -1,3 +1,5 @@
+import { FindingMetadata } from '../../common/interfaces/finding-metadata.interface';
+
 export type ViolationSeverity = 'error' | 'warning' | 'info';
 
 export interface RuleViolation {
@@ -8,6 +10,7 @@ export interface RuleViolation {
   columnNumber: number;
   variableName: string;
   suggestion: string;
+  metadata?: FindingMetadata;
 }
 
 export interface ScanResult {
