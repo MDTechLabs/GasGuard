@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use gasguard_rules::{RuleEngine, UnusedStateVariablesRule, VyperRuleEngine};
+use gasguard_rules::{RuleEngine, UnusedStateVariablesRule, VyperRuleEngine, SorobanRuleEngine};
 use std::path::Path;
 
 /// Supported languages for scanning
@@ -7,6 +7,7 @@ use std::path::Path;
 pub enum Language {
     Rust,
     Vyper,
+    Soroban, // Added Soroban support
 }
 
 impl Language {
@@ -18,21 +19,47 @@ impl Language {
             _ => None,
         }
     }
+    
+    /// Detect language from file content heuristics
+    pub fn from_content(content: &str) -> Option<Self> {
+        // Check for Soroban-specific patterns
+        if content.contains("soroban_sdk") && 
+           (content.contains("#[contract]") || 
+            content.contains("#[contractimpl]") || 
+            content.contains("#[contracttype]")) {
+            return Some(Language::Soroban);
+        }
+        
+        // Check for Vyper patterns
+        if content.contains("# @version") || content.contains("interface ") {
+            return Some(Language::Vyper);
+        }
+        
+        // Default to Rust for .rs files or general Rust code
+        if content.contains("fn main(") || content.contains("#[derive(") {
+            return Some(Language::Rust);
+        }
+        
+        None
+    }
 }
 
 pub struct ContractScanner {
     rule_engine: RuleEngine,
     vyper_rule_engine: VyperRuleEngine,
+    soroban_rule_engine: SorobanRuleEngine, // Added Soroban rule engine
 }
 
 impl ContractScanner {
     pub fn new() -> Self {
         let rule_engine = RuleEngine::new().add_rule(Box::new(UnusedStateVariablesRule));
         let vyper_rule_engine = VyperRuleEngine::with_default_rules();
+        let soroban_rule_engine = SorobanRuleEngine::with_default_rules(); // Initialize Soroban engine
 
         Self {
             rule_engine,
             vyper_rule_engine,
+            soroban_rule_engine,
         }
     }
 
@@ -58,7 +85,9 @@ impl ContractScanner {
         source: String,
         language: Option<Language>,
     ) -> Result<ScanResult> {
-        let violations = match language {
+        let detected_language = language.or_else(|| Language::from_content(content));
+        
+        let violations = match detected_language {
             Some(Language::Rust) => self
                 .rule_engine
                 .analyze(content)
@@ -67,9 +96,22 @@ impl ContractScanner {
                 .vyper_rule_engine
                 .analyze(content)
                 .map_err(|e| anyhow::anyhow!(e))?,
+            Some(Language::Soroban) => self
+                .soroban_rule_engine
+                .analyze(content, &source)
+                .map_err(|e| anyhow::anyhow!(format!("Soroban analysis failed: {:?}", e)))?,
             None => {
-                // Unknown language, return empty violations
-                Vec::new()
+                // Unknown language, try to detect and analyze
+                if content.contains("soroban_sdk") {
+                    self.soroban_rule_engine
+                        .analyze(content, &source)
+                        .map_err(|e| anyhow::anyhow!(format!("Soroban analysis failed: {:?}", e)))?
+                } else {
+                    // Default to general Rust analysis
+                    self.rule_engine
+                        .analyze(content)
+                        .map_err(|e| anyhow::anyhow!(e))?
+                }
             }
         };
 
@@ -101,6 +143,28 @@ impl ContractScanner {
             scan_time: chrono::Utc::now(),
         })
     }
+    
+    /// Scan a Soroban contract file specifically
+    pub fn scan_soroban_file(&self, file_path: &Path) -> Result<ScanResult> {
+        let content = std::fs::read_to_string(file_path)
+            .with_context(|| format!("Failed to read file: {:?}", file_path))?;
+
+        self.scan_soroban_content(&content, file_path.to_string_lossy().to_string())
+    }
+
+    /// Scan Soroban contract content directly
+    pub fn scan_soroban_content(&self, content: &str, source: String) -> Result<ScanResult> {
+        let violations = self
+            .soroban_rule_engine
+            .analyze(content, &source)
+            .map_err(|e| anyhow::anyhow!(format!("Soroban analysis failed: {:?}", e)))?;
+
+        Ok(ScanResult {
+            source,
+            violations,
+            scan_time: chrono::Utc::now(),
+        })
+    }
 
     pub fn scan_directory(&self, dir_path: &Path) -> Result<Vec<ScanResult>> {
         let mut results = Vec::new();
@@ -111,11 +175,32 @@ impl ContractScanner {
             .filter(|e| {
                 e.path().extension().map_or(false, |ext| {
                     let ext_str = ext.to_str().unwrap_or("");
-                    Language::from_extension(ext_str).is_some()
+                    ext_str == "rs" || ext_str == "vy" // Both Rust and Vyper files
                 })
             })
         {
-            let result = self.scan_file(entry.path())?;
+            let content = std::fs::read_to_string(entry.path())
+                .with_context(|| format!("Failed to read file: {:?}", entry.path()))?;
+            
+            // Detect language from content for better accuracy
+            let language = Language::from_content(&content).or_else(|| {
+                entry.path().extension()
+                    .and_then(|ext| Language::from_extension(ext.to_str().unwrap_or("")))
+            });
+            
+            let result = match language {
+                Some(Language::Soroban) => {
+                    self.scan_soroban_content(&content, entry.path().to_string_lossy().to_string())?
+                },
+                Some(Language::Vyper) => {
+                    self.scan_vyper_content(&content, entry.path().to_string_lossy().to_string())?
+                },
+                _ => {
+                    // Default to general scanning
+                    self.scan_content_with_language(&content, entry.path().to_string_lossy().to_string(), language)?
+                }
+            };
+            
             if !result.violations.is_empty() {
                 results.push(result);
             }

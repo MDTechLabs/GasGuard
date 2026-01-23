@@ -101,6 +101,7 @@ export enum Language {
   SOLIDITY = 'solidity',
   VYPER = 'vyper',
   RUST = 'rust',
+  SOROBAN = 'soroban',
   CAIRO = 'cairo',
   MOVE = 'move',
   JAVASCRIPT = 'javascript',

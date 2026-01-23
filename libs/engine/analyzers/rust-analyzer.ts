@@ -98,11 +98,11 @@ export class RustAnalyzer extends BaseAnalyzer implements Analyzer {
   }
 
   supportsLanguage(language: Language | string): boolean {
-    return language === Language.RUST || language === 'rust' || language === 'rs';
+    return language === Language.RUST || language === Language.SOROBAN || language === 'rust' || language === 'rs' || language === 'soroban';
   }
 
   getSupportedLanguages(): Language[] {
-    return [Language.RUST];
+    return [Language.RUST, Language.SOROBAN];
   }
 
   getRules(): Rule[] {
@@ -261,7 +261,10 @@ export class RustAnalyzer extends BaseAnalyzer implements Analyzer {
 
 
   private isSorobanContract(code: string): boolean {
-    return code.includes('soroban_sdk') || code.includes('#[contract]');
+    return code.includes('soroban_sdk') || 
+           code.includes('#[contract]') || 
+           code.includes('#[contractimpl]') || 
+           code.includes('#[contracttype]');
   }
 
 

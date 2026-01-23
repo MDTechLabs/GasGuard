@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { CodebaseSubmissionRequest, ValidationError } from '../schemas/analysis.schema';
 
 export class AnalysisValidator {
-  private static readonly SUPPORTED_LANGUAGES = ['rust', 'typescript', 'javascript', 'solidity'];
+  private static readonly SUPPORTED_LANGUAGES = ['rust', 'typescript', 'javascript', 'solidity', 'soroban'];
   private static readonly SUPPORTED_FRAMEWORKS = ['soroban', 'solidity', 'general'];
   private static readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   private static readonly MAX_FILES = 100;

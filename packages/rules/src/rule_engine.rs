@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use syn::{Expr, Item, ItemImpl, ItemStruct, Member, Pat};
 
+// Re-export from soroban module
+pub use crate::soroban::{SorobanRuleEngine, SorobanContract, SorobanParser, SorobanResult};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleViolation {
     pub rule_name: String,
