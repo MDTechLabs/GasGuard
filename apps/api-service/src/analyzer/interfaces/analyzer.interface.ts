@@ -1,10 +1,8 @@
 import { RuleViolation } from '../../scanner/interfaces/scanner.interface';
-import { FindingMetadata } from '../../common/interfaces/finding-metadata.interface';
 
 export interface FormattedViolation extends RuleViolation {
   severityIcon: string;
   formattedMessage: string;
-  metadata?: FindingMetadata;
 }
 
 export interface StorageSavings {
@@ -21,4 +19,3 @@ export interface AnalysisReport {
   storageSavings: StorageSavings;
   recommendations: string[];
 }
-
