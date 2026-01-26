@@ -68,7 +68,7 @@ impl SorobanParser {
                 
                 // Skip to the struct definition
                 i += 1;
-                while i < lines.len() && !lines[i].trim().starts_with("struct") {
+                while i < lines.len() && !lines[i].trim().starts_with("struct") && !lines[i].trim().starts_with("pub struct") {
                     i += 1;
                 }
                 
@@ -89,7 +89,7 @@ impl SorobanParser {
     
     /// Parse a single struct definition
     fn parse_single_struct(lines: &[&str], start_line: usize) -> SorobanResult<Option<SorobanStruct>> {
-        if lines.is_empty() || !lines[0].trim().starts_with("struct") {
+        if lines.is_empty() || (!lines[0].trim().starts_with("struct") && !lines[0].trim().starts_with("pub struct")) {
             return Ok(None);
         }
         
@@ -146,7 +146,7 @@ impl SorobanParser {
             .ok_or_else(|| SorobanParseError::ParseError("Could not extract struct fields".to_string()))?;
         
         // Split by comma to get individual fields
-        let field_parts: Vec<&str> = fields_content.split(',').collect();
+        let field_parts = Self::split_preserving_parentheses(&fields_content, ',');
         
         for (index, field_part) in field_parts.iter().enumerate() {
             let field_part = field_part.trim();
@@ -353,7 +353,7 @@ impl SorobanParser {
         let mut params = Vec::new();
         
         // Split by comma, handling nested parentheses
-        let param_parts = Self::split_preserving_parentheses(params_section, ',');
+        let param_parts = Self::split_preserving_parentheses(&params_section, ',');
         
         for param_part in param_parts {
             let param_part = param_part.trim();
@@ -445,6 +445,7 @@ impl SorobanParser {
         let mut paren_count = 0;
         let mut bracket_count = 0;
         let mut brace_count = 0;
+        let mut angle_count = 0;
         
         for ch in text.chars() {
             match ch {
@@ -454,10 +455,12 @@ impl SorobanParser {
                 ']' => bracket_count -= 1,
                 '{' => brace_count += 1,
                 '}' => brace_count -= 1,
+                '<' => angle_count += 1,
+                '>' => angle_count -= 1,
                 _ => {}
             }
             
-            if ch == delimiter && paren_count == 0 && bracket_count == 0 && brace_count == 0 {
+            if ch == delimiter && paren_count == 0 && bracket_count == 0 && brace_count == 0 && angle_count == 0 {
                 result.push(current.trim().to_string());
                 current = String::new();
             } else {
@@ -510,7 +513,7 @@ impl TokenContract {
         
         let struct_def = &contract.contract_types[0];
         assert_eq!(struct_def.name, "TokenContract");
-        assert_eq!(struct_def.fields.len(), 2);
+        assert_eq!(struct_def.fields.len(), 2, "Fields: {:?}", struct_def.fields);
         
         let impl_block = &contract.implementations[0];
         assert_eq!(impl_block.functions.len(), 2);
