@@ -91,9 +91,11 @@ impl ScanAnalyzer {
 
         for violation in violations {
             match violation.severity {
-                ViolationSeverity::Error => errors.push(violation),
-                ViolationSeverity::Warning => warnings.push(violation),
-                ViolationSeverity::Info => info.push(violation),
+                ViolationSeverity::Critical | ViolationSeverity::High | ViolationSeverity::Error => {
+                    errors.push(violation)
+                }
+                ViolationSeverity::Medium | ViolationSeverity::Warning => warnings.push(violation),
+                ViolationSeverity::Low | ViolationSeverity::Info => info.push(violation),
             }
         }
 

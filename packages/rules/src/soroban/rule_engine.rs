@@ -3,7 +3,7 @@
 //! This module provides a specialized rule engine for analyzing Soroban smart contracts
 //! with rules tailored to Soroban's unique characteristics and gas optimization patterns.
 
-use super::soroban::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
+use super::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -39,14 +39,14 @@ impl SorobanRuleEngine {
     
     /// Add all default Soroban rules
     fn add_default_rules(&mut self) {
-        self.add_rule(UnusedStateVariablesRule)
-            .add_rule(InefficientStorageAccessRule)
-            .add_rule(UnboundedLoopRule)
-            .add_rule(ExpensiveStringOperationsRule)
-            .add_rule(MissingConstructorRule)
-            .add_rule(AdminPatternRule)
-            .add_rule(InefficientIntegerTypesRule)
-            .add_rule(MissingErrorHandlingRule);
+        self.add_rule(UnusedStateVariablesRule::default())
+            .add_rule(InefficientStorageAccessRule::default())
+            .add_rule(UnboundedLoopRule::default())
+            .add_rule(ExpensiveStringOperationsRule::default())
+            .add_rule(MissingConstructorRule::default())
+            .add_rule(AdminPatternRule::default())
+            .add_rule(InefficientIntegerTypesRule::default())
+            .add_rule(MissingErrorHandlingRule::default());
     }
     
     /// Analyze Soroban contract source code
@@ -154,6 +154,7 @@ impl SorobanRule for UnusedStateVariablesRule {
                         description: format!("State variable '{}' appears to be unused", field.name),
                         suggestion: format!("Remove unused state variable '{}' to save ledger storage costs", field.name),
                         line_number: field.line_number,
+                        column_number: 0,
                         variable_name: field.name.clone(),
                         severity: self.severity(),
                     });
@@ -221,8 +222,9 @@ impl SorobanRule for InefficientStorageAccessRule {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description: format!("Function '{}' performs {} storage operations - consider caching", function.name, total_ops),
-                        suggestion: "Cache frequently accessed storage values in local variables to reduce ledger interactions",
+                        suggestion: "Cache frequently accessed storage values in local variables to reduce ledger interactions".to_string(),
                         line_number: function.line_number,
+                        column_number: 0,
                         variable_name: function.name.clone(),
                         severity: self.severity(),
                     });
@@ -288,8 +290,9 @@ impl SorobanRule for UnboundedLoopRule {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description: format!("Function '{}' contains potentially unbounded loop", function.name),
-                        suggestion: "Ensure loops have clear termination conditions to prevent CPU limit exhaustion",
+                        suggestion: "Ensure loops have clear termination conditions to prevent CPU limit exhaustion".to_string(),
                         line_number: function.line_number,
+                        column_number: 0,
                         variable_name: function.name.clone(),
                         severity: self.severity(),
                     });
@@ -351,8 +354,9 @@ impl SorobanRule for ExpensiveStringOperationsRule {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description: format!("Function '{}' uses expensive string operations", function.name),
-                        suggestion: "Consider using Symbol or Bytes for fixed data, or minimize string operations to reduce gas costs",
+                        suggestion: "Consider using Symbol or Bytes for fixed data, or minimize string operations to reduce gas costs".to_string(),
                         line_number: function.line_number,
+                        column_number: 0,
                         variable_name: function.name.clone(),
                         severity: self.severity(),
                     });
@@ -411,6 +415,7 @@ impl SorobanRule for MissingConstructorRule {
                 description: "Contract lacks a constructor function for initialization".to_string(),
                 suggestion: "Add a 'new' function that initializes the contract state properly".to_string(),
                 line_number: 1,
+                column_number: 0,
                 variable_name: contract.name.clone(),
                 severity: self.severity(),
             }]
@@ -468,9 +473,10 @@ impl SorobanRule for AdminPatternRule {
         if !has_admin {
             vec![RuleViolation {
                 rule_name: self.id().to_string(),
-                description: "Consider adding an admin/owner field for access control",
-                suggestion: "Add an 'admin: Address' field to your contract state for administrative functions",
+                description: "Consider adding an admin/owner field for access control".to_string(),
+                suggestion: "Add an 'admin: Address' field to your contract state for administrative functions".to_string(),
                 line_number: 1,
+                column_number: 0,
                 variable_name: contract.name.clone(),
                 severity: self.severity(),
             }]
@@ -527,6 +533,7 @@ impl SorobanRule for InefficientIntegerTypesRule {
                         description: format!("Field '{}' uses {} which may be unnecessarily large", field.name, field.type_name),
                         suggestion: format!("Consider using a smaller integer type like u64 or u32 if the range permits"),
                         line_number: field.line_number,
+                        column_number: 0,
                         variable_name: field.name.clone(),
                         severity: self.severity(),
                     });
@@ -590,8 +597,9 @@ impl SorobanRule for MissingErrorHandlingRule {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description: format!("Function '{}' should return Result for proper error handling", function.name),
-                        suggestion: "Return Result<(), Error> to properly handle operation failures and provide better error reporting",
+                        suggestion: "Return Result<(), Error> to properly handle operation failures and provide better error reporting".to_string(),
                         line_number: function.line_number,
+                        column_number: 0,
                         variable_name: function.name.clone(),
                         severity: self.severity(),
                     });
@@ -640,8 +648,8 @@ impl TestContract {
 }
 "#;
         
-        let engine = SorobanRuleEngine::new()
-            .add_rule(UnusedStateVariablesRule::default());
+        let mut engine = SorobanRuleEngine::new();
+        engine.add_rule(UnusedStateVariablesRule::default());
         
         let violations = engine.analyze(source, "test.rs").unwrap();
         

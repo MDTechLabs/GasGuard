@@ -18,6 +18,10 @@ pub struct RuleViolation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ViolationSeverity {
+    Critical,
+    High,
+    Medium,
+    Low,
     Error,
     Warning,
     Info,

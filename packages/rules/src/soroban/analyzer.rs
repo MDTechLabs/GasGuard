@@ -92,6 +92,7 @@ impl SorobanAnalyzer {
                 description: "Contract should have a constructor function for initialization".to_string(),
                 suggestion: "Add a 'new' function that initializes the contract state".to_string(),
                 line_number: 1,
+                column_number: 0,
                 variable_name: contract.name.clone(),
                 severity: ViolationSeverity::Warning,
             });
@@ -112,6 +113,7 @@ impl SorobanAnalyzer {
                 description: "Consider adding an admin/owner field for access control".to_string(),
                 suggestion: "Add an 'admin: Address' field to your contract state".to_string(),
                 line_number: 1,
+                column_number: 0,
                 variable_name: contract.name.clone(),
                 severity: ViolationSeverity::Info,
             });
@@ -136,6 +138,7 @@ impl SorobanAnalyzer {
                     description: format!("State variable '{}' appears to be unused", field.name),
                     suggestion: format!("Remove unused state variable '{}' to save ledger storage", field.name),
                     line_number: field.line_number,
+                    column_number: 0,
                     variable_name: field.name.clone(),
                     severity: ViolationSeverity::Warning,
                 });
@@ -155,8 +158,9 @@ impl SorobanAnalyzer {
                 violations.push(RuleViolation {
                     rule_name: "inefficient-integer-type".to_string(),
                     description: format!("Field '{}' uses {} which may be unnecessarily large", field.name, field.type_name),
-                    suggestion: format!("Consider using a smaller integer type like u64 or u32 if the range permits", field.name),
+                    suggestion: format!("Consider using a smaller integer type like u64 or u32 if the range permits for field '{}'", field.name),
                     line_number: field.line_number,
+                    column_number: 0,
                     variable_name: field.name.clone(),
                     severity: ViolationSeverity::Info,
                 });
@@ -169,6 +173,7 @@ impl SorobanAnalyzer {
                     description: format!("Field '{}' uses String type", field.name),
                     suggestion: "Consider using Symbol for fixed string values to save storage costs".to_string(),
                     line_number: field.line_number,
+                    column_number: 0,
                     variable_name: field.name.clone(),
                     severity: ViolationSeverity::Info,
                 });
@@ -189,6 +194,7 @@ impl SorobanAnalyzer {
                     description: format!("Field '{}' is private but contract fields should typically be public", field.name),
                     suggestion: format!("Change '{}' to 'pub {}' to make it accessible", field.name, field.name),
                     line_number: field.line_number,
+                    column_number: 0,
                     variable_name: field.name.clone(),
                     severity: ViolationSeverity::Warning,
                 });
@@ -207,9 +213,10 @@ impl SorobanAnalyzer {
         if function_source.contains(".to_string()") || function_source.contains("String::from(") {
             violations.push(RuleViolation {
                 rule_name: "expensive-string-operation".to_string(),
-                description: "String operations can be expensive in terms of gas/storage",
-                suggestion: "Consider using Symbol or Bytes for fixed data, or minimize string operations",
+                description: "String operations can be expensive in terms of gas/storage".to_string(),
+                suggestion: "Consider using Symbol or Bytes for fixed data, or minimize string operations".to_string(),
                 line_number: function.line_number,
+                column_number: 0,
                 variable_name: function.name.clone(),
                 severity: ViolationSeverity::Medium,
             });
@@ -219,9 +226,10 @@ impl SorobanAnalyzer {
         if function_source.contains("Vec::new()") && !function_source.contains("with_capacity") {
             violations.push(RuleViolation {
                 rule_name: "vec-without-capacity".to_string(),
-                description: "Vec::new() without capacity can cause multiple reallocations",
-                suggestion: "Use Vec::with_capacity() to pre-allocate memory when size is known",
+                description: "Vec::new() without capacity can cause multiple reallocations".to_string(),
+                suggestion: "Use Vec::with_capacity() to pre-allocate memory when size is known".to_string(),
                 line_number: function.line_number,
+                column_number: 0,
                 variable_name: function.name.clone(),
                 severity: ViolationSeverity::Medium,
             });
@@ -231,9 +239,10 @@ impl SorobanAnalyzer {
         if function_source.contains(".clone()") {
             violations.push(RuleViolation {
                 rule_name: "unnecessary-clone".to_string(),
-                description: "Clone operations increase resource usage and gas costs",
-                suggestion: "Avoid unnecessary cloning, use references where possible",
+                description: "Clone operations increase resource usage and gas costs".to_string(),
+                suggestion: "Avoid unnecessary cloning, use references where possible".to_string(),
                 line_number: function.line_number,
+                column_number: 0,
                 variable_name: function.name.clone(),
                 severity: ViolationSeverity::Medium,
             });
@@ -254,8 +263,9 @@ impl SorobanAnalyzer {
                     violations.push(RuleViolation {
                         rule_name: "missing-address-validation".to_string(),
                         description: format!("Function '{}' takes Address parameter but may lack validation", function.name),
-                        suggestion: "Validate Address parameters to prevent invalid addresses",
+                        suggestion: "Validate Address parameters to prevent invalid addresses".to_string(),
                         line_number: function.line_number,
+                        column_number: 0,
                         variable_name: function.name.clone(),
                         severity: ViolationSeverity::Medium,
                     });
@@ -279,8 +289,9 @@ impl SorobanAnalyzer {
                 violations.push(RuleViolation {
                     rule_name: "missing-error-handling".to_string(),
                     description: format!("Function '{}' should return Result for error handling", function.name),
-                    suggestion: "Return Result<(), Error> to properly handle operation failures",
+                    suggestion: "Return Result<(), Error> to properly handle operation failures".to_string(),
                     line_number: function.line_number,
+                    column_number: 0,
                     variable_name: function.name.clone(),
                     severity: ViolationSeverity::Medium,
                 });
@@ -304,8 +315,9 @@ impl SorobanAnalyzer {
                 violations.push(RuleViolation {
                     rule_name: "unbounded-loop".to_string(),
                     description: format!("Function '{}' contains potentially unbounded loop", function.name),
-                    suggestion: "Ensure loops have clear termination conditions to prevent CPU limit exhaustion",
+                    suggestion: "Ensure loops have clear termination conditions to prevent CPU limit exhaustion".to_string(),
                     line_number: function.line_number,
+                    column_number: 0,
                     variable_name: function.name.clone(),
                     severity: ViolationSeverity::High,
                 });
@@ -339,8 +351,9 @@ impl SorobanAnalyzer {
             violations.push(RuleViolation {
                 rule_name: "inefficient-storage-access".to_string(),
                 description: format!("Function '{}' performs {} storage reads - consider caching", function.name, read_count),
-                suggestion: "Cache frequently accessed storage values in local variables",
+                suggestion: "Cache frequently accessed storage values in local variables".to_string(),
                 line_number: function.line_number,
+                column_number: 0,
                 variable_name: function.name.clone(),
                 severity: ViolationSeverity::Medium,
             });
