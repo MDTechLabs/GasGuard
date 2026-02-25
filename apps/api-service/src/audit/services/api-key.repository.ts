@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ApiKey, ApiKeyStatus } from '../entities/api-key.entity';
 
 @Injectable()
@@ -52,7 +52,8 @@ export class ApiKeyRepository {
       .skip(offset)
       .take(limit);
 
-    const [data, total] = await query.getManyAndCount();
+    const data = await query.getMany();
+    const total = data.length;
     return { data, total };
   }
 
@@ -84,34 +85,47 @@ export class ApiKeyRepository {
    * Update API key status
    */
   async updateStatus(id: string, status: ApiKeyStatus): Promise<void> {
-    await this.apiKeyRepo.update(id, { status });
+    await this.apiKeyRepo
+      .createQueryBuilder()
+      .update(ApiKey)
+      .set({ status })
+      .where('id = :id', { id })
+      .execute();
   }
 
   /**
    * Update API key with partial data
    */
   async update(id: string, data: Partial<ApiKey>): Promise<void> {
-    await this.apiKeyRepo.update(id, data);
+    await this.apiKeyRepo
+      .createQueryBuilder()
+      .update(ApiKey)
+      .set(data)
+      .where('id = :id', { id })
+      .execute();
   }
 
   /**
    * Increment request count and update last used timestamp
    */
   async recordUsage(id: string): Promise<void> {
-    await this.apiKeyRepo.increment({ id }, 'requestCount', 1);
-    await this.apiKeyRepo.update(id, { lastUsedAt: new Date() });
+    const apiKey = await this.findById(id);
+    if (apiKey) {
+      apiKey.requestCount += 1;
+      apiKey.lastUsedAt = new Date();
+      await this.apiKeyRepo.save(apiKey);
+    }
   }
 
   /**
    * Find all expired keys that are still ACTIVE
    */
   async findExpiredKeys(): Promise<ApiKey[]> {
-    return this.apiKeyRepo.find({
-      where: {
-        status: ApiKeyStatus.ACTIVE,
-        expiresAt: LessThan(new Date()),
-      },
-    });
+    const now = new Date();
+    return this.apiKeyRepo.createQueryBuilder('apiKey')
+      .where('apiKey.status = :status', { status: ApiKeyStatus.ACTIVE })
+      .andWhere('apiKey.expiresAt < :now', { now })
+      .getMany();
   }
 
   /**
