@@ -318,15 +318,14 @@ export class SuspiciousGasDetectionService {
   async computeBaseline(accountAddress: string, chainId: number): Promise<GasBaseline | null> {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const transactions = await this.transactionRepository.find({
-      where: {
-        merchantId: accountAddress,
-        chainId: chainId.toString(),
-        createdAt: MoreThan(thirtyDaysAgo),
-        status: 'success',
-      },
-      order: { createdAt: 'ASC' },
-    });
+    const transactions = await this.transactionRepository
+      .createQueryBuilder('tx')
+      .where('tx.merchantId = :account', { account: accountAddress })
+      .andWhere('tx.chainId = :chainId', { chainId: chainId.toString() })
+      .andWhere('tx.createdAt > :thirtyDaysAgo', { thirtyDaysAgo })
+      .andWhere('tx.status = :status', { status: 'success' })
+      .orderBy('tx.createdAt', 'ASC')
+      .getMany();
 
     if (transactions.length < this.minBaselineSamples) {
       return null;
