@@ -1,12 +1,28 @@
+  public async getRpcHealthStatus(): Promise<Record<number, any>> {
+    const status: Record<number, any> = {};
+    for (const [chainId, manager] of this.rpcManagers.entries()) {
+      await manager.checkHealth();
+      status[chainId] = manager.getHealth();
+    }
+    return status;
+  }
+
+  public logFailoverEvent(chainId: number, fromUrl: string, toUrl: string) {
+    // Replace with a real logger or audit system as needed
+    console.log(`[Failover] Chain ${chainId}: Switched from ${fromUrl} to ${toUrl} at ${new Date().toISOString()}`);
+  }
+
 import { Injectable } from '@nestjs/common';
-import { 
-  ChainGasMetrics, 
-  CrossChainGasRequest, 
+import {
+  ChainGasMetrics,
+  CrossChainGasRequest,
   CrossChainGasResponse,
   TransactionCost,
   GasNormalizationResult,
-  SupportedChain 
+  SupportedChain
 } from '../schemas/cross-chain-gas.schema';
+import { RpcProviderManager, RpcProviderConfig } from './rpc-provider-manager';
+import { providers } from 'ethers';
 
 @Injectable()
 export class CrossChainGasService {
@@ -48,6 +64,38 @@ export class CrossChainGasService {
     }
   ];
 
+  // Map chainId to RpcProviderManager
+  private rpcManagers: Map<number, RpcProviderManager> = new Map();
+
+  constructor() {
+    // Example: Add multiple providers per chain (expand as needed)
+    const providerConfigs: Record<number, RpcProviderConfig[]> = {
+      1: [
+        { url: process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.alchemyapi.io/v2/demo', priority: 1 },
+        { url: 'https://rpc.ankr.com/eth', priority: 2 }
+      ],
+      137: [
+        { url: process.env.POLYGON_RPC_URL || 'https://polygon-mainnet.alchemyapi.io/v2/demo', priority: 1 },
+        { url: 'https://rpc.ankr.com/polygon', priority: 2 }
+      ],
+      56: [
+        { url: process.env.BSC_RPC_URL || 'https://bsc-dataseed.binance.org', priority: 1 },
+        { url: 'https://rpc.ankr.com/bsc', priority: 2 }
+      ],
+      42161: [
+        { url: process.env.ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc', priority: 1 },
+        { url: 'https://rpc.ankr.com/arbitrum', priority: 2 }
+      ],
+      10: [
+        { url: process.env.OPTIMISM_RPC_URL || 'https://mainnet.optimism.io', priority: 1 },
+        { url: 'https://rpc.ankr.com/optimism', priority: 2 }
+      ]
+    };
+    for (const chain of this.supportedChains) {
+      this.rpcManagers.set(chain.chainId, new RpcProviderManager(chain.chainName, providerConfigs[chain.chainId] || [{ url: chain.rpcUrl, priority: 1 }]));
+    }
+  }
+
   private readonly averageGasUsage = {
     transfer: 21000,
     'contract-call': 50000,
@@ -81,22 +129,34 @@ export class CrossChainGasService {
   }
 
   private async getChainGasMetrics(chain: SupportedChain): Promise<ChainGasMetrics> {
-    // Mock implementation - in production, this would fetch real-time data
-    const mockGasPrices = {
-      1: { baseFee: '20000000000', priorityFee: '2000000000' },
-      137: { baseFee: '30000000000', priorityFee: '1000000000' },
-      56: { baseFee: '5000000000', priorityFee: '1000000000' },
-      42161: { baseFee: '10000000000', priorityFee: '500000000' },
-      10: { baseFee: '15000000000', priorityFee: '1000000000' }
-    };
-
-    const gasPrice = (mockGasPrices as Record<number, { baseFee: string; priorityFee: string }>)[chain.chainId] || { baseFee: '20000000000', priorityFee: '2000000000' };
-
+    // Use RpcProviderManager for failover and retry
+    const rpcManager = this.rpcManagers.get(chain.chainId)!;
+    let provider = rpcManager.getCurrentProvider();
+    let baseFee = '0', priorityFee = '0';
+    let success = false;
+    let attempts = 0;
+    const maxAttempts = rpcManager.getProviderUrls().length;
+    while (!success && attempts < maxAttempts) {
+      try {
+        // EIP-1559: baseFeePerGas and maxPriorityFeePerGas
+        const block = await provider.getBlock('latest');
+        baseFee = block.baseFeePerGas ? block.baseFeePerGas.toString() : '0';
+        // Estimate priority fee (could be improved)
+        priorityFee = '2000000000';
+        success = true;
+      } catch (e) {
+        // Mark provider unhealthy and failover
+        await rpcManager.checkHealth();
+        rpcManager.failover();
+        provider = rpcManager.getCurrentProvider();
+        attempts++;
+      }
+    }
     return {
       chainId: chain.chainId,
       chainName: chain.chainName,
-      baseFee: gasPrice.baseFee,
-      priorityFee: gasPrice.priorityFee,
+      baseFee,
+      priorityFee,
       averageGasUsed: this.averageGasUsage,
       nativeTokenPriceUSD: (this.nativeTokenPricesUSD as Record<number, number>)[chain.chainId] || 1,
       averageConfirmationTime: chain.blockTime

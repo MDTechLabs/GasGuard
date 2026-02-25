@@ -1,3 +1,29 @@
+## 🚦 Multi-Chain RPC Failover System
+
+GasGuard now features a robust multi-chain RPC failover system:
+
+- **Provider Management:** Configurable list of primary, secondary, and fallback RPC endpoints per chain.
+- **Automatic Failover:** Detects failures or high latency and switches to backup providers with retry logic.
+- **Health Monitoring:** Tracks response time, error rates, and uptime for each provider. Health status is available via the `/v1/analytics/rpc-health` endpoint.
+- **Security:** All sensitive RPC URLs and API keys are managed via environment variables.
+- **Logging:** Failover events are logged for diagnostics and auditing.
+
+See the code in `apps/api/src/services/rpc-provider-manager.ts` and `apps/api/src/services/cross-chain-gas.service.ts` for implementation details.
+## 🔒 Secure RPC Provider Configuration
+
+All sensitive RPC URLs and API keys should be set via environment variables (e.g., `ETHEREUM_RPC_URL`, `POLYGON_RPC_URL`, etc.). Never commit secrets to source control. Use a `.env` file or your deployment environment's secret manager.
+
+Example `.env`:
+
+```
+ETHEREUM_RPC_URL=https://mainnet.infura.io/v3/your-key
+POLYGON_RPC_URL=https://polygon-mainnet.infura.io/v3/your-key
+BSC_RPC_URL=https://bsc-dataseed1.binance.org
+ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
+OPTIMISM_RPC_URL=https://mainnet.optimism.io
+```
+
+The backend will automatically use these for primary endpoints and failover to public endpoints if needed.
 # GasGuard: Automated Optimization Suite
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)

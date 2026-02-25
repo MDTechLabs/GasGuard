@@ -1,3 +1,15 @@
+  @Get('v1/analytics/rpc-health')
+  @ApiOperation({
+    summary: 'Get RPC provider health status',
+    description: 'Returns health metrics for all RPC providers per chain.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'RPC provider health status returned successfully'
+  })
+  async getRpcHealthStatus(): Promise<Record<number, any>> {
+    return this.crossChainGasService.getRpcHealthStatus();
+  }
 import { Controller, Get, Query, BadRequestException, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { CrossChainGasService } from '../services/cross-chain-gas.service';
