@@ -170,6 +170,56 @@
 //    * Calculate upgrade savings between tiers
 //    */
 //   async calculateUpgradeSavings(
+	/**
+	 * Simulate the effects of upgrading a user to a new tier
+	 */
+	async simulateUpgrade(
+		userUsage: UserUsage,
+		targetTier: UsageTier
+	): Promise<{
+		fromTier: UsageTier;
+		toTier: UsageTier;
+		currentConfig: TierConfig | undefined;
+		targetConfig: TierConfig | undefined;
+		currentMonthlyCost: number;
+		newMonthlyCost: number;
+		monthlySavings: number;
+		annualSavings: number;
+		featureDifferences: string[];
+		usage: number;
+		requestLimit: number;
+		usagePercentage: number;
+	}> {
+		const currentConfig = await this.getTierConfig(userUsage.currentTier);
+		const targetConfig = await this.getTierConfig(targetTier);
+		if (!currentConfig || !targetConfig) {
+			throw new Error("Invalid tier configuration");
+		}
+		// Estimate current and new monthly costs
+		const currentMonthlyCost = userUsage.currentMonthRequests * currentConfig.basePricePerRequest * (1 - currentConfig.discountPercentage / 100);
+		const newMonthlyCost = userUsage.currentMonthRequests * targetConfig.basePricePerRequest * (1 - targetConfig.discountPercentage / 100);
+		const monthlySavings = currentMonthlyCost - newMonthlyCost;
+		const annualSavings = monthlySavings * 12;
+		// Feature differences
+		const featureDifferences = targetConfig.features.filter(f => !currentConfig.features.includes(f));
+		const usage = userUsage.currentMonthRequests;
+		const requestLimit = targetConfig.requestLimit;
+		const usagePercentage = (usage / requestLimit) * 100;
+		return {
+			fromTier: userUsage.currentTier,
+			toTier: targetTier,
+			currentConfig,
+			targetConfig,
+			currentMonthlyCost,
+			newMonthlyCost,
+			monthlySavings,
+			annualSavings,
+			featureDifferences,
+			usage,
+			requestLimit,
+			usagePercentage,
+		};
+	}
 //     currentTier: UsageTier,
 //     newTier: UsageTier,
 //     monthlyCost: number,
