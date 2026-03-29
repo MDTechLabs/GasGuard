@@ -484,7 +484,139 @@ describe('Solidity Reentrancy Guard Analysis', () => {
       expect(ceiIssues).toHaveLength(0);
     });
   });
+  describe('Enhanced Circuit Breaker Functionality', () => {
+    it('should validate circuit breaker pause/unpause operations', async () => {
+      const circuitBreakerSource = `
+        contract EnhancedCircuitBreaker {
+            mapping(bytes32 => bool) private pausedModules;
+            bool private globalPause;
+            address public admin;
+            address public emergencyPauser;
 
+            bytes32 public constant WITHDRAWAL_MODULE = keccak256("WITHDRAWAL");
+            bytes32 public constant DEPOSIT_MODULE = keccak256("DEPOSIT");
+
+            event ModulePaused(bytes32 indexed moduleId, address indexed pauser, uint256 timestamp);
+            event ModuleUnpaused(bytes32 indexed moduleId, address indexed unpauser, uint256 timestamp);
+
+            modifier onlyEmergencyPauser() {
+                require(msg.sender == emergencyPauser || msg.sender == admin, "Not authorized");
+                _;
+            }
+
+            modifier onlyAdmin() {
+                require(msg.sender == admin, "Not admin");
+                _;
+            }
+
+            constructor(address _admin, address _emergencyPauser) {
+                admin = _admin;
+                emergencyPauser = _emergencyPauser;
+            }
+
+            function pauseModule(bytes32 moduleId) external onlyEmergencyPauser {
+                require(!pausedModules[moduleId], "Already paused");
+                pausedModules[moduleId] = true;
+                emit ModulePaused(moduleId, msg.sender, block.timestamp);
+            }
+
+            function adminUnpause(bytes32 moduleId) external onlyAdmin {
+                require(pausedModules[moduleId], "Not paused");
+                pausedModules[moduleId] = false;
+                emit ModuleUnpaused(moduleId, msg.sender, block.timestamp);
+            }
+
+            function isPaused(bytes32 moduleId) public view returns (bool) {
+                return globalPause || pausedModules[moduleId];
+            }
+        }
+      `;
+
+      const result = await engine.scan({
+        language: 'solidity',
+        source: circuitBreakerSource,
+      });
+
+      // Circuit breaker should not trigger security issues
+      const criticalIssues = result.issues.filter(issue => issue.severity === 'critical');
+      const highIssues = result.issues.filter(issue => issue.severity === 'high');
+
+      expect(criticalIssues).toHaveLength(0);
+      expect(highIssues).toHaveLength(0);
+    });
+
+    it('should detect unsafe circuit breaker implementations', async () => {
+      const unsafeCircuitBreaker = `
+        contract UnsafeCircuitBreaker {
+            bool public paused;
+
+            function pause() external {
+                // UNSAFE: Anyone can pause
+                paused = true;
+            }
+
+            function unpause() external {
+                // UNSAFE: Anyone can unpause immediately
+                paused = false;
+            }
+
+            function sensitiveOperation() external {
+                require(!paused, "Paused");
+                // Critical operation
+            }
+        }
+      `;
+
+      const result = await engine.scan({
+        language: 'solidity',
+        source: unsafeCircuitBreaker,
+      });
+
+      // Should detect missing access controls
+      expect(result.issues.length).toBeGreaterThan(0);
+    });
+
+    it('should validate protected contract integration', async () => {
+      const protectedContractSource = `
+        import "./enhanced_circuit_breaker.sol";
+
+        contract ProtectedBank is EnhancedCircuitBreaker {
+            mapping(address => uint256) public balances;
+
+            modifier onlyWhenNotPaused(bytes32 moduleId) {
+                require(!isPaused(moduleId), "Module paused");
+                _;
+            }
+
+            bytes32 public constant WITHDRAWAL_MODULE = keccak256("WITHDRAWAL");
+
+            function withdraw(uint256 amount) external onlyWhenNotPaused(WITHDRAWAL_MODULE) {
+                require(balances[msg.sender] >= amount, "Insufficient balance");
+                balances[msg.sender] -= amount;
+                payable(msg.sender).transfer(amount);
+            }
+
+            function emergencyWithdraw(uint256 amount) external {
+                // Emergency withdrawal that works even when paused
+                require(isPaused(WITHDRAWAL_MODULE) || globalPause, "Not in emergency");
+                uint256 maxAmount = balances[msg.sender] / 2;
+                require(amount <= maxAmount, "Amount too high for emergency");
+                balances[msg.sender] -= amount;
+                payable(msg.sender).transfer(amount);
+            }
+        }
+      `;
+
+      const result = await engine.scan({
+        language: 'solidity',
+        source: protectedContractSource,
+      });
+
+      // Protected contract should have minimal security issues
+      const criticalIssues = result.issues.filter(issue => issue.severity === 'critical');
+      expect(criticalIssues).toHaveLength(0);
+    });
+  });
   describe('Contract Health Check Functionality', () => {
     it('should recognize health check functions as safe monitoring utilities', async () => {
       const healthCheckContract = fs.readFileSync(

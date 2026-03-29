@@ -24,6 +24,11 @@ pub struct OptimizedContract {
     pub version: u32,                // ✅ Version tracking (#123)
     pub last_health_check: u64,      // Timestamp of last health check
     pub total_operations: u32,       // Total operations performed
+    // Circuit breaker state
+    pub paused: bool,                // Global pause state
+    pub paused_modules: Map<Symbol, bool>, // Module-specific pause states
+    pub emergency_pauser: Address,   // Address authorized for emergency pause
+    pub last_pause_timestamp: u64,   // Last pause operation timestamp
 }
 
 #[contractimpl]
@@ -99,7 +104,7 @@ impl DemoTokenContract {
 #[contractimpl]
 impl OptimizedContract {
     /// Well-structured constructor
-    pub fn new(owner: Address, initial_balance: u64) -> Result<Self, DemoError> {
+    pub fn new(owner: Address, initial_balance: u64, emergency_pauser: Address) -> Result<Self, DemoError> {
         if initial_balance == 0 {
             return Err(DemoError::InvalidAmount);
         }
@@ -111,14 +116,21 @@ impl OptimizedContract {
             version: 1, // Initialize version
             last_health_check: 0,
             total_operations: 0,
+            paused: false,
+            paused_modules: Map::new(),
+            emergency_pauser,
+            last_pause_timestamp: 0,
         })
     }
     
     
     /// Properly implemented transfer with error handling
     pub fn transfer(&mut self, env: Env, to: Address, amount: u64, nonce: u64, deadline: u64) -> Result<(), DemoError> {
-        // ✅ Anti-Front-Running: Nonce and Deadline check (#118)
-        if env.ledger().timestamp() > deadline {
+        // Check if transfers are paused
+        if self.is_paused(Some(Symbol::new(&env, "transfer"))) {
+            return Err(DemoError::Unauthorized); // Reuse error for pause state
+        }
+
             return Err(DemoError::TransactionExpired);
         }
         
@@ -228,6 +240,105 @@ impl OptimizedContract {
 
         balance_non_negative && operations_non_decreasing && version_set
     }
+
+    /// Emergency pause - can be called by emergency pauser or owner
+    pub fn emergency_pause(&mut self, env: Env, caller: Address) -> Result<(), DemoError> {
+        // Only emergency pauser or owner can pause
+        if caller != self.emergency_pauser && caller != self.owner {
+            return Err(DemoError::Unauthorized);
+        }
+
+        self.paused = true;
+        self.last_pause_timestamp = env.ledger().timestamp();
+
+        Ok(())
+    }
+
+    /// Pause specific module
+    pub fn pause_module(&mut self, env: Env, caller: Address, module: Symbol) -> Result<(), DemoError> {
+        if caller != self.emergency_pauser && caller != self.owner {
+            return Err(DemoError::Unauthorized);
+        }
+
+        self.paused_modules.set(module, true);
+        self.last_pause_timestamp = env.ledger().timestamp();
+
+        Ok(())
+    }
+
+    /// Unpause (only owner, with timelock consideration)
+    pub fn unpause(&mut self, env: Env, caller: Address) -> Result<(), DemoError> {
+        if caller != self.owner {
+            return Err(DemoError::Unauthorized);
+        }
+
+        // Simple timelock: require some time has passed since last pause
+        let time_since_pause = env.ledger().timestamp() - self.last_pause_timestamp;
+        if time_since_pause < 3600 { // 1 hour minimum
+            return Err(DemoError::TransactionExpired); // Reuse error for timelock
+        }
+
+        self.paused = false;
+        Ok(())
+    }
+
+    /// Unpause specific module
+    pub fn unpause_module(&mut self, env: Env, caller: Address, module: Symbol) -> Result<(), DemoError> {
+        if caller != self.owner {
+            return Err(DemoError::Unauthorized);
+        }
+
+        self.paused_modules.set(module, false);
+        Ok(())
+    }
+
+    /// Check if contract is paused (globally or for specific module)
+    pub fn is_paused(&self, module: Option<Symbol>) -> bool {
+        if self.paused {
+            return true;
+        }
+
+        if let Some(module_key) = module {
+            return self.paused_modules.get(module_key).unwrap_or(false);
+        }
+
+        false
+    }
+
+    /// Get pause status for multiple modules
+    pub fn get_pause_status(&self, modules: Vec<Symbol>) -> Vec<bool> {
+        modules.iter().map(|module| self.is_paused(Some(*module))).collect()
+    }
+
+    /// Emergency action that works even when paused
+    pub fn emergency_action(&mut self, env: Env, caller: Address, action_type: Symbol) -> Result<(), DemoError> {
+        if caller != self.emergency_pauser && caller != self.owner {
+            return Err(DemoError::Unauthorized);
+        }
+
+        // Emergency actions can be performed even when paused
+        // Implementation depends on specific emergency logic needed
+
+        match action_type {
+            _ => {
+                // Placeholder for emergency actions
+                // Could include fund recovery, state reset, etc.
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Update emergency pauser (only owner)
+    pub fn update_emergency_pauser(&mut self, caller: Address, new_pauser: Address) -> Result<(), DemoError> {
+        if caller != self.owner {
+            return Err(DemoError::Unauthorized);
+        }
+
+        self.emergency_pauser = new_pauser;
+        Ok(())
+    }
+}
 }
 }
 
