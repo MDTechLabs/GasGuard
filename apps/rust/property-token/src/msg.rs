@@ -55,7 +55,10 @@ pub enum ExecuteMsg {
 
     // Role-based Access Control
     UpdateConfig {
+        /// Replaces the current admin when provided. Empty values are rejected.
         new_admin: Option<String>,
+        /// Backward-compatible permission updates.
+        /// `true` grants a role; `false` revokes it by removing the map entry.
         authorized_roles: Option<Vec<(String, bool)>>,
     },
 

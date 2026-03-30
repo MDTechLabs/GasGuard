@@ -6,6 +6,7 @@ use cosmwasm_std::{
     entry_point, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Order,
     Response, StdError, StdResult, Uint128, BankMsg, Coin,
 };
+use std::collections::BTreeSet;
 use crate::msg::{
     Auth, BatchMsg, ExecuteMsg, InstantiateMsg, MigrateMsg,
     PropertyMetadata, QueryMsg, SelfCheckResponse, TreasuryAction,
@@ -15,6 +16,28 @@ use crate::state::{
     FEE_BALANCES, METADATA, TREASURY_BALANCE,
 };
 use crate::security::{ensure_authorized, prevent_replay};
+
+enum RoleMutation {
+    Grant(String),
+    Revoke(String),
+}
+
+fn validate_principal(label: &str, principal: &str) -> StdResult<String> {
+    let normalized = principal.trim();
+    if normalized.is_empty() {
+        return Err(StdError::generic_err(format!("{} cannot be empty", label)));
+    }
+
+    Ok(normalized.to_string())
+}
+
+fn format_audit_list(entries: &[String]) -> String {
+    if entries.is_empty() {
+        "none".to_string()
+    } else {
+        entries.join(",")
+    }
+}
 
 // ── Entry points ─────────────────────────────────────────────────────────────
 
@@ -271,26 +294,95 @@ pub fn execute_update_config(
     new_admin: Option<String>,
     authorized_roles: Option<Vec<(String, bool)>>,
 ) -> StdResult<Response> {
-    let admin = ADMIN.load(deps.storage)?;
-    if info.sender.as_str() != admin {
+    let current_admin = ADMIN.load(deps.storage)?;
+    if info.sender.as_str() != current_admin {
         return Err(StdError::generic_err("Only the current admin can update config"));
     }
-    if let Some(addr) = new_admin {
-        ADMIN.save(deps.storage, &addr)?;
-    }
+
+    let next_admin = new_admin
+        .as_deref()
+        .map(|addr| validate_principal("new_admin", addr))
+        .transpose()?;
+
+    let mut seen_roles = BTreeSet::new();
+    let mut role_mutations: Vec<RoleMutation> = Vec::new();
+
     if let Some(roles) = authorized_roles {
         for (addr, is_auth) in roles {
-            AUTHORIZED_ROLES.save(deps.storage, &addr, &is_auth)?;
+            let normalized = validate_principal("authorized role address", &addr)?;
+            if !seen_roles.insert(normalized.clone()) {
+                return Err(StdError::generic_err(format!(
+                    "Duplicate role update requested for {}",
+                    normalized
+                )));
+            }
+
+            let existing_state = AUTHORIZED_ROLES.may_load(deps.storage, &normalized)?;
+            match (existing_state, is_auth) {
+                (Some(true), true) => {}
+                (Some(false), true) | (None, true) => {
+                    role_mutations.push(RoleMutation::Grant(normalized));
+                }
+                (Some(true), false) | (Some(false), false) => {
+                    role_mutations.push(RoleMutation::Revoke(normalized));
+                }
+                (None, false) => {
+                    return Err(StdError::generic_err(format!(
+                        "Cannot revoke role for {} because no active permission exists",
+                        normalized
+                    )));
+                }
+            }
         }
     }
-    Ok(Response::new().add_attribute("action", "update_config"))
+
+    let mut response = Response::new()
+        .add_attribute("action", "update_config")
+        .add_attribute("actor", info.sender.as_str());
+
+    if let Some(addr) = next_admin {
+        let admin_changed = addr != current_admin;
+        if admin_changed {
+            ADMIN.save(deps.storage, &addr)?;
+        }
+        response = response
+            .add_attribute("admin_changed", admin_changed.to_string())
+            .add_attribute("previous_admin", current_admin.clone())
+            .add_attribute("current_admin", addr);
+    } else {
+        response = response
+            .add_attribute("admin_changed", "false")
+            .add_attribute("current_admin", current_admin.clone());
+    }
+
+    let mut granted_roles: Vec<String> = Vec::new();
+    let mut revoked_roles: Vec<String> = Vec::new();
+
+    for mutation in role_mutations {
+        match mutation {
+            RoleMutation::Grant(addr) => {
+                AUTHORIZED_ROLES.save(deps.storage, &addr, &true)?;
+                granted_roles.push(addr);
+            }
+            RoleMutation::Revoke(addr) => {
+                AUTHORIZED_ROLES.remove(deps.storage, &addr);
+                revoked_roles.push(addr);
+            }
+        }
+    }
+
+    Ok(response
+        .add_attribute("roles_granted_count", granted_roles.len().to_string())
+        .add_attribute("roles_revoked_count", revoked_roles.len().to_string())
+        .add_attribute("roles_granted", format_audit_list(&granted_roles))
+        .add_attribute("roles_revoked", format_audit_list(&revoked_roles)))
 }
 
 /// #136 — Storage Cleanup Utility
 ///
 /// Removes:
 /// - Zero-balance entries from `FEE_BALANCES` (saves storage rent)
-/// - Explicitly revoked role entries (value == false) from `AUTHORIZED_ROLES`
+/// - Legacy explicitly-revoked role entries (value == false) from `AUTHORIZED_ROLES`
 ///
 /// Admin-only. Does not affect treasury, metadata, or nonce state.
 pub fn execute_cleanup_storage(
@@ -316,7 +408,7 @@ pub fn execute_cleanup_storage(
         FEE_BALANCES.remove(deps.storage, key.as_str());
     }
 
-    // Collect revoked role keys (explicitly set to false — dead entries)
+    // Collect legacy revoked role keys (explicitly set to false — dead entries)
     let revoked_role_keys: Vec<String> = AUTHORIZED_ROLES
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| {
@@ -400,7 +492,7 @@ pub fn query_self_check(deps: Deps) -> StdResult<SelfCheckResponse> {
         ));
     }
 
-    // 5. No explicitly-revoked role entries should remain (they waste storage)
+    // 5. No legacy explicitly-revoked role entries should remain (they waste storage)
     let revoked_role_count = AUTHORIZED_ROLES
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| item.ok())
@@ -409,7 +501,7 @@ pub fn query_self_check(deps: Deps) -> StdResult<SelfCheckResponse> {
 
     if revoked_role_count > 0 {
         failures.push(format!(
-            "{} authorized_roles entries are explicitly false (consider running CleanupStorage)",
+            "{} authorized_roles entries use the legacy false tombstone format (consider running CleanupStorage)",
             revoked_role_count
         ));
     } else {
