@@ -8,6 +8,7 @@ import {
   ApiErrorResponse 
 } from '../schemas/analysis.schema';
 import { AnalysisValidator } from '../validation/analysis.validator';
+import { cacheService } from '../common/cache';
 
 export class AnalysisController {
   constructor(private queue: Queue) {}
@@ -16,6 +17,23 @@ export class AnalysisController {
     try {
       const payload = req.body as CodebaseSubmissionRequest;
       
+      // Check cache first
+      if (payload.project.repositoryUrl && payload.project.commitHash) {
+        const cacheKey = cacheService.generateKey(payload.project.repositoryUrl, payload.project.commitHash);
+        const cachedResult = await cacheService.get<AnalysisResult>(cacheKey);
+        
+        if (cachedResult) {
+          return res.json({
+            jobId: cachedResult.jobId,
+            status: 'completed',
+            submittedAt: new Date().toISOString(),
+            statusUrl: `/analysis/${cachedResult.jobId}/status`,
+            resultUrl: `/analysis/${cachedResult.jobId}/result`,
+            fromCache: true
+          });
+        }
+      }
+
       // Determine if this is a large job
       const isLarge = this.isLargeSubmission(payload);
       
