@@ -5,6 +5,12 @@ edition = "2021"
 
 [dependencies]
 gasguard-rules = { path = "../../packages/rules" }
+gasguard-ast = { path = "../ast" }
+gasguard-rule-engine = { path = "../rule-engine" }
+gasguard-parser-rust = { path = "../parsers/rust" }
+gasguard-parser-solidity = { path = "../parsers/solidity" }
+gasguard-parser-vyper = { path = "../parsers/vyper" }
+gasguard-auto-fix = { path = "../auto-fix" }
 clap = { version = "4.0", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

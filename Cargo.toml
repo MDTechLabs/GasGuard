@@ -3,6 +3,13 @@ resolver = "2"
 members = [
     "packages/rules",
     "libs/engine", 
+    "libs/ast",
+    "libs/parsers/rust",
+    "libs/parsers/solidity",
+    "libs/parsers/vyper",
+    "libs/rule-engine",
+    "libs/plugin-system",
+    "libs/auto-fix",
     "apps/api"
 ]
 

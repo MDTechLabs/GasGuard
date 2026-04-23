@@ -1,0 +1,29 @@
+name: GasGuard Contract Scanning
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  scan:
+    name: GasGuard Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install GasGuard
+        run: |
+          cargo install --path apps/api --name gasguard
+          
+      - name: Run GasGuard Scan
+        run: |
+          gasguard scan-dir . --format json > gasguard-report.json
+          
+      - name: Annotate Pull Request
+        uses: gasguard/github-action@v1
+        with:
+          report: gasguard-report.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on: error

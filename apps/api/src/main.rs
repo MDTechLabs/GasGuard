@@ -22,6 +22,12 @@ enum Commands {
         /// Output format (console, json)
         #[arg(short, long, default_value = "console")]
         format: String,
+        /// Automatically apply safe gas optimization fixes
+        #[arg(long)]
+        auto_fix: bool,
+        /// Path to custom rule plugin (.so/.dll)
+        #[arg(long)]
+        plugin: Option<PathBuf>,
     },
     /// Scan all Rust files in a directory
     ScanDir {
@@ -30,6 +36,17 @@ enum Commands {
         /// Output format (console, json)
         #[arg(short, long, default_value = "console")]
         format: String,
+        /// Path to custom rule plugin (.so/.dll)
+        #[arg(long)]
+        plugin: Option<PathBuf>,
+    },
+    /// Automatically apply safe gas optimization fixes
+    Fix {
+        /// Path to file or directory to fix
+        path: PathBuf,
+        /// Preview changes without applying
+        #[arg(long)]
+        preview: bool,
     },
     /// Analyze storage optimization potential
     Analyze {
@@ -67,8 +84,21 @@ async fn main() -> Result<()> {
     let scanner = ContractScanner::new();
 
     match cli.command {
-        Commands::Scan { file, format } => {
+        Commands::Scan { file, format, auto_fix, plugin } => {
             println!("🔍 Scanning file: {:?}", file);
+
+            let mut scanner = ContractScanner::new();
+            if let Some(plugin_path) = plugin {
+                let loader = gasguard_plugin_system::PluginLoader::new();
+                match unsafe { loader.load_rule(plugin_path) } {
+                    Ok(rule) => {
+                        println!("🔌 Loaded plugin rule: {}", rule.name());
+                        // Note: We need a way to add rules to the engine. 
+                        // For now, this is a demonstration of the plugin loader.
+                    },
+                    Err(e) => eprintln!("⚠️ Failed to load plugin: {}", e),
+                }
+            }
 
             let result = scanner.scan_file(&file)?;
 
@@ -83,11 +113,23 @@ async fn main() -> Result<()> {
                     if !result.violations.is_empty() {
                         let savings = ScanAnalyzer::calculate_storage_savings(&result.violations);
                         println!("\n{}", savings);
+                        
+                        if auto_fix {
+                            println!("\n🛠️ Applying safe fixes...");
+                            let fix_engine = gasguard_auto_fix::FixEngine::new();
+                            match fix_engine.apply_fixes(&file, &result.violations) {
+                                Ok(fixed_content) => {
+                                    std::fs::write(&file, fixed_content)?;
+                                    println!("✅ Fixes applied successfully!");
+                                },
+                                Err(e) => eprintln!("❌ Failed to apply fixes: {}", e),
+                            }
+                        }
                     }
                 }
             }
         }
-        Commands::ScanDir { directory, format } => {
+        Commands::ScanDir { directory, format, plugin } => {
             println!("🔍 Scanning directory: {:?}", directory);
 
             let results = scanner.scan_directory(&directory)?;
@@ -118,11 +160,30 @@ async fn main() -> Result<()> {
                         )
                         .bold()
                     );
+                }
+            }
+        }
+        Commands::Fix { path, preview } => {
+            println!("🛠️ Fixing optimization issues in: {:?}", path);
+            let result = scanner.scan_file(&path)?;
+            
+            if result.violations.is_empty() {
+                println!("✅ No violations found to fix.");
+                return Ok(());
+            }
 
-                    let all_violations: Vec<_> =
-                        results.iter().flat_map(|r| r.violations.clone()).collect();
-                    let savings = ScanAnalyzer::calculate_storage_savings(&all_violations);
-                    println!("\n{}", savings);
+            let fix_engine = gasguard_auto_fix::FixEngine::new();
+            if preview {
+                println!("📝 Previewing fixes (no changes will be made):");
+                // In a real implementation, we would show a diff
+                println!("Safe fixes available for {} violations.", result.violations.len());
+            } else {
+                match fix_engine.apply_fixes(&path, &result.violations) {
+                    Ok(fixed_content) => {
+                        std::fs::write(&path, fixed_content)?;
+                        println!("✅ Fixes applied successfully!");
+                    },
+                    Err(e) => eprintln!("❌ Failed to apply fixes: {}", e),
                 }
             }
         }

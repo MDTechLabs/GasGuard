@@ -1,0 +1,11 @@
+[package]
+name = "gasguard-auto-fix"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gasguard-rule-engine = { path = "../rule-engine" }
+gasguard-ast = { path = "../ast" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+diff = "0.1"
