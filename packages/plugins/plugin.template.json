@@ -1,0 +1,102 @@
+{
+  "$schema": "https://gasguard.dev/schemas/plugin-manifest.json",
+  "id": "my-plugin",
+  "name": "My Plugin",
+  "version": "1.0.0",
+  "description": "Description of what your plugin does",
+  "author": {
+    "name": "Your Name",
+    "email": "you@example.com",
+    "url": "https://github.com/yourname"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/yourname/gasguard-my-plugin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourname/gasguard-my-plugin.git"
+  },
+  "bugs": "https://github.com/yourname/gasguard-my-plugin/issues",
+  "keywords": [
+    "gasguard",
+    "plugin",
+    "analysis"
+  ],
+  "languages": [
+    "solidity"
+  ],
+  "capabilities": [
+    "gas-optimization"
+  ],
+  "main": "dist/plugin.so",
+  "gasguardVersion": {
+    "min": "1.0.0",
+    "max": "2.0.0"
+  },
+  "minSeverity": "info",
+  "maxSeverity": "critical",
+  "ruleGroups": [
+    "optimization",
+    "patterns"
+  ],
+  "dependencies": {},
+  "peerDependencies": {},
+  "conflicts": [],
+  "configSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "enableOptimizations": {
+        "type": "boolean",
+        "description": "Enable all optimizations",
+        "default": true
+      },
+      "severity": {
+        "type": "string",
+        "enum": [
+          "info",
+          "warning",
+          "error",
+          "critical"
+        ],
+        "description": "Minimum severity level for findings",
+        "default": "warning"
+      }
+    },
+    "additionalProperties": false
+  },
+  "defaultConfig": {
+    "enableOptimizations": true,
+    "severity": "warning"
+  },
+  "status": "stable",
+  "support": {
+    "email": "support@example.com",
+    "url": "https://github.com/yourname/gasguard-my-plugin/discussions"
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/yourname"
+    }
+  ],
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "readme": "README.md",
+  "ignore": [
+    "src/",
+    "tests/",
+    ".github/",
+    ".gitignore",
+    "package.json",
+    "tsconfig.json"
+  ],
+  "meta": {
+    "buildDate": "2026-04-25T00:00:00Z",
+    "buildVersion": "1.0.0",
+    "compiler": "rustc",
+    "compilerVersion": "1.75.0"
+  }
+}
