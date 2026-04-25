@@ -104,3 +104,192 @@ impl BaseRule for RedundantSloadRule {
         findings
     }
 }
+
+// ---------------------------------------------------------------------------
+// SOL-003: Unused Code Detection
+// ---------------------------------------------------------------------------
+
+pub struct UnusedCodeRule {
+    declared_vars: std::collections::HashSet<String>,
+    declared_functions: std::collections::HashSet<String>,
+    used_vars: std::collections::HashSet<String>,
+    used_functions: std::collections::HashSet<String>,
+    imports: std::collections::HashSet<String>,
+    used_imports: std::collections::HashSet<String>,
+}
+
+impl Default for UnusedCodeRule {
+    fn default() -> Self { 
+        Self { 
+            declared_vars: Default::default(),
+            declared_functions: Default::default(),
+            used_vars: Default::default(),
+            used_functions: Default::default(),
+            imports: Default::default(),
+            used_imports: Default::default(),
+        } 
+    }
+}
+
+const SOL003_META: RuleMeta = RuleMeta {
+    id: "SOL-003",
+    name: "Detect unused variables, functions, and imports",
+    description: "Unused code increases gas costs unnecessarily. This rule identifies \
+                  unused variables, functions, and imports that can be safely removed.",
+    languages: &[Language::Solidity],
+    default_severity: Severity::Warning,
+};
+
+impl BaseRule for UnusedCodeRule {
+    fn meta(&self) -> &RuleMeta { &SOL003_META }
+
+    fn on_start(&mut self) { 
+        self.declared_vars.clear();
+        self.declared_functions.clear();
+        self.used_vars.clear();
+        self.used_functions.clear();
+        self.imports.clear();
+        self.used_imports.clear();
+    }
+
+    fn analyze(&self, file_path: &str, source: &str) -> Vec<Finding> {
+        let mut findings = Vec::new();
+        
+        // Local collections for this analysis
+        let mut declared_vars: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut declared_functions: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut used_vars: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut used_functions: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut imports: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut used_imports: std::collections::HashSet<String> = std::collections::HashSet::new();
+        
+        // First pass: collect declarations
+        for (i, line) in source.lines().enumerate() {
+            let trimmed = line.trim();
+            
+            // Detect imports
+            if trimmed.starts_with("import ") {
+                if let Some(import_part) = trimmed.split_whitespace().nth(1) {
+                    let import_name = import_part.trim_matches(';');
+                    if !import_name.is_empty() {
+                        // This is a simplified approach - in real implementation, we'd need proper parsing
+                        imports.insert(import_name.to_string());
+                    }
+                }
+            }
+            
+            // Detect function declarations
+            if trimmed.contains("function ") {
+                if let Some(func_part) = trimmed.split("function ").nth(1) {
+                    if let Some(name_part) = func_part.split('(').next() {
+                        let func_name = name_part.trim().split_whitespace().next().unwrap_or("").trim();
+                        if !func_name.is_empty() && func_name != "{" {
+                            declared_functions.insert(func_name.to_string());
+                        }
+                    }
+                }
+            }
+            
+            // Detect variable declarations (simplified)
+            if (trimmed.contains("uint ") || trimmed.contains("address ") || 
+                trimmed.contains("bool ") || trimmed.contains("string ") ||
+                trimmed.contains("bytes ") || trimmed.contains("mapping ")) &&
+               trimmed.contains(';') && !trimmed.contains("//") {
+                
+                for word in trimmed.split_whitespace() {
+                    if word.contains(';') {
+                        let var_name = word.trim_matches(';').trim_matches(',');
+                        if !var_name.is_empty() && !var_name.contains('(') {
+                            declared_vars.insert(var_name.to_string());
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Second pass: collect usage
+        for (i, line) in source.lines().enumerate() {
+            let trimmed = line.trim();
+            
+            // Skip comments and the line where the variable is declared
+            if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with("*") {
+                continue;
+            }
+            
+            // Check function usage
+            for func_name in &declared_functions {
+                if line.contains(func_name) && !line.contains("function ") && 
+                   !line.contains(&format!("function {}", func_name)) {
+                    used_functions.insert(func_name.clone());
+                }
+            }
+            
+            // Check variable usage (simplified - would need proper AST parsing in production)
+            for var_name in &declared_vars {
+                if line.contains(var_name) && 
+                   !line.contains(&format!("{} ", var_name)) && // Skip declaration
+                   !line.contains(&format!("{};", var_name)) && // Skip declaration
+                   !line.contains(&format!("{} =", var_name)) { // Skip assignment in declaration
+                    used_vars.insert(var_name.clone());
+                }
+            }
+            
+            // Check import usage (simplified)
+            for import_name in &imports {
+                if line.contains(import_name) && !line.contains("import ") {
+                    used_imports.insert(import_name.clone());
+                }
+            }
+        }
+        
+        // Generate findings for unused items
+        for (i, line) in source.lines().enumerate() {
+            // Check unused variables
+            for var_name in &declared_vars {
+                if !used_vars.contains(var_name) && line.contains(var_name) {
+                    findings.push(Finding {
+                        rule_id: self.meta().id.to_string(),
+                        severity: Severity::Warning,
+                        message: format!("Variable '{}' is declared but never used. Consider removing it to save gas.", var_name),
+                        file: file_path.to_string(),
+                        line: (i + 1) as u32,
+                        column: None,
+                        suggestion: Some(format!("// Remove unused variable: {}", var_name)),
+                    });
+                }
+            }
+            
+            // Check unused functions
+            for func_name in &declared_functions {
+                if !used_functions.contains(func_name) && line.contains(func_name) {
+                    findings.push(Finding {
+                        rule_id: self.meta().id.to_string(),
+                        severity: Severity::Warning,
+                        message: format!("Function '{}' is declared but never used. Consider removing it to save gas.", func_name),
+                        file: file_path.to_string(),
+                        line: (i + 1) as u32,
+                        column: None,
+                        suggestion: Some(format!("// Remove unused function: {}", func_name)),
+                    });
+                }
+            }
+            
+            // Check unused imports
+            for import_name in &imports {
+                if !used_imports.contains(import_name) && line.contains(import_name) {
+                    findings.push(Finding {
+                        rule_id: self.meta().id.to_string(),
+                        severity: Severity::Warning,
+                        message: format!("Import '{}' is never used. Consider removing it to save gas.", import_name),
+                        file: file_path.to_string(),
+                        line: (i + 1) as u32,
+                        column: None,
+                        suggestion: Some(format!("// Remove unused import: {}", import_name)),
+                    });
+                }
+            }
+        }
+        
+        findings
+    }
+}
