@@ -3,8 +3,9 @@
  * Validates plugin formats and compatibility
  */
 
-import { PluginManifest, PluginDependency } from './plugin-manifest';
-import { CompatibilityCheckResult, CompatibilityChecker, VersionMatcher } from './version-compat';
+import { PluginManifest, PluginRuleDefinition } from './plugin-manifest';
+import { CompatibilityCheckResult, CompatibilityChecker } from './version-compat';
+import { optimizePluginRules } from './rule-set-optimizer';
 
 export interface ValidationError {
   field: string;
@@ -90,6 +91,9 @@ export class ManifestValidator {
     }
     if (manifest.license) {
       this.validateLicense(manifest, result);
+    }
+    if (manifest.rules) {
+      this.validateRuleSet(manifest, result);
     }
 
     return result;
@@ -352,6 +356,46 @@ export class ManifestValidator {
         error:
           `Unknown license: ${license}. ` +
           `Use SPDX license identifiers (https://spdx.org/licenses/)`,
+        severity: 'warning',
+      });
+    }
+  }
+
+  private static validateRuleSet(manifest: any, result: ManifestValidationResult): void {
+    const rules = manifest.rules;
+
+    if (!Array.isArray(rules)) {
+      result.errors.push({
+        field: 'rules',
+        error: 'rules must be an array when provided',
+        severity: 'error',
+      });
+      result.valid = false;
+      return;
+    }
+
+    for (let i = 0; i < rules.length; i++) {
+      const rule = rules[i] as PluginRuleDefinition;
+      if (!rule.id || !rule.name || !rule.description) {
+        result.errors.push({
+          field: `rules[${i}]`,
+          error: 'Each rule requires id, name, and description',
+          severity: 'error',
+        });
+        result.valid = false;
+      }
+    }
+
+    const optimized = optimizePluginRules(rules as PluginRuleDefinition[]);
+    for (const removed of optimized.removedRules) {
+      const msg =
+        removed.reason === 'duplicate-id'
+          ? `Duplicate rule '${removed.removedRuleId}' overlaps with '${removed.keptRuleId}'`
+          : `Overlapping rule intent detected for '${removed.removedRuleId}' (merged into '${removed.keptRuleId}')`;
+
+      result.warnings.push({
+        field: 'rules',
+        error: msg,
         severity: 'warning',
       });
     }

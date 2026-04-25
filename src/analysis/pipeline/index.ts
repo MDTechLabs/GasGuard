@@ -7,3 +7,4 @@ export * from './types';
 export * from './rule-dependency-graph';
 export * from './pipeline-executor';
 export * from './base-rule';
+export * from './rule-set-optimizer';

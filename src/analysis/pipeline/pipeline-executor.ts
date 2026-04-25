@@ -11,11 +11,13 @@ import {
   IPipelineError,
 } from './types';
 import { RuleDependencyGraph } from './rule-dependency-graph';
+import { optimizeRuleSet } from './rule-set-optimizer';
 
 export class PipelineExecutor {
   private rules: Map<string, IRule> = new Map();
   private graph: RuleDependencyGraph = new RuleDependencyGraph();
   private validationErrors: IPipelineError[] = [];
+  private optimizationNotes: string[] = [];
 
   constructor() {}
 
@@ -35,9 +37,22 @@ export class PipelineExecutor {
    * Register multiple rules at once
    */
   registerRules(rules: IRule[]): void {
-    for (const rule of rules) {
+    const optimized = optimizeRuleSet(rules);
+    for (const rule of optimized.optimizedRules) {
       this.registerRule(rule);
     }
+
+    for (const removed of optimized.removedRules) {
+      this.optimizationNotes.push(
+        removed.reason === 'duplicate-id'
+          ? `Removed duplicate rule '${removed.removedRuleId}' (kept '${removed.keptRuleId}')`
+          : `Removed overlapping rule '${removed.removedRuleId}' (kept '${removed.keptRuleId}')`,
+      );
+    }
+  }
+
+  getOptimizationNotes(): string[] {
+    return [...this.optimizationNotes];
   }
 
   /**

@@ -93,6 +93,20 @@ export interface FundingInfo {
 }
 
 /**
+ * Rule definition declared by a plugin package.
+ */
+export interface PluginRuleDefinition {
+  /** Stable rule id within plugin namespace */
+  id: string;
+  /** Human-readable rule name */
+  name: string;
+  /** Rule intent and behavior */
+  description: string;
+  /** Optional rule tags for discovery */
+  tags?: string[];
+}
+
+/**
  * Plugin manifest (plugin.json)
  * Standard format for plugin distribution
  */
@@ -170,6 +184,9 @@ export interface PluginManifest {
 
   /** Human-readable rule categories/groups */
   ruleGroups?: string[];
+
+  /** Optional declared rule set for duplicate/overlap validation */
+  rules?: PluginRuleDefinition[];
 
   // === DISTRIBUTION & SUPPORT ===
 

@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use gasguard_cli::{collect_scannable_files, ProgressReporter};
 use gasguard_engine::{ContractScanner, ScanAnalyzer, TieredScanner, UserUsage, UsageTier};
 use std::path::PathBuf;
 use serde_json;
@@ -86,6 +87,8 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Scan { file, format, auto_fix, plugin } => {
             println!("🔍 Scanning file: {:?}", file);
+            let mut progress = ProgressReporter::new(1);
+            progress.start("Progress:");
 
             let mut scanner = ContractScanner::new();
             if let Some(plugin_path) = plugin {
@@ -101,6 +104,8 @@ async fn main() -> Result<()> {
             }
 
             let result = scanner.scan_file(&file)?;
+            progress.update_file(&file);
+            progress.finish("✅ Scan complete");
 
             match format.as_str() {
                 "json" => {
@@ -132,7 +137,38 @@ async fn main() -> Result<()> {
         Commands::ScanDir { directory, format, plugin } => {
             println!("🔍 Scanning directory: {:?}", directory);
 
-            let results = scanner.scan_directory(&directory)?;
+            if let Some(plugin_path) = plugin {
+                let loader = gasguard_plugin_system::PluginLoader::new();
+                match unsafe { loader.load_rule(plugin_path) } {
+                    Ok(rule) => {
+                        println!("🔌 Loaded plugin rule: {}", rule.name());
+                    }
+                    Err(e) => eprintln!("⚠️ Failed to load plugin: {}", e),
+                }
+            }
+
+            let files = collect_scannable_files(&directory);
+            if files.is_empty() {
+                println!("✅ No scannable files found in directory.");
+                return Ok(());
+            }
+
+            let mut progress = ProgressReporter::new(files.len());
+            progress.start("Progress:");
+
+            let mut results = Vec::new();
+            for file in files {
+                let scan_result = scanner.scan_file(&file);
+                progress.update_file(&file);
+
+                if let Ok(result) = scan_result {
+                    if !result.violations.is_empty() {
+                        results.push(result);
+                    }
+                }
+            }
+
+            progress.finish("✅ Directory scan complete");
 
             if results.is_empty() {
                 println!("✅ No violations found in any files!");
