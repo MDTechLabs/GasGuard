@@ -1,0 +1,118 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-04-25T18:00:00.000Z",
+  "system": {
+    "version": "1.0.0",
+    "environment": "development",
+    "logging": {
+      "level": "info",
+      "enableConsole": true,
+      "enableFile": true,
+      "enableAudit": true
+    },
+    "performance": {
+      "maxConcurrency": 4,
+      "timeoutMs": 30000,
+      "enableParallelExecution": true
+    },
+    "security": {
+      "enableApiKeyValidation": true,
+      "enableRateLimiting": true,
+      "maxRequestsPerMinute": 100
+    },
+    "features": {
+      "enableAutoFix": false,
+      "enableDetailedReporting": true,
+      "enableRealTimeMonitoring": true
+    }
+  },
+  "rules": [
+    {
+      "id": "unused-state-variables",
+      "name": "Unused State Variables",
+      "enabled": true,
+      "severity": "medium",
+      "category": "soroban",
+      "language": "rust",
+      "description": "Identifies state variables in Soroban contracts that are never read or written to",
+      "parameters": {
+        "ignoreVariables": [],
+        "checkConstructor": true
+      },
+      "dependencies": [],
+      "tags": ["performance", "storage", "soroban"]
+    },
+    {
+      "id": "uint8-vs-uint256",
+      "name": "Uint8 vs Uint256 Rule",
+      "enabled": true,
+      "severity": "low",
+      "category": "solidity",
+      "language": "solidity",
+      "description": "Checks for inefficient use of uint256 when smaller types could be used",
+      "parameters": {
+        "maxSize": 256,
+        "checkMappings": true
+      },
+      "dependencies": [],
+      "tags": ["performance", "gas-optimization", "solidity"]
+    },
+    {
+      "id": "reentrancy-guard",
+      "name": "Reentrancy Guard",
+      "enabled": true,
+      "severity": "critical",
+      "category": "security",
+      "language": "solidity",
+      "description": "Detects potential reentrancy vulnerabilities",
+      "parameters": {
+        "checkExternalCalls": true,
+        "checkStateChanges": true
+      },
+      "dependencies": [],
+      "tags": ["security", "reentrancy", "solidity"]
+    }
+  ],
+  "profiles": [
+    {
+      "name": "strict-security",
+      "description": "High security profile with all security rules enabled",
+      "rules": [
+        {
+          "id": "reentrancy-guard",
+          "enabled": true,
+          "severity": "critical"
+        }
+      ],
+      "systemOverrides": {
+        "security": {
+          "enableApiKeyValidation": true,
+          "enableRateLimiting": true,
+          "maxRequestsPerMinute": 50
+        }
+      }
+    },
+    {
+      "name": "performance-optimized",
+      "description": "Focus on gas optimization and performance rules",
+      "rules": [
+        {
+          "id": "uint8-vs-uint256",
+          "enabled": true,
+          "severity": "medium"
+        },
+        {
+          "id": "unused-state-variables",
+          "enabled": true,
+          "severity": "medium"
+        }
+      ],
+      "systemOverrides": {
+        "performance": {
+          "maxConcurrency": 8,
+          "enableParallelExecution": true
+        }
+      }
+    }
+  ]
+}
