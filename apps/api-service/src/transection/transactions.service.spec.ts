@@ -3,7 +3,9 @@ import { getRepositoryToken } from "@nestjs/typeorm";
 import { BadRequestException } from "@nestjs/common";
 import { TransactionsService } from "./transactions.service";
 import { Transaction, TxStatus, TxType } from "./transaction.entity";
-import { Granularity } from "./dto/.dto ";
+import { Granularity } from "./metrics-query.dto";
+import { RateLimitService } from "./rate-limit.service";
+import { SuspiciousActivityService } from "./suspicious-activity.service";
 
 function makeTx(overrides: Partial<Transaction> = {}): Transaction {
   return Object.assign(new Transaction(), {
@@ -52,6 +54,8 @@ describe("TransactionsService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TransactionsService,
+        RateLimitService,
+        SuspiciousActivityService,
         { provide: getRepositoryToken(Transaction), useValue: repoMock },
       ],
     }).compile();
@@ -59,7 +63,7 @@ describe("TransactionsService", () => {
   }
 
   describe("record()", () => {
-    it("creates and saves a transaction", async () => {
+    it("creates and saves a transaction, returns transaction + rateLimit + suspiciousActivity", async () => {
       await init([]);
       const result = await service.record({
         txHash: "0xabc",
@@ -70,7 +74,11 @@ describe("TransactionsService", () => {
         gasUsed: 21000,
       });
       expect(repoMock.save).toHaveBeenCalledTimes(1);
-      expect(result.id).toBe("uuid-1");
+      expect(result.transaction.id).toBe("uuid-1");
+      expect(result.rateLimit).toBeDefined();
+      expect(result.rateLimit.allowed).toBe(true);
+      expect(result.suspiciousActivity).toBeDefined();
+      expect(result.suspiciousActivity.detected).toBe(false);
     });
   });
 

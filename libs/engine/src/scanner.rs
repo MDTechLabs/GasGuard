@@ -1,5 +1,9 @@
 use anyhow::{Context, Result};
-use gasguard_rules::{RuleEngine, UnusedStateVariablesRule, VyperRuleEngine, SorobanRuleEngine};
+use gasguard_ast::{UnifiedAST, Language as AstLanguage};
+use gasguard_rule_engine::{RuleEngine, RuleViolation};
+use gasguard_parser_rust::RustParser;
+use gasguard_parser_solidity::SolidityParser;
+use gasguard_parser_vyper::VyperParser;
 use std::path::Path;
 
 /// Supported languages for scanning
@@ -7,60 +11,19 @@ use std::path::Path;
 pub enum Language {
     Rust,
     Vyper,
-    Soroban, // Added Soroban support
-}
-
-impl Language {
-    /// Detect language from file extension
-    pub fn from_extension(ext: &str) -> Option<Self> {
-        match ext.to_lowercase().as_str() {
-            "rs" => Some(Language::Rust),
-            "vy" => Some(Language::Vyper),
-            _ => None,
-        }
-    }
-    
-    /// Detect language from file content heuristics
-    pub fn from_content(content: &str) -> Option<Self> {
-        // Check for Soroban-specific patterns
-        if content.contains("soroban_sdk") && 
-           (content.contains("#[contract]") || 
-            content.contains("#[contractimpl]") || 
-            content.contains("#[contracttype]")) {
-            return Some(Language::Soroban);
-        }
-        
-        // Check for Vyper patterns
-        if content.contains("# @version") || content.contains("interface ") {
-            return Some(Language::Vyper);
-        }
-        
-        // Default to Rust for .rs files or general Rust code
-        if content.contains("fn main(") || content.contains("#[derive(") {
-            return Some(Language::Rust);
-        }
-        
-        None
-    }
+    Solidity,
+    Soroban,
 }
 
 pub struct ContractScanner {
     rule_engine: RuleEngine,
-    vyper_rule_engine: VyperRuleEngine,
-    soroban_rule_engine: SorobanRuleEngine, // Added Soroban rule engine
 }
 
 impl ContractScanner {
     pub fn new() -> Self {
-        let rule_engine = RuleEngine::new().add_rule(Box::new(UnusedStateVariablesRule));
-        let vyper_rule_engine = VyperRuleEngine::with_default_rules();
-        let soroban_rule_engine = SorobanRuleEngine::with_default_rules(); // Initialize Soroban engine
-
-        Self {
-            rule_engine,
-            vyper_rule_engine,
-            soroban_rule_engine,
-        }
+        let rule_engine = RuleEngine::new();
+        // Rules will be added here or via plugins
+        Self { rule_engine }
     }
 
     pub fn scan_file(&self, file_path: &Path) -> Result<ScanResult> {
@@ -68,96 +31,43 @@ impl ContractScanner {
             .with_context(|| format!("Failed to read file: {:?}", file_path))?;
 
         let extension = file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        let file_path_str = file_path.to_string_lossy().to_string();
 
-        let language = Language::from_extension(extension);
+        let ast = match extension {
+            "rs" => RustParser::parse(&content, &file_path_str)
+                .map_err(|e| anyhow::anyhow!("Rust parse error: {}", e))?,
+            "sol" => SolidityParser::parse(&content, &file_path_str)
+                .map_err(|e| anyhow::anyhow!("Solidity parse error: {}", e))?,
+            "vy" => VyperParser::parse(&content, &file_path_str)
+                .map_err(|e| anyhow::anyhow!("Vyper parse error: {}", e))?,
+            _ => return Err(anyhow::anyhow!("Unsupported file extension: {}", extension)),
+        };
 
-        self.scan_content_with_language(&content, file_path.to_string_lossy().to_string(), language)
-    }
+        let violations = self.rule_engine.run(&ast);
 
-    pub fn scan_content(&self, content: &str, source: String) -> Result<ScanResult> {
-        // Default to Rust for backward compatibility
-        self.scan_content_with_language(content, source, Some(Language::Rust))
+        Ok(ScanResult {
+            source: file_path_str,
+            violations,
+            scan_time: chrono::Utc::now(),
+        })
     }
 
     pub fn scan_content_with_language(
         &self,
         content: &str,
         source: String,
-        language: Option<Language>,
+        language: Language,
     ) -> Result<ScanResult> {
-        let detected_language = language.or_else(|| Language::from_content(content));
-        
-        let violations = match detected_language {
-            Some(Language::Rust) => self
-                .rule_engine
-                .analyze(content)
-                .map_err(|e| anyhow::anyhow!(e))?,
-            Some(Language::Vyper) => self
-                .vyper_rule_engine
-                .analyze(content)
-                .map_err(|e| anyhow::anyhow!(e))?,
-            Some(Language::Soroban) => self
-                .soroban_rule_engine
-                .analyze(content, &source)
-                .map_err(|e| anyhow::anyhow!(format!("Soroban analysis failed: {:?}", e)))?,
-            None => {
-                // Unknown language, try to detect and analyze
-                if content.contains("soroban_sdk") {
-                    self.soroban_rule_engine
-                        .analyze(content, &source)
-                        .map_err(|e| anyhow::anyhow!(format!("Soroban analysis failed: {:?}", e)))?
-                } else {
-                    // Default to general Rust analysis
-                    self.rule_engine
-                        .analyze(content)
-                        .map_err(|e| anyhow::anyhow!(e))?
-                }
-            }
+        let ast = match language {
+            AstLanguage::Rust | AstLanguage::Soroban => RustParser::parse(content, &source)
+                .map_err(|e| anyhow::anyhow!("Rust parse error: {}", e))?,
+            AstLanguage::Solidity => SolidityParser::parse(content, &source)
+                .map_err(|e| anyhow::anyhow!("Solidity parse error: {}", e))?,
+            AstLanguage::Vyper => VyperParser::parse(content, &source)
+                .map_err(|e| anyhow::anyhow!("Vyper parse error: {}", e))?,
         };
 
-        Ok(ScanResult {
-            source,
-            violations,
-            scan_time: chrono::Utc::now(),
-        })
-    }
-
-    /// Scan a Vyper file specifically
-    pub fn scan_vyper_file(&self, file_path: &Path) -> Result<ScanResult> {
-        let content = std::fs::read_to_string(file_path)
-            .with_context(|| format!("Failed to read file: {:?}", file_path))?;
-
-        self.scan_vyper_content(&content, file_path.to_string_lossy().to_string())
-    }
-
-    /// Scan Vyper content directly
-    pub fn scan_vyper_content(&self, content: &str, source: String) -> Result<ScanResult> {
-        let violations = self
-            .vyper_rule_engine
-            .analyze(content)
-            .map_err(|e| anyhow::anyhow!(e))?;
-
-        Ok(ScanResult {
-            source,
-            violations,
-            scan_time: chrono::Utc::now(),
-        })
-    }
-    
-    /// Scan a Soroban contract file specifically
-    pub fn scan_soroban_file(&self, file_path: &Path) -> Result<ScanResult> {
-        let content = std::fs::read_to_string(file_path)
-            .with_context(|| format!("Failed to read file: {:?}", file_path))?;
-
-        self.scan_soroban_content(&content, file_path.to_string_lossy().to_string())
-    }
-
-    /// Scan Soroban contract content directly
-    pub fn scan_soroban_content(&self, content: &str, source: String) -> Result<ScanResult> {
-        let violations = self
-            .soroban_rule_engine
-            .analyze(content, &source)
-            .map_err(|e| anyhow::anyhow!(format!("Soroban analysis failed: {:?}", e)))?;
+        let violations = self.rule_engine.run(&ast);
 
         Ok(ScanResult {
             source,
@@ -175,34 +85,14 @@ impl ContractScanner {
             .filter(|e| {
                 e.path().extension().map_or(false, |ext| {
                     let ext_str = ext.to_str().unwrap_or("");
-                    ext_str == "rs" || ext_str == "vy" // Both Rust and Vyper files
+                    ext_str == "rs" || ext_str == "vy" || ext_str == "sol"
                 })
             })
         {
-            let content = std::fs::read_to_string(entry.path())
-                .with_context(|| format!("Failed to read file: {:?}", entry.path()))?;
-            
-            // Detect language from content for better accuracy
-            let language = Language::from_content(&content).or_else(|| {
-                entry.path().extension()
-                    .and_then(|ext| Language::from_extension(ext.to_str().unwrap_or("")))
-            });
-            
-            let result = match language {
-                Some(Language::Soroban) => {
-                    self.scan_soroban_content(&content, entry.path().to_string_lossy().to_string())?
-                },
-                Some(Language::Vyper) => {
-                    self.scan_vyper_content(&content, entry.path().to_string_lossy().to_string())?
-                },
-                _ => {
-                    // Default to general scanning
-                    self.scan_content_with_language(&content, entry.path().to_string_lossy().to_string(), language)?
+            if let Ok(result) = self.scan_file(entry.path()) {
+                if !result.violations.is_empty() {
+                    results.push(result);
                 }
-            };
-            
-            if !result.violations.is_empty() {
-                results.push(result);
             }
         }
 
@@ -219,25 +109,11 @@ impl Default for ContractScanner {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ScanResult {
     pub source: String,
-    pub violations: Vec<gasguard_rules::RuleViolation>,
+    pub violations: Vec<RuleViolation>,
     pub scan_time: chrono::DateTime<chrono::Utc>,
 }
 
 impl ScanResult {
-    pub fn has_violations(&self) -> bool {
-        !self.violations.is_empty()
-    }
-
-    pub fn get_violations_by_severity(
-        &self,
-        severity: gasguard_rules::ViolationSeverity,
-    ) -> Vec<&gasguard_rules::RuleViolation> {
-        self.violations
-            .iter()
-            .filter(|v| std::mem::discriminant(&v.severity) == std::mem::discriminant(&severity))
-            .collect()
-    }
-
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(self)
     }

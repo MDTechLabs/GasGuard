@@ -12,10 +12,14 @@ import {
 import { TransactionsService } from "./transactions.service";
 import { RecordTransactionDto } from "./dto/record-transaction.entity";
 import { AlertQueryDto, MetricsQueryDto, TimeSeriesQueryDto } from "./metrics-query.dto";
+import { RateLimitService } from "./rate-limit.service";
 
 @Controller("api/v1")
 export class TransactionsController {
-  constructor(private readonly svc: TransactionsService) {}
+  constructor(
+    private readonly svc: TransactionsService,
+    private readonly rateLimitService: RateLimitService,
+  ) {}
 
   /**
    * POST /api/v1/transactions
@@ -79,5 +83,14 @@ export class TransactionsController {
     @Query() query: AlertQueryDto,
   ) {
     return this.svc.checkAlerts(merchantId, chainId, query);
+  }
+
+  /**
+   * GET /api/v1/rate-limit/:merchantId
+   * Returns the current rate-limit status for a merchant without enforcing limits.
+   */
+  @Get("rate-limit/:merchantId")
+  getRateLimit(@Param("merchantId") merchantId: string) {
+    return this.rateLimitService.getStatus(merchantId);
   }
 }

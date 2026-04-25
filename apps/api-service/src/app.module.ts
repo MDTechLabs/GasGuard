@@ -16,6 +16,8 @@ import { GasSubsidyModule } from './gas-subsidy/gas-subsidy.module';
 import { RbacModule, RolesGuard } from './rbac';
 import { AuthModule } from './auth';
 import databaseConfig from './config/database.config';
+import { AuditModule } from './audit';
+import { TransactionsModule } from './transection/transactions.module';
 
 @Module({
   imports: [
@@ -38,6 +40,7 @@ import databaseConfig from './config/database.config';
     PerformanceMonitoringModule,
     GasSubsidyModule,
     AuditModule,
+    TransactionsModule,
   ],
   providers: [
     // Apply RolesGuard globally to enforce RBAC on all routes

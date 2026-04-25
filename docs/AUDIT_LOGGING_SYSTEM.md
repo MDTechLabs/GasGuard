@@ -153,6 +153,106 @@ Logged when gas is submitted for processing (e.g., via subsidy program).
 - `subsidyProgram`: Which subsidy program (if applicable)
 - `status`: Submission status
 
+### 7. Configuration Update (`ConfigUpdate`)
+Logged when system configuration is updated by an administrator.
+
+**Fields in details:**
+- `configType`: Type of configuration being updated (e.g., "rate-limits", "alert-thresholds", "rpc-providers")
+- `changes`: Object containing the configuration changes made
+- `target`: Target of the configuration change (e.g., chain ID, "global", specific component)
+
+**Example:**
+```json
+{
+  "eventType": "ConfigUpdate",
+  "timestamp": "2024-02-23T14:30:00Z",
+  "user": "admin_user_123",
+  "outcome": "success",
+  "details": {
+    "configType": "alert-thresholds",
+    "changes": {
+      "gasSpikeThreshold": 150,
+      "volatilityThreshold": 25
+    },
+    "target": "chain-1"
+  }
+}
+```
+
+### 8. Role Change (`RoleChange`)
+Logged when user roles are modified by an administrator.
+
+**Fields in details:**
+- `targetUser`: User whose role is being changed
+- `action`: Type of role change ("grant", "revoke", "update")
+- `role`: The role being granted/revoked/updated
+- `previousRole`: Previous role (for updates)
+
+**Example:**
+```json
+{
+  "eventType": "RoleChange",
+  "timestamp": "2024-02-23T15:45:00Z",
+  "user": "admin_user_123",
+  "outcome": "success",
+  "details": {
+    "targetUser": "user_456",
+    "action": "grant",
+    "role": "admin",
+    "previousRole": "operator"
+  }
+}
+```
+
+### 9. Treasury Operation (`TreasuryOperation`)
+Logged for treasury-related operations performed by administrators.
+
+**Fields in details:**
+- `operation`: Type of treasury operation (e.g., "withdraw", "deposit", "transfer")
+- `amount`: Amount involved in the operation
+- `asset`: Asset type (e.g., "ETH", "USDC", "gas-tokens")
+- `recipient`: Recipient address or identifier
+- Additional operation-specific details
+
+**Example:**
+```json
+{
+  "eventType": "TreasuryOperation",
+  "timestamp": "2024-02-23T16:20:00Z",
+  "user": "admin_user_123",
+  "outcome": "success",
+  "details": {
+    "operation": "withdraw",
+    "amount": "1000",
+    "asset": "ETH",
+    "recipient": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+  }
+}
+```
+
+### 10. System Administration (`SystemAdmin`)
+Logged for general system administration actions.
+
+**Fields in details:**
+- `action`: Administrative action performed (e.g., "force-refresh", "system-restart", "maintenance-mode")
+- `target`: Target of the administrative action
+- Additional action-specific details
+
+**Example:**
+```json
+{
+  "eventType": "SystemAdmin",
+  "timestamp": "2024-02-23T17:00:00Z",
+  "user": "admin_user_123",
+  "outcome": "success",
+  "details": {
+    "action": "force-refresh",
+    "target": "gas-price-data",
+    "reason": "Manual data refresh requested"
+  }
+}
+```
+
 ## Database Schema
 
 ### audit_logs Table
@@ -201,7 +301,7 @@ Logged when gas is submitted for processing (e.g., via subsidy program).
 Retrieve audit logs with filtering and pagination.
 
 **Query Parameters:**
-- `eventType` (string): Filter by event type (APIRequest, KeyCreated, KeyRotated, KeyRevoked, GasTransaction, GasSubmission)
+- `eventType` (string): Filter by event type (APIRequest, KeyCreated, KeyRotated, KeyRevoked, GasTransaction, GasSubmission, ConfigUpdate, RoleChange, TreasuryOperation, SystemAdmin)
 - `user` (string): Filter by user/merchant ID
 - `apiKey` (string): Filter by API key
 - `chainId` (integer): Filter by blockchain chain ID
@@ -339,7 +439,11 @@ Retrieve high-level audit statistics.
     "GasTransaction": 3000,
     "KeyRotated": 200,
     "KeyRevoked": 50,
-    "GasSubmission": 32
+    "GasSubmission": 32,
+    "ConfigUpdate": 45,
+    "RoleChange": 12,
+    "TreasuryOperation": 8,
+    "SystemAdmin": 23
   }
 }
 ```

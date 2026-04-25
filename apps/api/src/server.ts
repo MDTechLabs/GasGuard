@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express'
 import { Queue } from 'bullmq'
 import { createAnalysisRoutes } from './routes/analysis.routes'
+import { createSimulationRoutes } from './modules/simulation/simulation.routes'
 import { errorHandler, notFoundHandler, requestIdHandler } from './middleware/error.middleware'
 
 export function createServer(queue: Queue) {
@@ -89,6 +90,7 @@ export function createServer(queue: Queue) {
 
   // New analysis endpoints
   app.use('/', createAnalysisRoutes(queue))
+  app.use('/api/simulation', createSimulationRoutes())
 
   // Error handling
   app.use(notFoundHandler)

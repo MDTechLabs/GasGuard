@@ -42,6 +42,12 @@ export class Transaction {
   @Column({ name: 'gas_used', type: 'bigint' })
   gasUsed: number;
 
+  @Column({ name: 'gas_price', type: 'varchar', nullable: true })
+  gasPrice: string;
+
+  @Column({ name: 'from_address', type: 'varchar', length: 255, nullable: true })
+  fromAddress: string;
+
   @CreateDateColumn({ name: 'timestamp', type: 'timestamptz' })
   timestamp: Date;
 }

@@ -81,6 +81,35 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       tags: ['security', 'reentrancy', 'vulnerability'],
       documentationUrl: 'https://docs.gasguard.dev/rules/sol-006',
     },
+    {
+      id: 'sol-007',
+      name: 'Insecure Fallback Function',
+      description: 'Fallback/default handlers should reject unknown calls or enforce strict validation',
+      severity: Severity.HIGH,
+      category: 'security',
+      enabled: true,
+      tags: ['security', 'fallback', 'receive', 'validation'],
+      documentationUrl: 'https://docs.gasguard.dev/rules/sol-007',
+    },
+    {
+      id: 'sol-009',
+      name: 'Missing Timelock For Sensitive Operations',
+      description: 'Critical operations should be scheduled and executed only after a mandatory delay',
+      severity: Severity.HIGH,
+      category: 'security',
+      enabled: true,
+      tags: ['security', 'timelock', 'governance', 'delay', 'authorization'],
+      documentationUrl: 'https://docs.gasguard.dev/rules/sol-009',
+      id: 'sol-008',
+      name: 'Unsafe External Call',
+      description:
+        'Detects external calls with unchecked return values, dangerous delegatecall usage, or Checks-Effects-Interactions (CEI) pattern violations',
+      severity: Severity.HIGH,
+      category: 'security',
+      enabled: true,
+      tags: ['security', 'external-calls', 'return-value', 'cei', 'delegatecall'],
+      documentationUrl: 'https://docs.gasguard.dev/rules/sol-008',
+    },
   ];
   
   getName(): string {
@@ -203,6 +232,63 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
             description: 'Add reentrancy guard modifier to prevent reentrancy attacks',
             codeSnippet: 'function withdraw() external nonReentrant { ... }',
             documentationUrl: 'https://docs.gasguard.dev/rules/sol-006',
+          },
+        })));
+      }
+
+      // Rule: sol-007 - Insecure Fallback Function
+      if (this.isRuleEnabled('sol-007', config)) {
+        const insecureFallbacks = this.detectInsecureFallbackFunctions(code);
+        findings.push(...insecureFallbacks.map(location => ({
+          ruleId: 'sol-007',
+          message: 'Fallback/receive handler is permissive or executes sensitive logic without strict validation',
+          severity: this.getRuleSeverity('sol-007', config),
+          location: {
+            file: filePath,
+            ...location,
+          },
+          suggestedFix: {
+            description: 'Keep fallback minimal: reject unknown calls, avoid sensitive logic, and validate accepted ETH transfers',
+            codeSnippet: 'fallback() external payable {\n    revert("Unknown function call");\n}',
+            documentationUrl: 'https://docs.gasguard.dev/rules/sol-007',
+          },
+        })));
+      }
+
+      // Rule: sol-009 - Missing Timelock For Sensitive Operations
+      if (this.isRuleEnabled('sol-009', config)) {
+        const missingTimelocks = this.detectMissingTimelockForSensitiveOperations(code);
+        findings.push(...missingTimelocks.map(location => ({
+          ruleId: 'sol-009',
+          message: location.message,
+          severity: this.getRuleSeverity('sol-009', config),
+          location: {
+            file: filePath,
+            startLine: location.startLine,
+            endLine: location.endLine,
+          },
+          suggestedFix: {
+            description: 'Use a timelock flow: schedule operation, enforce delay with block.timestamp checks, and execute after delay with role-based access control',
+            codeSnippet: 'bytes32 opId = keccak256(data);\npendingOperations[opId] = block.timestamp + TIMELOCK_DELAY;\nemit OperationScheduled(opId, pendingOperations[opId]);\n\nrequire(block.timestamp >= pendingOperations[opId], "Timelock not expired");\nexecuteOperation(opId);\nemit OperationExecuted(opId);',
+            documentationUrl: 'https://docs.gasguard.dev/rules/sol-009',
+      // Rule: sol-008 - Unsafe External Calls
+      if (this.isRuleEnabled('sol-008', config)) {
+        const unsafeExternalCalls = this.detectUnsafeExternalCalls(code);
+        findings.push(...unsafeExternalCalls.map(loc => ({
+          ruleId: 'sol-008',
+          message: loc.message,
+          severity: this.getRuleSeverity('sol-008', config),
+          location: {
+            file: filePath,
+            startLine: loc.startLine,
+            endLine: loc.endLine,
+          },
+          suggestedFix: {
+            description:
+              'Validate all external calls: capture and check return values, follow the Checks-Effects-Interactions pattern, and avoid delegatecall to untrusted contracts',
+            codeSnippet:
+              '// Capture and validate return value\n(bool success, ) = addr.call{value: amount}("");\nrequire(success, "External call failed");\n\n// Follow CEI: update state BEFORE the external call\nbalances[msg.sender] = 0;\n(bool ok, ) = msg.sender.call{value: amount}("");\nrequire(ok, "Transfer failed");',
+            documentationUrl: 'https://docs.gasguard.dev/rules/sol-008',
           },
         })));
       }
@@ -413,6 +499,452 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         }
       }
     });
+
+    return findings;
+  }
+
+  private detectInsecureFallbackFunctions(code: string): Array<{ startLine: number; endLine: number }> {
+    const findings: Array<{ startLine: number; endLine: number }> = [];
+    const lines = code.split('\n');
+    const fallbackDeclarationPattern = /^\s*(fallback|receive)\s*\(\s*\)\s*[^;{]*\{/;
+
+    const hasSensitiveOperation = (body: string): boolean => {
+      const sensitivePatterns = [
+        /\bdelegatecall\s*\(/,
+        /\bcallcode\s*\(/,
+        /\bselfdestruct\s*\(/,
+        /\.call\s*\{/,
+        /\.transfer\s*\(/,
+        /\.send\s*\(/,
+      ];
+
+      return sensitivePatterns.some(pattern => pattern.test(body));
+    };
+
+    const hasStateMutation = (bodyLines: string[]): boolean => {
+      const localDeclarationPattern = /^\s*(?:u?int(?:8|16|32|64|128|256)?|address|bool|string|bytes(?:\d+)?|bytes|mapping\s*\(|var|memory|storage)\b/;
+      const stateMutationPattern = /\b[A-Za-z_]\w*(?:\[[^\]]+\])?\s*(?:\+\+|--|\+=|-=|\*=|\/=|%=|=)\s*[^=]/;
+
+      for (const line of bodyLines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+          continue;
+        }
+
+        if (trimmed.startsWith('emit ')) {
+          continue;
+        }
+
+        if (localDeclarationPattern.test(trimmed)) {
+          continue;
+        }
+
+        if (stateMutationPattern.test(trimmed)) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    const hasExplicitReject = (body: string): boolean => {
+      return /\brevert\s*\(/.test(body) || /\brequire\s*\(\s*false\b/.test(body) || /\bassert\s*\(\s*false\b/.test(body);
+    };
+
+    const hasInputValidation = (body: string): boolean => {
+      const validationPatterns = [
+        /\brequire\s*\([^)]*msg\.(sender|value|data)[^)]*\)/,
+        /\bif\s*\([^)]*msg\.(sender|value|data)[^)]*\)\s*\{?\s*revert\s*\(/,
+      ];
+
+      return validationPatterns.some(pattern => pattern.test(body));
+    };
+
+    const isOnlyEventsOrNoop = (bodyLines: string[]): boolean => {
+      const executable = bodyLines
+        .map(line => line.trim())
+        .filter(line => line && line !== '{' && line !== '}' && !line.startsWith('//') && !line.startsWith('/*') && !line.startsWith('*'));
+
+      if (executable.length === 0) {
+        return true;
+      }
+
+      return executable.every(line => line.startsWith('emit ') || line === ';');
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const declarationLine = lines[i];
+      const declarationMatch = declarationLine.match(fallbackDeclarationPattern);
+
+      if (!declarationMatch) {
+        continue;
+      }
+
+      const handlerType = declarationMatch[1];
+      const startLine = i + 1;
+      let braceDepth = 0;
+      const bodyLines: string[] = [];
+      let started = false;
+
+      for (let j = i; j < lines.length; j++) {
+        const currentLine = lines[j];
+        const openBraces = (currentLine.match(/\{/g) || []).length;
+        const closeBraces = (currentLine.match(/\}/g) || []).length;
+
+        if (openBraces > 0) {
+          started = true;
+        }
+
+        if (started) {
+          bodyLines.push(currentLine);
+        }
+
+        braceDepth += openBraces;
+        braceDepth -= closeBraces;
+
+        if (started && braceDepth === 0) {
+          i = j;
+          break;
+        }
+      }
+
+      const body = bodyLines.join('\n');
+      const sensitive = hasSensitiveOperation(body);
+      const mutatesState = hasStateMutation(bodyLines);
+      const explicitReject = hasExplicitReject(body);
+      const validatesInput = hasInputValidation(body);
+      const eventsOnly = isOnlyEventsOrNoop(bodyLines);
+
+      const insecureFallback =
+        handlerType === 'fallback' && !explicitReject && !validatesInput && !eventsOnly;
+
+      const insecureReceive =
+        handlerType === 'receive' && (sensitive || mutatesState) && !validatesInput;
+
+      if (sensitive || mutatesState || insecureFallback || insecureReceive) {
+        findings.push({
+          startLine,
+          endLine: startLine,
+        });
+      }
+    }
+
+    return findings;
+  }
+
+  private detectMissingTimelockForSensitiveOperations(
+  /**
+   * Detects unsafe external call patterns (sol-008):
+   *  1. Unchecked return values from .call() / .staticcall()
+   *  2. Any use of .delegatecall() — executes foreign code in local storage context
+   *  3. Checks-Effects-Interactions (CEI) pattern violations — state mutations after external calls
+   */
+  private detectUnsafeExternalCalls(
+    code: string,
+  ): Array<{ startLine: number; endLine: number; message: string }> {
+    const findings: Array<{ startLine: number; endLine: number; message: string }> = [];
+    const lines = code.split('\n');
+
+    const functionDecl = /^\s*function\s+(\w+)\s*\(([^)]*)\)\s*([^\{;]*)\{/;
+    const sensitiveNamePattern = /(withdraw|transferOwnership|upgrade|set(?:Config|Parameter|Fee|Admin|Owner)?|grantRole|revokeRole|pause|unpause|mint|burn|treasury|emergency)/i;
+    const schedulerNamePattern = /^(queue|schedule|propose)/i;
+    const executeNamePattern = /^execute/i;
+    const cancelNamePattern = /^cancel/i;
+
+    const contractHasTracking = /(pending|queued|operations?|timelock|eta|executeAfter|unlockTime|operationId)/i.test(code);
+    const contractHasSchedule = /function\s+(?:queue|schedule|propose)\w*\s*\(/i.test(code);
+    const contractHasExecute = /function\s+execute\w*\s*\(/i.test(code);
+    const contractHasCancel = /function\s+cancel\w*\s*\(/i.test(code);
+    const hasTimelockEvents = /event\s+\w*(Scheduled|Executed|Cancelled|Canceled)\w*\s*\(/i.test(code);
+
+    const hasDelayEnforcement = (body: string): boolean => {
+      const delayPatterns = [
+        /block\.timestamp\s*>=/,
+        /block\.timestamp\s*>\s*/,
+        /\+\s*(TIMELOCK|DELAY|timelock|delay)/,
+        /executeAfter|unlockTime|eta|readyAt|scheduledAt/i,
+      ];
+      return delayPatterns.some(pattern => pattern.test(body));
+    };
+
+    const hasAuthorization = (signature: string, body: string): boolean => {
+      const signatureAuth = /(onlyOwner|onlyAdmin|onlyRole|governance|timelockAdmin)/i;
+      const bodyAuth = [
+        /require\s*\([^)]*msg\.sender[^)]*(owner|admin|governance)[^)]*\)/i,
+        /hasRole\s*\(/,
+        /_checkRole\s*\(/,
+        /onlyRole\s*\(/,
+      ];
+
+      if (signatureAuth.test(signature)) {
+        return true;
+      }
+
+      return bodyAuth.some(pattern => pattern.test(body));
+    };
+
+    const hasTrackingReference = (body: string): boolean => {
+      const patterns = [
+        /pending|queued|operations?|operationId|opId/i,
+        /mapping\s*\(/,
+        /delete\s+\w+/,
+      ];
+      return patterns.some(pattern => pattern.test(body));
+    };
+
+    const isStateChanging = (body: string): boolean => {
+      const stateChangePatterns = [
+        /\b\w+\s*(?:\[[^\]]+\])?\s*(?:=|\+=|-=|\*=|\/=|%=)/,
+        /\.transfer\s*\(/,
+        /\.call\s*\{/,
+        /\.send\s*\(/,
+        /_grantRole\s*\(/,
+        /_revokeRole\s*\(/,
+      ];
+
+      return stateChangePatterns.some(pattern => pattern.test(body));
+    };
+
+    let i = 0;
+    while (i < lines.length) {
+      const match = lines[i].match(functionDecl);
+      if (!match) {
+        i++;
+        continue;
+      }
+
+      const functionName = match[1];
+      const functionSignatureSuffix = match[3] || '';
+      const functionStartLine = i + 1;
+
+      let braceDepth = 0;
+      let started = false;
+      const bodyLines: string[] = [];
+      let endIndex = i;
+
+      for (let j = i; j < lines.length; j++) {
+        const line = lines[j];
+        const openBraces = (line.match(/\{/g) || []).length;
+        const closeBraces = (line.match(/\}/g) || []).length;
+
+        if (openBraces > 0) {
+          started = true;
+        }
+
+        if (started) {
+          bodyLines.push(line);
+        }
+
+        braceDepth += openBraces;
+        braceDepth -= closeBraces;
+
+        if (started && braceDepth === 0) {
+          endIndex = j;
+          break;
+        }
+      }
+
+      const functionBody = bodyLines.join('\n');
+      const isViewOrPure = /\b(view|pure)\b/.test(functionSignatureSuffix);
+      const isSensitive = sensitiveNamePattern.test(functionName);
+      const isScheduler = schedulerNamePattern.test(functionName);
+      const isExecutor = executeNamePattern.test(functionName);
+      const isCanceller = cancelNamePattern.test(functionName);
+      const hasAuth = hasAuthorization(functionSignatureSuffix, functionBody);
+
+      // Scheduling / execution / cancellation operations should be role restricted.
+      if ((isScheduler || isExecutor || isCanceller) && !hasAuth) {
+        findings.push({
+          startLine: functionStartLine,
+          endLine: functionStartLine,
+          message: `Timelock operation '${functionName}' lacks authorization checks`,
+        });
+      }
+
+      // Execution operations must enforce delay.
+      if (isExecutor && !hasDelayEnforcement(functionBody)) {
+        findings.push({
+          startLine: functionStartLine,
+          endLine: functionStartLine,
+          message: `Execution function '${functionName}' does not enforce timelock delay`,
+        });
+      }
+
+      // Sensitive state-changing operations should not execute immediately.
+      if (isSensitive && !isScheduler && !isExecutor && !isCanceller && !isViewOrPure) {
+        const stateChanging = isStateChanging(functionBody);
+        if (stateChanging) {
+          const hasDelay = hasDelayEnforcement(functionBody);
+          const hasTracking = hasTrackingReference(functionBody) || contractHasTracking;
+          const contractHasTimelockFlow = contractHasSchedule && contractHasExecute;
+
+          if (!hasDelay || !hasTracking || !contractHasTimelockFlow) {
+            findings.push({
+              startLine: functionStartLine,
+              endLine: functionStartLine,
+              message: `Sensitive operation '${functionName}' lacks enforced timelock scheduling/delay`,
+            });
+          }
+        }
+      }
+
+      i = endIndex + 1;
+    }
+
+    // Timelock systems should expose cancellation and event telemetry.
+    if (contractHasSchedule && contractHasExecute && !contractHasCancel) {
+      findings.push({
+        startLine: 1,
+        endLine: 1,
+        message: 'Timelock flow is missing cancellation capability for queued operations',
+      });
+    }
+
+    if ((contractHasSchedule || contractHasExecute || contractHasCancel) && !hasTimelockEvents) {
+      findings.push({
+        startLine: 1,
+        endLine: 1,
+        message: 'Timelock operations should emit schedule/execute/cancel events for transparency',
+      });
+    // Helpers ----------------------------------------------------------------
+
+    /** Returns true when the line (or the immediately preceding line) contains a
+     *  boolean-capture pattern such as `(bool success,` or `(bool ok,`. */
+    const hasBoolCapture = (lineIdx: number): boolean => {
+      const boolPattern = /\(\s*bool\b/;
+      if (boolPattern.test(lines[lineIdx])) return true;
+      if (lineIdx > 0 && boolPattern.test(lines[lineIdx - 1])) return true;
+      return false;
+    };
+
+    /** Returns true when the trimmed string is a comment or empty. */
+    const isCommentOrEmpty = (s: string): boolean =>
+      !s || s.startsWith('//') || s.startsWith('*') || s.startsWith('/*');
+
+    // Track multi-line block comments so we never inspect comment bodies.
+    let inBlockComment = false;
+
+    // Pass 1 — line-by-line checks -----------------------------------------
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+
+      // Block-comment gating
+      if (trimmed.startsWith('/*') || trimmed.startsWith('/**')) inBlockComment = true;
+      if (inBlockComment) {
+        if (trimmed.includes('*/')) inBlockComment = false;
+        continue;
+      }
+      if (trimmed.startsWith('//')) continue;
+
+      // 1a. delegatecall — always flag regardless of return-value capture.
+      //     delegatecall executes external bytecode inside the caller's own
+      //     storage; using it with an untrusted or upgradeable target is
+      //     critically dangerous.
+      if (/\.delegatecall\s*\(/.test(lines[i])) {
+        findings.push({
+          startLine: i + 1,
+          endLine: i + 1,
+          message:
+            'Use of delegatecall detected — target executes in caller storage context; ' +
+            'ensure the target contract is trusted, audited, and non-upgradeable',
+        });
+        continue; // Don't also fire the generic unchecked-call rule for the same line.
+      }
+
+      // 1b. .call() / .staticcall() without boolean return-value capture.
+      if (/\.(call|staticcall)\s*[\({]/.test(lines[i]) && !hasBoolCapture(i)) {
+        findings.push({
+          startLine: i + 1,
+          endLine: i + 1,
+          message:
+            'External call return value not checked — always capture and validate: ' +
+            '(bool success, ) = addr.call(...); require(success, "Call failed")',
+        });
+      }
+    }
+
+    // Pass 2 — function-scope CEI analysis ----------------------------------
+    // Walk function bodies and flag any mapping / state-variable write that
+    // appears AFTER the first external call inside the same function.
+
+    const externalCallInBody =
+      /\.(call|delegatecall|staticcall)\s*[\({]|\.transfer\s*\(|\.send\s*\(/;
+
+    // Identifies mapping-style state mutations: `someMapping[key] op= value`
+    const mappingMutation = /\b\w+\s*\[[^\]]+\]\s*(?:[+\-*\/%&|^]?=(?!=))/;
+
+    // Keywords that introduce local variables — lines starting with these are
+    // declarations, not state mutations.
+    const localVarKeyword =
+      /^\s*(?:uint(?:\d+)?|int(?:\d+)?|bool|address|bytes(?:\d+)?|string|mapping|struct|enum|memory|storage|calldata|var)\s+/;
+
+    let j = 0;
+    while (j < lines.length) {
+      const funcMatch = lines[j].match(/^\s*function\s+(\w+)\s*\(/);
+      if (funcMatch) {
+        const functionStartLine = j + 1;
+        let braceDepth = 0;
+        const bodyLines: Array<{ line: string; num: number }> = [];
+        let bodyStarted = false;
+
+        // Collect all lines belonging to this function.
+        for (let k = j; k < lines.length; k++) {
+          const cl = lines[k];
+          const opens = (cl.match(/\{/g) || []).length;
+          const closes = (cl.match(/\}/g) || []).length;
+          braceDepth += opens - closes;
+          if (opens > 0) bodyStarted = true;
+          if (bodyStarted) bodyLines.push({ line: cl, num: k + 1 });
+          if (bodyStarted && braceDepth === 0) {
+            j = k;
+            break;
+          }
+        }
+
+        // Find the first external call inside the function body.
+        let firstCallLineNum = -1;
+        for (const { line, num } of bodyLines) {
+          const t = line.trim();
+          if (!isCommentOrEmpty(t) && externalCallInBody.test(line)) {
+            firstCallLineNum = num;
+            break;
+          }
+        }
+
+        // Look for state mutations AFTER that first external call.
+        if (firstCallLineNum >= 0) {
+          let ceiViolationFound = false;
+          for (const { line, num } of bodyLines) {
+            if (ceiViolationFound) break;
+            if (num <= firstCallLineNum) continue;
+
+            const t = line.trim();
+            if (
+              isCommentOrEmpty(t) ||
+              t.startsWith('emit ') ||
+              t.startsWith('require(') ||
+              t.startsWith('revert') ||
+              t === '}' ||
+              localVarKeyword.test(line)
+            ) {
+              continue;
+            }
+
+            if (mappingMutation.test(t)) {
+              findings.push({
+                startLine: functionStartLine,
+                endLine: functionStartLine,
+                message:
+                  'Checks-Effects-Interactions (CEI) violation — state is mutated after an external call; ' +
+                  'move all state updates before the external interaction to prevent reentrancy',
+              });
+              ceiViolationFound = true;
+            }
+          }
+        }
+      }
+      j++;
+    }
 
     return findings;
   }

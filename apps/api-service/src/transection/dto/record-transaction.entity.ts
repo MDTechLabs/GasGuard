@@ -1,6 +1,6 @@
 import {
   IsString, IsNumber, IsEnum, IsOptional,
-  IsPositive, IsDateString, Min,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TxStatus, TxType } from '../transaction.entity';
@@ -13,7 +13,7 @@ export class RecordTransactionDto {
   merchantId: string;
 
   @IsNumber()
-  @IsPositive()
+  @Min(1)
   @Type(() => Number)
   chainId: number;
 
@@ -29,6 +29,14 @@ export class RecordTransactionDto {
   gasUsed: number;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
+  gasPrice?: string;
+
+  @IsOptional()
+  @IsString()
+  from?: string;
+
+  @IsOptional()
+  @IsString()
   timestamp?: string;
 }

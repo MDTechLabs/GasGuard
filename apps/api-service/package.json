@@ -56,7 +56,6 @@
     "@nestjs/swagger": "^8.1.0",
     "@types/bcrypt": "^5.0.2",
     "@types/nodemailer": "^6.4.14",
-    "@types/fast-csv": "^4.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^10.0.0",
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",

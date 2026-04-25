@@ -1,0 +1,17 @@
+[package]
+name = "property-token"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cosmwasm-std = { version = "2.1", features = ["staking"] }
+cosmwasm-schema = "2.1"
+cw-storage-plus = "2.0"
+schemars = "0.8"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+cosmwasm-std = { version = "2.1", features = ["staking"] }

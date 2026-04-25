@@ -1,0 +1,9 @@
+[package]
+name = "gasguard-parser-vyper"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gasguard-ast = { path = "../../ast" }
+regex = "1.0"
+thiserror = "1.0"

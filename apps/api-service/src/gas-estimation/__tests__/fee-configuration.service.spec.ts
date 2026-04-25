@@ -341,6 +341,148 @@ describe("FeeConfigurationService", () => {
       expect(updatedSettings.requireApprovalForLargeChanges).toBe(true);
       expect(updatedSettings.enableUserNotifications).toBe(true);
     });
+
+    it("should validate multisig threshold against signer count", async () => {
+      await expect(
+        service.updateAdminSettings(
+          {
+            multisigSigners: ["admin-1"],
+            multisigApprovalThreshold: 2,
+          },
+          "admin-user",
+        ),
+      ).rejects.toThrow(
+        "Multisig approval threshold cannot exceed the number of configured signers.",
+      );
+    });
+  });
+
+  describe("multisig approval workflow", () => {
+    beforeEach(async () => {
+      await service.updateAdminSettings(
+        {
+          multisigSigners: ["admin-1", "admin-2"],
+          multisigApprovalThreshold: 2,
+        },
+        "admin-user",
+      );
+    });
+
+    it("should require a multisig approval request for large changes", async () => {
+      const updateRequest: FeeUpdateRequest = {
+        basePricePerRequest: 0.00003,
+        reason: "Large price adjustment",
+        notifyUsers: false,
+      };
+
+      await expect(
+        service.updateConfiguration("default", updateRequest, "admin-1"),
+      ).rejects.toThrow(
+        "Large fee changes must be submitted through the multisig approval workflow.",
+      );
+
+      const approvalRequest = await service.createApprovalRequest(
+        "default",
+        updateRequest,
+        "admin-1",
+      );
+
+      expect(approvalRequest.status).toBe("PENDING");
+      expect(approvalRequest.approvals).toEqual(["admin-1"]);
+      expect(approvalRequest.threshold).toBe(2);
+    });
+
+    it("should apply the update after enough signer approvals", async () => {
+      const updateRequest: FeeUpdateRequest = {
+        basePricePerRequest: 0.00003,
+        reason: "Critical pricing change",
+        notifyUsers: false,
+      };
+
+      const approvalRequest = await service.createApprovalRequest(
+        "default",
+        updateRequest,
+        "admin-1",
+      );
+
+      const approvedRequest = await service.approveApprovalRequest(
+        approvalRequest.id,
+        "admin-2",
+      );
+
+      expect(approvedRequest.status).toBe("APPROVED");
+      const currentConfig = await service.getCurrentConfiguration();
+      expect(currentConfig.basePricePerRequest).toBe(0.00003);
+    });
+
+    it("should reject approvals from unauthorized users", async () => {
+      const updateRequest: FeeUpdateRequest = {
+        basePricePerRequest: 0.00003,
+        reason: "Unauthorized approval attempt",
+        notifyUsers: false,
+      };
+
+      const approvalRequest = await service.createApprovalRequest(
+        "default",
+        updateRequest,
+        "admin-1",
+      );
+
+      await expect(
+        service.approveApprovalRequest(approvalRequest.id, "not-a-signer"),
+      ).rejects.toThrow(
+        "User not-a-signer is not authorized to approve this request",
+      );
+    });
+  });
+
+  describe("timelock delay", () => {
+    beforeEach(async () => {
+      await service.updateAdminSettings(
+        {
+          timelockDelayMinutes: 1,
+        },
+        "admin-user",
+      );
+
+      jest.useFakeTimers({ now: new Date("2026-03-29T12:00:00.000Z") });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("should schedule direct updates when the delay has not yet elapsed", async () => {
+      const updateRequest: FeeUpdateRequest = {
+        basePricePerRequest: 0.00002,
+        reason: "Delayed pricing update",
+        notifyUsers: false,
+      };
+
+      const currentConfig = await service.updateConfiguration(
+        "default",
+        updateRequest,
+        "admin-user",
+      );
+
+      expect(currentConfig.basePricePerRequest).toBe(0.00001);
+
+      const scheduledUpdates = await service.getScheduledUpdates("default");
+      expect(scheduledUpdates.length).toBe(1);
+      expect(scheduledUpdates[0].status).toBe("SCHEDULED");
+      expect(scheduledUpdates[0].scheduledAt.toISOString()).toBe(
+        new Date("2026-03-29T12:01:00.000Z").toISOString(),
+      );
+
+      jest.setSystemTime(new Date("2026-03-29T12:02:00.000Z"));
+      const executed = await service.processPendingScheduledUpdates();
+
+      expect(executed.length).toBe(1);
+      expect(executed[0].status).toBe("EXECUTED");
+
+      const updatedConfig = await service.getCurrentConfiguration();
+      expect(updatedConfig.basePricePerRequest).toBe(0.00002);
+    });
   });
 
   describe("validateUpdateRequest", () => {

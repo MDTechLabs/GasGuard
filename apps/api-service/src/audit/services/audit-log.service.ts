@@ -196,4 +196,62 @@ export class AuditLogService {
       details,
     );
   }
+
+  /**
+   * Emit configuration update event
+   */
+  emitConfigUpdate(
+    adminUser: string,
+    configType: string,
+    changes: Record<string, any>,
+    target?: string,
+  ): void {
+    this.auditEventEmitter.emitConfigUpdateEvent(adminUser, configType, changes, target);
+  }
+
+  /**
+   * Emit role change event
+   */
+  emitRoleChange(
+    adminUser: string,
+    targetUser: string,
+    action: 'grant' | 'revoke' | 'update',
+    role: string,
+    previousRole?: string,
+  ): void {
+    this.auditEventEmitter.emitRoleChangeEvent(adminUser, targetUser, action, role, previousRole);
+  }
+
+  /**
+   * Emit treasury operation event
+   */
+  emitTreasuryOperation(
+    adminUser: string,
+    operation: string,
+    amount?: string,
+    asset?: string,
+    recipient?: string,
+    details?: Record<string, any>,
+  ): void {
+    this.auditEventEmitter.emitTreasuryOperationEvent(
+      adminUser,
+      operation,
+      amount,
+      asset,
+      recipient,
+      details,
+    );
+  }
+
+  /**
+   * Emit system administration event
+   */
+  emitSystemAdmin(
+    adminUser: string,
+    action: string,
+    target: string,
+    details?: Record<string, any>,
+  ): void {
+    this.auditEventEmitter.emitSystemAdminEvent(adminUser, action, target, details);
+  }
 }

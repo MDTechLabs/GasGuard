@@ -7,6 +7,11 @@ export enum EventType {
   API_KEY_REVOKED = 'KeyRevoked',
   GAS_TRANSACTION = 'GasTransaction',
   GAS_SUBMISSION = 'GasSubmission',
+  // Admin action events
+  CONFIG_UPDATE = 'ConfigUpdate',
+  ROLE_CHANGE = 'RoleChange',
+  TREASURY_OPERATION = 'TreasuryOperation',
+  SYSTEM_ADMIN = 'SystemAdmin',
 }
 
 export enum OutcomeStatus {

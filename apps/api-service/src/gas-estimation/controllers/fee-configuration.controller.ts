@@ -114,6 +114,161 @@ export class FeeConfigurationController {
   }
 
   /**
+   * Create a multisig approval request for a large fee update
+   */
+  @Post(':configId/approval-requests')
+  async createApprovalRequest(
+    @Param('configId') configId: string,
+    @Body() updateRequest: FeeUpdateRequest,
+  ) {
+    try {
+      const adminUserId = 'admin-user'; // Placeholder
+      const approvalRequest = await this.feeConfigurationService.createApprovalRequest(
+        configId,
+        updateRequest,
+        adminUserId,
+      );
+      return {
+        success: true,
+        data: approvalRequest,
+        message: 'Approval request created successfully',
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to create approval request',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('approval-requests')
+  async getApprovalRequests(@Query('configId') configId?: string) {
+    try {
+      const approvalRequests = await this.feeConfigurationService.getApprovalRequests(configId);
+      return {
+        success: true,
+        data: approvalRequests,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch approval requests',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('approval-requests/:requestId')
+  async getApprovalRequest(@Param('requestId') requestId: string) {
+    try {
+      const approvalRequest = await this.feeConfigurationService.getApprovalRequest(requestId);
+      return {
+        success: true,
+        data: approvalRequest,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch approval request',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('scheduled-updates')
+  async getScheduledUpdates(@Query('configId') configId?: string) {
+    try {
+      const scheduledUpdates = await this.feeConfigurationService.getScheduledUpdates(configId);
+      return {
+        success: true,
+        data: scheduledUpdates,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch scheduled updates',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('scheduled-updates/:updateId')
+  async getScheduledUpdate(@Param('updateId') updateId: string) {
+    try {
+      const scheduledUpdate = await this.feeConfigurationService.getScheduledUpdate(updateId);
+      return {
+        success: true,
+        data: scheduledUpdate,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch scheduled update',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('scheduled-updates/process')
+  async processScheduledUpdates() {
+    try {
+      const executedUpdates = await this.feeConfigurationService.processPendingScheduledUpdates();
+      return {
+        success: true,
+        data: executedUpdates,
+        message: 'Processed pending scheduled updates',
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to process scheduled updates',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('approval-requests/:requestId/approve')
+  async approveApprovalRequest(
+    @Param('requestId') requestId: string,
+  ) {
+    try {
+      const adminUserId = 'admin-user'; // Placeholder
+      const approvalRequest = await this.feeConfigurationService.approveApprovalRequest(
+        requestId,
+        adminUserId,
+      );
+      return {
+        success: true,
+        data: approvalRequest,
+        message: 'Approval recorded successfully',
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to approve request',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('approval-requests/:requestId/reject')
+  async rejectApprovalRequest(
+    @Param('requestId') requestId: string,
+  ) {
+    try {
+      const adminUserId = 'admin-user'; // Placeholder
+      const approvalRequest = await this.feeConfigurationService.rejectApprovalRequest(
+        requestId,
+        adminUserId,
+      );
+      return {
+        success: true,
+        data: approvalRequest,
+        message: 'Approval request rejected successfully',
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to reject request',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  /**
    * Create new fee configuration
    */
   @Post()
