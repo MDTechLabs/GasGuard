@@ -376,10 +376,19 @@ export class ManifestValidator {
 
     for (let i = 0; i < rules.length; i++) {
       const rule = rules[i] as PluginRuleDefinition;
-      if (!rule.id || !rule.name || !rule.description) {
+      if (!rule.id || !rule.version || !rule.name || !rule.description) {
         result.errors.push({
           field: `rules[${i}]`,
-          error: 'Each rule requires id, name, and description',
+          error: 'Each rule requires id, version, name, and description',
+          severity: 'error',
+        });
+        result.valid = false;
+      }
+
+      if (rule.version && !/^\d+\.\d+\.\d+/.test(rule.version)) {
+        result.errors.push({
+          field: `rules[${i}].version`,
+          error: 'Rule version must follow semantic versioning',
           severity: 'error',
         });
         result.valid = false;

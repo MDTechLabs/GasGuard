@@ -224,6 +224,20 @@ export class ConfigValidator {
         }
       }
 
+      if (!rule.version) {
+        errors.push({
+          path: `${prefix}.version`,
+          message: 'Rule version is required',
+          code: 'MISSING_RULE_VERSION',
+        });
+      } else if (!this.isValidVersion(rule.version)) {
+        errors.push({
+          path: `${prefix}.version`,
+          message: 'Invalid rule version format',
+          code: 'INVALID_RULE_VERSION_FORMAT',
+        });
+      }
+
       if (!rule.name) {
         errors.push({
           path: `${prefix}.name`,

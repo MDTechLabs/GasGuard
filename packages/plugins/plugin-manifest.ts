@@ -98,6 +98,8 @@ export interface FundingInfo {
 export interface PluginRuleDefinition {
   /** Stable rule id within plugin namespace */
   id: string;
+  /** Rule version */
+  version: SemanticVersion;
   /** Human-readable rule name */
   name: string;
   /** Rule intent and behavior */
