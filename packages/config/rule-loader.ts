@@ -8,6 +8,7 @@ import { RuleConfiguration } from '../../src/config/config.types';
 
 export interface RuleModule {
   id: string;
+  version: string;
   name: string;
   description: string;
   category: string;
@@ -32,7 +33,7 @@ export interface RuleInstance {
 export class RuleLoader {
   private static instance: RuleLoader;
   private loadedRules: Map<string, RuleInstance> = new Map();
-  private ruleModules: Map<string, RuleModule> = new Map();
+  private ruleModules: Map<string, RuleModule[]> = new Map();
 
   private constructor() {}
 
@@ -47,7 +48,9 @@ export class RuleLoader {
    * Register a rule module
    */
   registerRuleModule(module: RuleModule): void {
-    this.ruleModules.set(module.id, module);
+    const modules = this.ruleModules.get(module.id) || [];
+    modules.push(module);
+    this.ruleModules.set(module.id, modules);
   }
 
   /**
@@ -55,22 +58,37 @@ export class RuleLoader {
    */
   async loadRule(config: RuleConfiguration): Promise<RuleInstance | null> {
     try {
-      const module = this.ruleModules.get(config.id);
-      if (!module) {
+      const modules = this.ruleModules.get(config.id);
+      if (!modules || modules.length === 0) {
         console.warn(`Rule module not found: ${config.id}`);
         return null;
       }
 
+      // Find specific version or default to latest
+      let module = modules.find(m => m.version === config.version);
+      
+      if (!module && !config.version) {
+        // Fallback to latest version if no version specified
+        module = modules.sort((a, b) => b.version.localeCompare(a.version))[0];
+      }
+
+      if (!module) {
+        console.warn(`Rule version ${config.version} not found for ${config.id}`);
+        return null;
+      }
+
+      const instanceId = `${config.id}@${module.version}`;
+
       // Unload existing instance if any
-      if (this.loadedRules.has(config.id)) {
-        await this.unloadRule(config.id);
+      if (this.loadedRules.has(instanceId)) {
+        await this.unloadRule(instanceId);
       }
 
       // Create new instance
       const instance = module.create(config);
-      this.loadedRules.set(config.id, instance);
+      this.loadedRules.set(instanceId, instance);
       
-      console.log(`Loaded rule: ${config.id}`);
+      console.log(`Loaded rule: ${instanceId}`);
       return instance;
     } catch (error) {
       console.error(`Error loading rule ${config.id}:`, error);
@@ -157,15 +175,21 @@ export class RuleLoader {
   /**
    * Get rule module information
    */
-  getRuleModule(ruleId: string): RuleModule | undefined {
-    return this.ruleModules.get(ruleId);
+  getRuleModule(ruleId: string, version?: string): RuleModule | undefined {
+    const modules = this.ruleModules.get(ruleId);
+    if (!modules) return undefined;
+    if (version) {
+      return modules.find(m => m.version === version);
+    }
+    // Return latest if version not specified
+    return modules.sort((a, b) => b.version.localeCompare(a.version))[0];
   }
 
   /**
    * Get all registered rule modules
    */
   getAllRuleModules(): RuleModule[] {
-    return Array.from(this.ruleModules.values());
+    return Array.from(this.ruleModules.values()).flat();
   }
 
   /**
@@ -227,7 +251,11 @@ export class RuleLoader {
     const rulesByLanguage: Record<string, number> = {};
 
     for (const instance of this.loadedRules.values()) {
-      const module = this.ruleModules.get(instance.id);
+      // Try to find the module. We might need to parse the version from somewhere 
+      // or store the module reference in the instance.
+      // For now, we search all modules for this ID.
+      const modules = this.ruleModules.get(instance.id);
+      const module = modules?.[0]; // Best effort: use first version for stats if we can't distinguish
       if (module) {
         rulesByCategory[module.category] = (rulesByCategory[module.category] || 0) + 1;
         rulesByLanguage[module.language] = (rulesByLanguage[module.language] || 0) + 1;

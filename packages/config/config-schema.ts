@@ -150,12 +150,17 @@ export const CONFIGURATION_SCHEMA = {
     },
     RuleConfiguration: {
       type: "object",
-      required: ["id", "name", "enabled", "severity", "category", "language"],
+      required: ["id", "version", "name", "enabled", "severity", "category", "language"],
       properties: {
         id: {
           type: "string",
           pattern: "^[a-z0-9-]+$",
           description: "Unique rule identifier"
+        },
+        version: {
+          type: "string",
+          pattern: "^\\d+\\.\\d+\\.\\d+(-.*)?$",
+          description: "Rule version (semantic versioning)"
         },
         name: {
           type: "string",
@@ -308,12 +313,17 @@ export const RULE_CONFIGURATION_SCHEMA = {
   $schema: "http://json-schema.org/draft-07/schema#",
   type: "object",
   title: "Rule Configuration",
-  required: ["id", "name", "enabled", "severity", "category", "language"],
+  required: ["id", "version", "name", "enabled", "severity", "category", "language"],
   properties: {
     id: {
       type: "string",
       pattern: "^[a-z0-9-]+$",
       description: "Unique rule identifier"
+    },
+    version: {
+      type: "string",
+      pattern: "^\\d+\\.\\d+\\.\\d+(-.*)?$",
+      description: "Rule version (semantic versioning)"
     },
     name: {
       type: "string",

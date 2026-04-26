@@ -6,6 +6,7 @@
 
 export interface RuleConfiguration {
   id: string;
+  version: string;
   name: string;
   enabled: boolean;
   severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
