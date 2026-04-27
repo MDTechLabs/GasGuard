@@ -13,28 +13,31 @@ import { CrossChainGasService } from './services/cross-chain-gas.service';
 import { RateLimitingModule, RateLimitGuard } from './rate-limiting';
 import { AuthModule, JwtAuthGuard, RolesGuard } from './auth';
 import { ExportsModule } from './exports/exports.module';
+import { ScanModule } from './modules/scan/scan.module';
 
 @Module({
-    imports: [
-        // Global configuration module for environment variables
-        ConfigModule.forRoot({
-            isGlobal: true,
-            envFilePath: ['.env', '.env.local'],
-        }),
-        ThrottlerModule.forRoot([
-            {
-                name: 'default',
-                ttl: 60000,  // 60 seconds in milliseconds
-                limit: 100,  // 100 requests per TTL window (generous fallback)
-            },
-        ]),
-        // JWT Authentication module
-        AuthModule,
-        // New Redis-based rate limiting module
-        RateLimitingModule.forRoot(),
-        // Gas usage CSV export module
-        ExportsModule,
-    ],
+     imports: [
+         // Global configuration module for environment variables
+         ConfigModule.forRoot({
+             isGlobal: true,
+             envFilePath: ['.env', '.env.local'],
+         }),
+         ThrottlerModule.forRoot([
+             {
+                 name: 'default',
+                 ttl: 60000,  // 60 seconds in milliseconds
+                 limit: 100,  // 100 requests per TTL window (generous fallback)
+             },
+         ]),
+         // JWT Authentication module
+         AuthModule,
+         // New Redis-based rate limiting module
+         RateLimitingModule.forRoot(),
+         // Gas usage CSV export module
+         ExportsModule,
+         // Scan module for code analysis
+         ScanModule,
+     ],
     controllers: [
         AppController,
         ExampleController,

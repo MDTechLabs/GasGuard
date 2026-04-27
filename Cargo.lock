@@ -333,6 +333,7 @@ dependencies = [
  "clap",
  "colored",
  "gasguard-auto-fix",
+ "gasguard-cli",
  "gasguard-engine",
  "gasguard-plugin-system",
  "serde_json",
@@ -357,6 +358,13 @@ dependencies = [
  "gasguard-rule-engine",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "gasguard-cli"
+version = "0.1.0"
+dependencies = [
+ "walkdir",
 ]
 
 [[package]]

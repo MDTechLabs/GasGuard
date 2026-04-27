@@ -1,10 +1,13 @@
-import { Controller, Post, Body, Get, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, HttpCode, HttpStatus, Version, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { ScanService } from './scan.service';
 import { ScanRequestDto, ScanResponseDto, ScanStatusDto } from './dto/scan.dto';
+import { Public } from '../../auth/decorators';
 
 @ApiTags('scan')
 @Controller('scan')
+@Version('1')
+@Public()
 export class ScanController {
   constructor(private readonly scanService: ScanService) {}
 
@@ -44,8 +47,29 @@ export class ScanController {
     description: 'Scan status retrieved',
     type: ScanStatusDto 
   })
-  async getScanStatus(@Query('scanId') scanId: string): Promise<ScanStatusDto> {
+  async getScanStatus(@Param('scanId') scanId: string): Promise<ScanStatusDto> {
     return this.scanService.getScanStatus(scanId);
+  }
+
+  @Get('results/:scanId')
+  @ApiOperation({ summary: 'Get scan results' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Scan results retrieved',
+    type: ScanResponseDto 
+  })
+  async getScanResults(@Param('scanId') scanId: string): Promise<ScanResponseDto> {
+    return this.scanService.getScanResults(scanId);
+  }
+
+  @Post('cancel/:scanId')
+  @ApiOperation({ summary: 'Cancel running scan' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Scan cancelled successfully' 
+  })
+  async cancelScan(@Param('scanId') scanId: string) {
+    return this.scanService.cancelScan(scanId);
   }
 
   @Get('results/:scanId')

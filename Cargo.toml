@@ -11,7 +11,8 @@ members = [
     "libs/rule-engine",
     "libs/plugin-system",
     "libs/auto-fix",
-    "apps/api"
+    "apps/api",
+    "tests/mutation"
 ]
 
 [workspace.package]
