@@ -4,6 +4,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import { generateJsonReport } from '../../reporting/json-reporter';
 import { printSummary } from '../../reporting/summary-printer';
+import { ScanWatcher } from '../../../../src/analysis/watch/watcher';
+
 
 export const scanCommand = new Command('scan')
   .description('Scan smart contracts for gas optimization opportunities')
@@ -12,33 +14,58 @@ export const scanCommand = new Command('scan')
   .option('-f, --format <format>', 'Output format (json, text, both)', 'both')
   .option('--no-summary', 'Disable printable summary')
   .option('--fix-preview', 'Show fix previews for violations')
+  .option('-w, --watch', 'Watch for file changes and re-run scans automatically')
   .option('--confidence <threshold>', 'Minimum confidence threshold (0.0-1.0)', '0.7')
   .action(async (scanPath: string, options) => {
     try {
-      console.log(chalk.blue(`🔍 Scanning ${scanPath}...`));
+      const runScan = async () => {
+        console.log(chalk.blue(`\n🔍 Scanning ${scanPath}...`));
+        
+        // Collect scannable files
+        const files = await collectScannableFiles(scanPath);
+        
+        if (files.length === 0) {
+          console.log(chalk.yellow('No scannable files found.'));
+          return;
+        }
 
-      // Collect scannable files
-      const files = await collectScannableFiles(scanPath);
-      
-      if (files.length === 0) {
-        console.log(chalk.yellow('No scannable files found.'));
-        return;
-      }
+        console.log(chalk.green(`Found ${files.length} file(s) to scan.`));
 
-      console.log(chalk.green(`Found ${files.length} file(s) to scan.`));
+        // Simulate scanning (in real implementation, this would use the actual scanner)
+        const scanResults = await simulateScan(files);
 
-      // Simulate scanning (in real implementation, this would use the actual scanner)
-      const scanResults = await simulateScan(files);
+        // Generate reports
+        if (options.format === 'json' || options.format === 'both') {
+          const outputPath = options.output || path.join(process.cwd(), 'gasguard-report.json');
+          await generateJsonReport(scanResults, outputPath);
+          console.log(chalk.green(`✓ JSON report saved to ${outputPath}`));
+        }
 
-      // Generate reports
-      if (options.format === 'json' || options.format === 'both') {
-        const outputPath = options.output || path.join(process.cwd(), 'gasguard-report.json');
-        await generateJsonReport(scanResults, outputPath);
-        console.log(chalk.green(`✓ JSON report saved to ${outputPath}`));
-      }
+        if (options.summary !== false && (options.format === 'text' || options.format === 'both')) {
+          printSummary(scanResults, options);
+        }
+      };
 
-      if (options.summary !== false && (options.format === 'text' || options.format === 'both')) {
-        printSummary(scanResults, options);
+      // Perform initial scan
+      await runScan();
+
+      // Setup Watch Mode if requested
+      if (options.watch) {
+        console.log(chalk.cyan(`\n👀 Watch mode enabled. Listening for changes in ${scanPath}...`));
+        const watcher = new ScanWatcher(scanPath, {
+          ignored: (p) => p.includes('node_modules') || p.includes('.git')
+        });
+        
+        watcher.watch(async (filePath) => {
+          console.log(chalk.cyan(`\n[File Changed] ${filePath}`));
+          await runScan();
+        });
+        
+        // Keep the process alive
+        process.on('SIGINT', () => {
+          watcher.stop();
+          process.exit(0);
+        });
       }
 
     } catch (error) {
