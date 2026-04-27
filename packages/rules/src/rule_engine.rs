@@ -23,9 +23,6 @@ pub enum ViolationSeverity {
     High,
     Medium,
     Low,
-    Error,
-    High,
-    Medium,
     Warning,
     Info,
 }

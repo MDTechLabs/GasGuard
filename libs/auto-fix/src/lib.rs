@@ -128,7 +128,7 @@ impl FixEngine {
 
     /// Calculates confidence score for a fix (0.0 to 1.0)
     fn calculate_fix_confidence(&self, violation: &RuleViolation, is_safe: bool) -> f64 {
-        let mut confidence = if is_safe { 0.9 } else { 0.5 };
+        let mut confidence: f64 = if is_safe { 0.9 } else { 0.5 };
 
         // Adjust based on severity
         match violation.severity {
@@ -210,8 +210,8 @@ impl FixEngine {
         for (line, line_violations) in &line_map {
             if line_violations.len() == 1 {
                 // Single violation on line - safe if the fix itself is safe
-                let violation = line_violations[0];
-                if self.is_safe_fix(violation) {
+                let violation = line_violations[0].clone();
+                if self.is_safe_fix(&violation) {
                     safe_violations.push(violation.clone());
                 }
             } else {
@@ -238,7 +238,7 @@ impl FixEngine {
                     // No conflicts - include all safe fixes
                     for violation in line_violations {
                         if self.is_safe_fix(violation) {
-                            safe_violations.push(violation.clone());
+                            safe_violations.push((*violation).clone());
                         }
                     }
                 }
