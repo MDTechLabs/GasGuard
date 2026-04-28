@@ -1,0 +1,36 @@
+{
+  "ruleId": "sol-003",
+  "name": "Uncached Array Length Rule Tests",
+  "description": "Test suite for sol-003 uncached array length detection",
+  "fixtures": [
+    {
+      "id": "sol-003-uncached-array-1",
+      "name": "Basic Uncached Array",
+      "description": "Test uncached array.length in for loop",
+      "input": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract TestContract {\n    uint[] public numbers;\n    \n    function sumNumbers() public view returns (uint) {\n        uint total = 0;\n        for (uint i = 0; i < numbers.length; i++) {\n            total += numbers[i];\n        }\n        return total;\n    }\n}",
+      "expectedFindings": [
+        {
+          "ruleId": "sol-003",
+          "severity": "medium",
+          "messagePattern": "Array length is not cached",
+          "line": 9
+        }
+      ],
+      "metadata": {
+        "language": "solidity",
+        "category": "gas-optimization"
+      }
+    },
+    {
+      "id": "sol-003-cached-array",
+      "name": "Cached Array Length (Negative Test)",
+      "description": "Test that cached array.length does NOT trigger the rule",
+      "input": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract TestContract {\n    uint[] public numbers;\n    \n    function sumNumbers() public view returns (uint) {\n        uint total = 0;\n        uint length = numbers.length;\n        for (uint i = 0; i < length; i++) {\n            total += numbers[i];\n        }\n        return total;\n    }\n}",
+      "expectedFindings": [],
+      "metadata": {
+        "language": "solidity",
+        "category": "gas-optimization"
+      }
+    }
+  ]
+}

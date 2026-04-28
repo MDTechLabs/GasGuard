@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": false,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "baseUrl": "../..",
+    "paths": {
+      "@engine/*": ["libs/engine/*"]
+    },
+    "noImplicitAny": false
+  },
+  "include": ["*.spec.ts"],
+  "exclude": ["node_modules"]
+}

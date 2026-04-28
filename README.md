@@ -47,6 +47,7 @@ As Web3 scales, transaction costs remain a significant barrier to entry.
 * **💡 Auto-Refactor Suggestions:** Provides "Copy-Paste" ready code snippets to replace inefficient logic instantly.
 * **🤖 CI/CD Integration:** A dedicated GitHub Action that runs on every push, ensuring no "gas regressions" are introduced.
 * **📚 Educational Tooltips:** Every suggestion includes a link to documentation explaining *why* the change saves money, fostering developer growth.
+* **🧪 Rule Testing Framework:** Comprehensive testing utilities with input/output fixtures, snapshot testing, and assertion helpers for rule developers.
 
 ### 4. Roadmap for this Wave
 * **Phase 1:** Complete the Core CLI tool for local developer use (Rust/Soroban focus).
