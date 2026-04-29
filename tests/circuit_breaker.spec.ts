@@ -15,7 +15,12 @@ describe('Circuit Breaker Security Analysis', () => {
         path.join(__dirname, '../../examples/enhanced_circuit_breaker.sol'),
         'utf8'
       );
-
+ // describe('Granular Pause Control Validation', () => {
+  //   it('should recognize secure circuit breaker implementations', async () => {
+  //     const secureCircuitBreaker = fs.readFileSync(
+  //       path.join(__dirname, '../../examples/enhanced_circuit_breaker.sol'),
+  //       'utf8'
+  //     );
       const result = await engine.scan({
         language: 'solidity',
         source: secureCircuitBreaker,

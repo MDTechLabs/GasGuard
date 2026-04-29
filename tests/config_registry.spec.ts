@@ -8,7 +8,12 @@ describe("OnChainConfigRegistry", function () {
 
   beforeEach(async function () {
     [admin, configUpdater, emergencyAdmin, user] = await ethers.getSigners();
-
+ // describe('Granular Pause Control Validation', () => {
+  //   it('should recognize secure circuit breaker implementations', async () => {
+  //     const secureCircuitBreaker = fs.readFileSync(
+  //       path.join(__dirname, '../../examples/enhanced_circuit_breaker.sol'),
+  //       'utf8'
+  //     );
     ConfigRegistry = await ethers.getContractFactory("OnChainConfigRegistry");
     configRegistry = await ConfigRegistry.deploy(admin.address, configUpdater.address, emergencyAdmin.address);
     await configRegistry.deployed();
