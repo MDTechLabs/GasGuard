@@ -11,7 +11,12 @@ describe('Soroban Full Scan Lifecycle', () => {
   const expectedDir = path.join(fixturesDir, 'expected');
 
   let engine: GasGuardEngine;
-
+ // describe('Granular Pause Control Validation', () => {
+  //   it('should recognize secure circuit breaker implementations', async () => {
+  //     const secureCircuitBreaker = fs.readFileSync(
+  //       path.join(__dirname, '../../examples/enhanced_circuit_breaker.sol'),
+  //       'utf8'
+  //     );
   beforeAll(() => {
     engine = new GasGuardEngine();
   });

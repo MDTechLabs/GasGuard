@@ -8,7 +8,12 @@ describe('Solidity Reentrancy Guard Analysis', () => {
   beforeAll(() => {
     engine = new GasGuardEngine();
   });
-
+ // describe('Granular Pause Control Validation', () => {
+  //   it('should recognize secure circuit breaker implementations', async () => {
+  //     const secureCircuitBreaker = fs.readFileSync(
+  //       path.join(__dirname, '../../examples/enhanced_circuit_breaker.sol'),
+  //       'utf8'
+  //     );
   describe('Reentrancy Guard Detection', () => {
     it('should detect missing reentrancy guard in vulnerable contract', async () => {
       const source = fs.readFileSync(
