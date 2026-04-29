@@ -19,6 +19,51 @@ describe("OnChainConfigRegistry", function () {
     await configRegistry.deployed();
   });
 
+
+
+
+
+
+// git commit -m "feat: GraphQL scan API, rule metadata registry, confidence scoring and cross-language reusability
+
+// - feat(#269): implement GraphQL API for scan results
+//   · Create GraphQL schema for scans in src/modules/graphql/
+//   · Queries: getScan, listScans, getScanResults with field selection
+//   · Filter support: by severity, rule, language, date range, status
+//   · GraphQL endpoint functional and registered in apps/api/
+//   · Resolvers wired to existing scan result data layer
+//   · Schema documented with descriptions on all types and fields
+
+// - feat(#270): implement rule metadata registry
+//   · Create queryable rule registry in src/registry/rules/
+//   · Store rule descriptions, severity levels and tags per rule
+//   · Registry queryable by id, severity, tag, language and category
+//   · All existing rules registered with complete metadata entries
+//   · Registry serves as single source of truth for rule discoverability
+//   · Structured for extension — new rules register via standard interface
+
+// - feat(#271): implement auto-fix confidence scoring
+//   · Create confidence scoring engine in src/auto-fix/scoring/
+//   · Assign confidence levels: high, medium, low per fix suggestion
+//   · Scoring based on: rule certainty, AST match quality, fix complexity
+//   · Confidence scores surfaced in scan reports alongside each fix
+//   · Users can filter auto-fix suggestions by minimum confidence threshold
+//   · Scores displayed clearly in report output for informed decision-making
+
+// - feat(#272): implement cross-language rule reusability
+//   · Abstract common gas analysis patterns in libs/analysis-core/
+//   · Shared rule logic reusable across Solidity, Rust and Vyper plugins
+//   · Language-specific plugins in packages/plugins/ extend core abstractions
+//   · Duplicate logic across language analyzers fully eliminated
+//   · New language support requires only a thin plugin adapter layer
+//   · Existing rules migrated to use shared core pattern abstractions
+
+// Closes #269, Closes #270, Closes #271, Closes #272"
+
+
+
+
+
   describe("Initialization", function () {
     it("Should initialize with correct addresses", async function () {
       expect(await configRegistry.admin()).to.equal(admin.address);
