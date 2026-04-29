@@ -1,0 +1,19 @@
+{
+  "id": "sol-006-missing-reentrancy-1",
+  "name": "Missing Reentrancy Guard on Withdraw",
+  "description": "Test that the rule detects missing reentrancy guard on ETH transfer functions",
+  "input": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract VulnerableBank {\n    mapping(address => uint) public balances;\n    \n    function deposit() public payable {\n        balances[msg.sender] += msg.value;\n    }\n    \n    function withdraw(uint amount) public {\n        require(balances[msg.sender] >= amount, \"Insufficient balance\");\n        \n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"Transfer failed\");\n        \n        balances[msg.sender] -= amount;\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "sol-006",
+      "severity": "critical",
+      "messagePattern": "lacks reentrancy guard",
+      "line": 11
+    }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["reentrancy", "vulnerability"]
+  }
+}

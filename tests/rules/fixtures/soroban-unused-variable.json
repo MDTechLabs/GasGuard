@@ -1,0 +1,19 @@
+{
+  "id": "soroban-unused-var-1",
+  "name": "Unused State Variable Detection",
+  "description": "Test that the rule detects unused state variables in Soroban contracts",
+  "input": "use soroban_sdk::{contract, contractimpl, contracttype, Address};\n\n#[contracttype]\npub struct TestContract {\n    pub admin: Address,\n    pub unused_counter: u64,\n}\n\n#[contractimpl]\nimpl TestContract {\n    pub fn new(admin: Address) -> Self {\n        Self { admin, unused_counter: 0 }\n    }\n    \n    pub fn get_admin(&self) -> Address {\n        self.admin\n    }\n}",
+  "expectedViolations": [
+    {
+      "rule_name": "soroban-unused-state-variables",
+      "severity": "Warning",
+      "message_pattern": "unused_counter",
+      "line_number": 7
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "gas-optimization",
+    "tags": ["storage", "unused-variables"]
+  }
+}
