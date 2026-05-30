@@ -6,6 +6,34 @@ import { RuleViolation } from '../scanner/interfaces/scanner.interface';
 export class RulesService {
   private readonly rules: RuleDefinition[] = [
     {
+      name: 'repeated-external-calls',
+      description: 'Detects repeated external contract calls and suggests caching call results.',
+      severity: 'warning',
+      category: 'security',
+      enabled: true,
+    },
+    {
+      name: 'unsafe-delegatecall',
+      description: 'Detects risky delegatecall usage that may execute untrusted logic.',
+      severity: 'error',
+      category: 'security',
+      enabled: true,
+    },
+    {
+      name: 'large-storage-arrays',
+      description: 'Detects large or unbounded storage arrays that can increase gas usage.',
+      severity: 'warning',
+      category: 'storage-optimization',
+      enabled: true,
+    },
+    {
+      name: 'missing-access-modifiers',
+      description: 'Detects sensitive public/external functions missing access control checks.',
+      severity: 'warning',
+      category: 'security',
+      enabled: true,
+    },
+    {
       name: 'unused-state-variables',
       description:
         'Identifies state variables in Soroban contracts that are never read or written to, helping developers minimize storage footprint and ledger rent.',
@@ -48,9 +76,88 @@ export class RulesService {
     switch (rule.name) {
       case 'unused-state-variables':
         return this.checkUnusedStateVariables(code);
+      case 'repeated-external-calls':
+        return this.checkRepeatedExternalCalls(code);
+      case 'unsafe-delegatecall':
+        return this.checkUnsafeDelegatecall(code);
+      case 'large-storage-arrays':
+        return this.checkLargeStorageArrays(code);
+      case 'missing-access-modifiers':
+        return this.checkMissingAccessModifiers(code);
       default:
         return [];
     }
+  }
+
+  private checkRepeatedExternalCalls(code: string): RuleViolation[] {
+    const out: RuleViolation[] = [];
+    const calls = code.match(/(\w+)\s*\.\s*call\s*\(/g) || [];
+    const seen = new Set<string>();
+    for (const call of calls) {
+      if (seen.has(call)) {
+        out.push({
+          ruleName: 'repeated-external-calls',
+          description: `Repeated external call pattern detected: ${call.trim()}`,
+          severity: 'warning',
+          lineNumber: 1,
+          columnNumber: 0,
+          suggestion: 'Cache external call results in local variables when safe.',
+        });
+        break;
+      }
+      seen.add(call);
+    }
+    return out;
+  }
+
+  private checkUnsafeDelegatecall(code: string): RuleViolation[] {
+    if (!/delegatecall\s*\(/.test(code)) return [];
+    return [{
+      ruleName: 'unsafe-delegatecall',
+      description: 'delegatecall usage detected; validate target and calldata constraints.',
+      severity: 'error',
+      lineNumber: 1,
+      columnNumber: 0,
+      suggestion: 'Restrict delegatecall targets and avoid user-controlled delegatecall paths.',
+    }];
+  }
+
+  private checkLargeStorageArrays(code: string): RuleViolation[] {
+    const out: RuleViolation[] = [];
+    const storageArrays = code.match(/\w+\s*\[\]\s+(public|private|internal|external)?\s*\w+\s*;/g) || [];
+    if (storageArrays.length >= 3 || /push\s*\(/.test(code)) {
+      out.push({
+        ruleName: 'large-storage-arrays',
+        description: 'Potential large or unbounded storage array usage detected.',
+        severity: 'warning',
+        lineNumber: 1,
+        columnNumber: 0,
+        suggestion: 'Consider pagination, bounded collections, or indexing strategies.',
+      });
+    }
+    return out;
+  }
+
+  private checkMissingAccessModifiers(code: string): RuleViolation[] {
+    const out: RuleViolation[] = [];
+    const risky = /(mint|burn|pause|unpause|upgrade|setAdmin|setOwner|withdraw|clawback)/i;
+    const fnRe = /function\s+(\w+)\s*\([^)]*\)\s*(public|external)([^{};]*)\{/g;
+    let m: RegExpExecArray | null;
+    while ((m = fnRe.exec(code)) !== null) {
+      const fnName = m[1];
+      const tail = m[3] || '';
+      if (risky.test(fnName) && !/(onlyOwner|onlyAdmin|require\s*\()/.test(tail)) {
+        out.push({
+          ruleName: 'missing-access-modifiers',
+          description: `Sensitive function '${fnName}' may be missing access restrictions.`,
+          severity: 'warning',
+          lineNumber: 1,
+          columnNumber: 0,
+          suggestion: 'Add explicit access control (e.g., onlyOwner/onlyAdmin) and validation checks.',
+        });
+      }
+    }
+    return out;
   }
 
   private checkUnusedStateVariables(code: string): RuleViolation[] {
