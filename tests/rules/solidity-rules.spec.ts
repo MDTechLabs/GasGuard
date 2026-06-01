@@ -163,6 +163,57 @@ contract TestContract {
     });
   });
 
+  // Helper config to isolate a single rule by disabling all others
+  function isolateRule(ruleId: string): any {
+    const allRuleIds = [
+      'sol-003', 'sol-004', 'sol-005', 'sol-006', 'sol-007',
+      'sol-008', 'sol-009', 'sol-010', 'sol-011', 'sol-012',
+      'sol-017'
+    ];
+    const rules: any = {};
+    for (const id of allRuleIds) {
+      rules[id] = { enabled: id === ruleId };
+    }
+    return { rules };
+  }
+
+  describe('sol-017: Unsafe Selfdestruct Usage', () => {
+    it('should detect selfdestruct without access controls', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract UnsafeContract {
+    function kill() external {
+        selfdestruct(payable(msg.sender));
+    }
+    function destroy() external {
+        suicide(payable(msg.sender));
+    }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'test017.sol', isolateRule('sol-017'));
+      RuleAssertions.assertHasFinding(result.findings, 'sol-017');
+      const sol017Findings = result.findings.filter(f => f.ruleId === 'sol-017');
+      expect(sol017Findings.length).toBe(2);
+    });
+
+    it('should NOT flag contract without selfdestruct', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SafeContract {
+    function safeAction() external { }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'safe.sol', isolateRule('sol-017'));
+      RuleAssertions.assertNotHasFinding(result.findings, 'sol-017');
+    });
+  });
+
   describe('Batch Testing', () => {
     it('should run multiple fixtures and generate report', async () => {
       const fixtures = FixtureLoader.loadFixturesFromDir(

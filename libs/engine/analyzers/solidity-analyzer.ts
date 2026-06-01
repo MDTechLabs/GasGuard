@@ -152,7 +152,19 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       tags: ['events', 'auditability', 'transparency'],
       documentationUrl: 'https://docs.gasguard.dev/rules/sol-012',
     },
+    {
+      id: 'sol-017',
+      name: 'Unsafe Selfdestruct Usage',
+      description: 'Detects unsafe selfdestruct patterns that could lock assets or be exploited',
+      severity: Severity.CRITICAL,
+      category: 'security',
+      enabled: true,
+      tags: ['security', 'selfdestruct', 'lifecycle'],
+      documentationUrl: 'https://docs.gasguard.dev/rules/sol-017',
+    },
   ];
+  
+  getName(): string
   
   getName(): string {
     return 'SolidityAnalyzer';
@@ -395,6 +407,26 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
             description: 'Add event emissions for state changes.',
             codeSnippet: 'event StateChanged(address indexed user, uint256 amount);\n...\nemit StateChanged(msg.sender, value);',
             documentationUrl: 'https://docs.gasguard.dev/rules/sol-012',
+          },
+        })));
+      }
+      
+      // Rule: sol-017 - Unsafe Selfdestruct Usage
+      if (this.isRuleEnabled('sol-017', config)) {
+        const unsafeSelfdestruct = this.detectUnsafeSelfdestructUsage(code);
+        findings.push(...unsafeSelfdestruct.map(location => ({
+          ruleId: 'sol-017',
+          message: location.message,
+          severity: this.getRuleSeverity('sol-017', config),
+          location: {
+            file: filePath,
+            startLine: location.startLine,
+            endLine: location.endLine,
+          },
+          suggestedFix: {
+            description: location.suggestedFix,
+            codeSnippet: location.codeSnippet,
+            documentationUrl: 'https://docs.gasguard.dev/rules/sol-017',
           },
         })));
       }
@@ -1128,6 +1160,66 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       }
     }
     
+    return findings;
+  }
+
+  /**
+   * Detects unsafe selfdestruct usage (sol-017)
+   */
+  private detectUnsafeSelfdestructUsage(code: string): Array<{
+    startLine: number;
+    endLine: number;
+    message: string;
+    suggestedFix: string;
+    codeSnippet?: string;
+  }> {
+    const findings: Array<{
+      startLine: number;
+      endLine: number;
+      message: string;
+      suggestedFix: string;
+      codeSnippet?: string;
+    }> = [];
+    const lines = code.split('\n');
+    
+    const functionPattern = /^\s*function\s+(\w+)\s*\(/;
+    const authModifierPattern = /(onlyOwner|onlyAdmin|onlyRole|auth|hasRole)/i;
+    const authRequirePattern = /require\s*\([^)]*(msg\.sender|hasRole|_checkRole)[^)]*\)/;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/\b(selfdestruct|suicide)\s*\(/.test(line)) {
+        const destructLine = i + 1;
+        let hasAuthCheck = false;
+        let functionName = 'unknown';
+        
+        for (let j = i; j >= 0; j--) {
+          const checkLine = lines[j];
+          const funcMatch = checkLine.match(functionPattern);
+          if (funcMatch) {
+            functionName = funcMatch[1];
+            if (authModifierPattern.test(checkLine)) hasAuthCheck = true;
+            break;
+          }
+          if (authRequirePattern.test(checkLine)) hasAuthCheck = true;
+        }
+        
+        if (!hasAuthCheck) {
+          findings.push({
+            startLine: destructLine, endLine: destructLine,
+            message: `Unsafe selfdestruct detected in function '${functionName}' without access controls. Selfdestruct can lock assets.`,
+            suggestedFix: 'Add access control modifier (onlyOwner/onlyAdmin) or multi-signature requirement',
+            codeSnippet: `function ${functionName}() external onlyOwner { ... selfdestruct(payable(owner)); }`,
+          });
+        } else {
+          findings.push({
+            startLine: destructLine, endLine: destructLine,
+            message: `Selfdestruct usage in function '${functionName}'. Ensure multi-sig or timelock is in place.`,
+            suggestedFix: 'Consider adding a timelock delay and multi-signature requirement',
+          });
+        }
+      }
+    }
     return findings;
   }
 
