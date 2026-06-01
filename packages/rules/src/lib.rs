@@ -2,6 +2,7 @@ pub mod rule_engine;
 pub mod unused_state_variables;
 pub mod vyper;
 pub mod soroban;
+pub mod stellar;
 pub mod optimization;
 pub mod solidity;
 pub mod security;
