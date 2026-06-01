@@ -164,6 +164,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     },
   ];
   
+  getName(): string
+  
   getName(): string {
     return 'SolidityAnalyzer';
   }
@@ -1161,60 +1163,62 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   }
 
   /**
-   * Detects event parameter indexing opportunities (sol-018)
+   * Detects unsafe selfdestruct usage (sol-017)
    */
-  private detectEventParameterIndexingOpportunities(code: string): Array<{
+  private detectUnsafeSelfdestructUsage(code: string): Array<{
     startLine: number;
     endLine: number;
     message: string;
     suggestedFix: string;
     codeSnippet?: string;
   }> {
-    function parseEventParam(paramStr: string): { type: string; name: string; indexed: boolean } {
-      const parts = paramStr.split(/\s+/);
-      const indexed = parts.includes('indexed');
-      const filtered = parts.filter(p => p !== 'indexed');
-      return { type: filtered[0] || '', name: filtered[1] || '', indexed };
-    }
-
     const findings: Array<{
-      startLine: number; endLine: number; message: string; suggestedFix: string; codeSnippet?: string;
+      startLine: number;
+      endLine: number;
+      message: string;
+      suggestedFix: string;
+      codeSnippet?: string;
     }> = [];
     const lines = code.split('\n');
-    const eventPattern = /^\s*event\s+(\w+)\s*\(([^)]*)\);/;
-    const indexableTypes = ['address', 'uint', 'uint256', 'uint128', 'uint64', 'uint32', 'uint16', 'uint8', 'int', 'int256', 'bytes32'];
     
-    lines.forEach((line, index) => {
-      const eventMatch = line.match(eventPattern);
-      if (!eventMatch) return;
-      const eventName = eventMatch[1];
-      const paramsStr = eventMatch[2];
-      
-      const params: Array<{ type: string; name: string; indexed: boolean }> = [];
-      let currentParam = '';
-      let parenDepth = 0;
-      for (const ch of paramsStr) {
-        if (ch === '(') { parenDepth++; currentParam += ch; }
-        else if (ch === ')') { parenDepth--; currentParam += ch; }
-        else if (ch === ',' && parenDepth === 0) { params.push(parseEventParam(currentParam.trim())); currentParam = ''; }
-        else { currentParam += ch; }
-      }
-      if (currentParam.trim()) params.push(parseEventParam(currentParam.trim()));
-      
-      for (const param of params) {
-        if (!param.indexed && param.type && indexableTypes.some(t => param.type.startsWith(t))) {
-          const newParams = params.map(p =>
-            p === param ? `indexed ${p.type} ${p.name}`.trim() : `${p.type} ${p.name}`.trim()
-          ).join(', ');
+    const functionPattern = /^\s*function\s+(\w+)\s*\(/;
+    const authModifierPattern = /(onlyOwner|onlyAdmin|onlyRole|auth|hasRole)/i;
+    const authRequirePattern = /require\s*\([^)]*(msg\.sender|hasRole|_checkRole)[^)]*\)/;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/\b(selfdestruct|suicide)\s*\(/.test(line)) {
+        const destructLine = i + 1;
+        let hasAuthCheck = false;
+        let functionName = 'unknown';
+        
+        for (let j = i; j >= 0; j--) {
+          const checkLine = lines[j];
+          const funcMatch = checkLine.match(functionPattern);
+          if (funcMatch) {
+            functionName = funcMatch[1];
+            if (authModifierPattern.test(checkLine)) hasAuthCheck = true;
+            break;
+          }
+          if (authRequirePattern.test(checkLine)) hasAuthCheck = true;
+        }
+        
+        if (!hasAuthCheck) {
           findings.push({
-            startLine: index + 1, endLine: index + 1,
-            message: `Event '${eventName}' has non-indexed parameter '${param.name}' (type: ${param.type}). Indexing improves log query efficiency.`,
-            suggestedFix: `Add 'indexed' keyword to '${param.name}'`,
-            codeSnippet: `event ${eventName}(${newParams});`,
+            startLine: destructLine, endLine: destructLine,
+            message: `Unsafe selfdestruct detected in function '${functionName}' without access controls. Selfdestruct can lock assets.`,
+            suggestedFix: 'Add access control modifier (onlyOwner/onlyAdmin) or multi-signature requirement',
+            codeSnippet: `function ${functionName}() external onlyOwner { ... selfdestruct(payable(owner)); }`,
+          });
+        } else {
+          findings.push({
+            startLine: destructLine, endLine: destructLine,
+            message: `Selfdestruct usage in function '${functionName}'. Ensure multi-sig or timelock is in place.`,
+            suggestedFix: 'Consider adding a timelock delay and multi-signature requirement',
           });
         }
       }
-    });
+    }
     return findings;
   }
 
