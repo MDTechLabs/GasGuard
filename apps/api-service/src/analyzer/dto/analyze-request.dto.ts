@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from "class-validator";
 
 export class AnalyzeRequestDto {
   @IsString()
@@ -7,5 +7,5 @@ export class AnalyzeRequestDto {
 
   @IsString()
   @IsOptional()
-  source?: string = 'remote-analysis';
+  source?: string = "remote-analysis";
 }

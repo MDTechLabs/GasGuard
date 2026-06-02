@@ -1,13 +1,13 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ethers } from 'ethers';
-import { PassThrough } from 'stream';
-import { GasUsageFilterDto } from './dto/gas-usage-filter.dto';
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { ethers } from "ethers";
+import { PassThrough } from "stream";
+import { GasUsageFilterDto } from "./dto/gas-usage-filter.dto";
 import {
   GasUsageRecord,
   ExportMetadata,
   CSV_HEADERS,
-} from './interfaces/gas-export.interface';
+} from "./interfaces/gas-export.interface";
 
 @Injectable()
 export class ExportsService {
@@ -15,30 +15,31 @@ export class ExportsService {
 
   /** Maps numeric chain ID → human-readable name. */
   private readonly CHAIN_NAMES: Record<number, string> = {
-    1: 'Ethereum',
-    5: 'Goerli',
-    11155111: 'Sepolia',
-    137: 'Polygon',
-    80001: 'Mumbai',
-    42161: 'Arbitrum One',
-    421613: 'Arbitrum Goerli',
-    10: 'Optimism',
-    420: 'Optimism Goerli',
-    56: 'BNB Chain',
-    97: 'BNB Testnet',
-    43114: 'Avalanche',
-    250: 'Fantom',
-    8453: 'Base',
-    100: 'Gnosis',
+    1: "Ethereum",
+    5: "Goerli",
+    11155111: "Sepolia",
+    137: "Polygon",
+    80001: "Mumbai",
+    42161: "Arbitrum One",
+    421613: "Arbitrum Goerli",
+    10: "Optimism",
+    420: "Optimism Goerli",
+    56: "BNB Chain",
+    97: "BNB Testnet",
+    43114: "Avalanche",
+    250: "Fantom",
+    8453: "Base",
+    100: "Gnosis",
   };
 
   /** Reverse lookup: normalised name → chain ID. */
-  private readonly CHAIN_IDS_BY_NAME: Record<string, number> = Object.fromEntries(
-    Object.entries(this.CHAIN_NAMES).map(([id, name]) => [
-      name.toLowerCase().replace(/\s+/g, '_'),
-      Number(id),
-    ]),
-  );
+  private readonly CHAIN_IDS_BY_NAME: Record<string, number> =
+    Object.fromEntries(
+      Object.entries(this.CHAIN_NAMES).map(([id, name]) => [
+        name.toLowerCase().replace(/\s+/g, "_"),
+        Number(id),
+      ]),
+    );
 
   /** Approximate average block times (seconds) per chain for timestamp → block estimation. */
   private readonly AVG_BLOCK_TIME: Record<number, number> = {
@@ -75,7 +76,7 @@ export class ExportsService {
     const wallet = walletOverride ?? filters.wallet;
     if (!wallet) {
       throw new BadRequestException(
-        'A wallet address is required. Provide it as a query param or route segment.',
+        "A wallet address is required. Provide it as a query param or route segment.",
       );
     }
 
@@ -114,12 +115,15 @@ export class ExportsService {
 
     if (!records.length) {
       throw new BadRequestException(
-        'No transactions found for the given filters. ' +
-          'Try widening the date range or verifying the wallet address.',
+        "No transactions found for the given filters. " +
+          "Try widening the date range or verifying the wallet address.",
       );
     }
 
-    const totalNative = records.reduce((s, r) => s + parseFloat(r.gasCostNative), 0);
+    const totalNative = records.reduce(
+      (s, r) => s + parseFloat(r.gasCostNative),
+      0,
+    );
     const totalUsd = records.reduce((s, r) => s + parseFloat(r.gasCostUSD), 0);
 
     const metadata: ExportMetadata = {
@@ -147,7 +151,10 @@ export class ExportsService {
    * Writes metadata comments, the header row, then all data rows into a
    * PassThrough stream. Respects backpressure via drain events.
    */
-  private buildCsvStream(records: GasUsageRecord[], metadata: ExportMetadata): PassThrough {
+  private buildCsvStream(
+    records: GasUsageRecord[],
+    metadata: ExportMetadata,
+  ): PassThrough {
     const pass = new PassThrough();
 
     setImmediate(async () => {
@@ -156,7 +163,9 @@ export class ExportsService {
         pass.write(`# Gas Usage Export Report\n`);
         pass.write(`# Generated: ${metadata.generatedAt}\n`);
         pass.write(`# Total Records: ${metadata.totalRecords}\n`);
-        pass.write(`# Total Gas Cost (Native): ${metadata.totalGasCostNative}\n`);
+        pass.write(
+          `# Total Gas Cost (Native): ${metadata.totalGasCostNative}\n`,
+        );
         pass.write(`# Total Gas Cost (USD): $${metadata.totalGasCostUSD}\n`);
 
         if (metadata.filters.merchantId)
@@ -165,7 +174,7 @@ export class ExportsService {
           pass.write(`# Wallet: ${metadata.filters.wallet}\n`);
         if (metadata.filters.from || metadata.filters.to)
           pass.write(
-            `# Date Range: ${metadata.filters.from ?? 'N/A'} → ${metadata.filters.to ?? 'N/A'}\n`,
+            `# Date Range: ${metadata.filters.from ?? "N/A"} → ${metadata.filters.to ?? "N/A"}\n`,
           );
         if (metadata.filters.chain)
           pass.write(`# Chain: ${metadata.filters.chain}\n`);
@@ -175,18 +184,18 @@ export class ExportsService {
         pass.write(`\n`);
 
         // ── Header row ──────────────────────────────────────────────────────
-        pass.write(CSV_HEADERS.join(',') + '\n');
+        pass.write(CSV_HEADERS.join(",") + "\n");
 
         // ── Data rows (chunked to respect backpressure) ─────────────────────
         for (let i = 0; i < records.length; i += this.CSV_WRITE_CHUNK) {
           const lines = records
             .slice(i, i + this.CSV_WRITE_CHUNK)
             .map((r) => this.recordToCsvRow(r))
-            .join('\n');
+            .join("\n");
 
-          const canContinue = pass.write(lines + '\n');
+          const canContinue = pass.write(lines + "\n");
           if (!canContinue) {
-            await new Promise<void>((resolve) => pass.once('drain', resolve));
+            await new Promise<void>((resolve) => pass.once("drain", resolve));
           }
         }
 
@@ -217,12 +226,12 @@ export class ExportsService {
       this.escapeCsv(r.gasCostUSD),
       this.escapeCsv(r.timestamp),
       r.blockNumber,
-    ].join(',');
+    ].join(",");
   }
 
   private escapeCsv(value: string | number): string {
-    const str = String(value ?? '');
-    return str.includes(',') || str.includes('"') || str.includes('\n')
+    const str = String(value ?? "");
+    return str.includes(",") || str.includes('"') || str.includes("\n")
       ? `"${str.replace(/"/g, '""')}"`
       : str;
   }
@@ -241,7 +250,12 @@ export class ExportsService {
     toTimestamp: number,
     nativeUsdPrice: number,
   ): Promise<GasUsageRecord[]> {
-    const txHashes = await this.collectWalletTxHashes(provider, wallet, fromBlock, toBlock);
+    const txHashes = await this.collectWalletTxHashes(
+      provider,
+      wallet,
+      fromBlock,
+      toBlock,
+    );
     if (!txHashes.length) return [];
 
     const records: GasUsageRecord[] = [];
@@ -265,7 +279,7 @@ export class ExportsService {
       );
 
       for (const result of settled) {
-        if (result.status === 'fulfilled' && result.value) {
+        if (result.status === "fulfilled" && result.value) {
           records.push(result.value);
         }
       }
@@ -273,7 +287,8 @@ export class ExportsService {
 
     // Sort chronologically (oldest → newest) for finance teams
     return records.sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
   }
 
@@ -289,7 +304,11 @@ export class ExportsService {
   ): Promise<string[]> {
     const hashes = new Set<string>();
 
-    for (let start = fromBlock; start <= toBlock; start += this.LOG_CHUNK_SIZE) {
+    for (
+      let start = fromBlock;
+      start <= toBlock;
+      start += this.LOG_CHUNK_SIZE
+    ) {
       const end = Math.min(toBlock, start + this.LOG_CHUNK_SIZE - 1);
       try {
         const logs = await provider.getLogs({ fromBlock: start, toBlock: end });
@@ -336,15 +355,19 @@ export class ExportsService {
 
       const gasUsed = Number(receipt.gasUsed);
       const gasPrice = receipt.gasPrice ?? tx.gasPrice ?? 0n;
-      const gasPriceGwei = parseFloat(ethers.formatUnits(gasPrice, 'gwei')).toFixed(4);
+      const gasPriceGwei = parseFloat(
+        ethers.formatUnits(gasPrice, "gwei"),
+      ).toFixed(4);
       const gasCostNative = parseFloat(
         ethers.formatEther(receipt.gasUsed * gasPrice),
       ).toFixed(8);
-      const gasCostUSD = (parseFloat(gasCostNative) * nativeUsdPrice).toFixed(6);
+      const gasCostUSD = (parseFloat(gasCostNative) * nativeUsdPrice).toFixed(
+        6,
+      );
 
-      const inputData = tx.data ?? '0x';
+      const inputData = tx.data ?? "0x";
       const functionSelector =
-        inputData.length >= 10 ? inputData.slice(0, 10).toLowerCase() : '0x';
+        inputData.length >= 10 ? inputData.slice(0, 10).toLowerCase() : "0x";
 
       return {
         merchantId,
@@ -371,12 +394,12 @@ export class ExportsService {
   private buildProvider(rpcUrl?: string): ethers.JsonRpcProvider {
     const url =
       rpcUrl ??
-      this.configService.get<string>('RPC_URL') ??
-      this.configService.get<string>('ETHEREUM_RPC_URL');
+      this.configService.get<string>("RPC_URL") ??
+      this.configService.get<string>("ETHEREUM_RPC_URL");
 
     if (!url) {
       throw new BadRequestException(
-        'No RPC URL configured. Provide rpcUrl in the request or set RPC_URL in .env.',
+        "No RPC URL configured. Provide rpcUrl in the request or set RPC_URL in .env.",
       );
     }
 
@@ -406,7 +429,8 @@ export class ExportsService {
       ? Math.floor(new Date(from).getTime() / 1000)
       : toTimestamp - this.DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60;
 
-    const avgBlockTime = this.AVG_BLOCK_TIME[chainId] ?? this.DEFAULT_AVG_BLOCK_TIME;
+    const avgBlockTime =
+      this.AVG_BLOCK_TIME[chainId] ?? this.DEFAULT_AVG_BLOCK_TIME;
     const blocksBack = Math.ceil((toTimestamp - fromTimestamp) / avgBlockTime);
 
     return {
@@ -421,7 +445,9 @@ export class ExportsService {
     if (!chain) return null;
     const asNumber = parseInt(chain, 10);
     if (!isNaN(asNumber)) return asNumber;
-    return this.CHAIN_IDS_BY_NAME[chain.toLowerCase().replace(/\s+/g, '_')] ?? null;
+    return (
+      this.CHAIN_IDS_BY_NAME[chain.toLowerCase().replace(/\s+/g, "_")] ?? null
+    );
   }
 
   /**
@@ -430,22 +456,22 @@ export class ExportsService {
    */
   private async fetchNativeTokenUsdPrice(chainId: number): Promise<number> {
     const coinGeckoIds: Record<number, string> = {
-      1: 'ethereum',
-      5: 'ethereum',
-      11155111: 'ethereum',
-      137: 'matic-network',
-      80001: 'matic-network',
-      42161: 'ethereum',
-      10: 'ethereum',
-      56: 'binancecoin',
-      97: 'binancecoin',
-      43114: 'avalanche-2',
-      250: 'fantom',
-      8453: 'ethereum',
-      100: 'xdai',
+      1: "ethereum",
+      5: "ethereum",
+      11155111: "ethereum",
+      137: "matic-network",
+      80001: "matic-network",
+      42161: "ethereum",
+      10: "ethereum",
+      56: "binancecoin",
+      97: "binancecoin",
+      43114: "avalanche-2",
+      250: "fantom",
+      8453: "ethereum",
+      100: "xdai",
     };
 
-    const coinId = coinGeckoIds[chainId] ?? 'ethereum';
+    const coinId = coinGeckoIds[chainId] ?? "ethereum";
 
     try {
       const res = await fetch(
@@ -463,6 +489,6 @@ export class ExportsService {
   }
 
   private fallbackUsdPrice(): number {
-    return this.configService.get<number>('ETH_USD_PRICE') ?? 2500;
+    return this.configService.get<number>("ETH_USD_PRICE") ?? 2500;
   }
 }

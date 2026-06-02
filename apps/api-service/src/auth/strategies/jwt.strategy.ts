@@ -1,9 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
-import { AuthService, JwtPayload } from '../services/auth.service';
-import { User } from '../../database/entities/user.entity';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { PassportStrategy } from "@nestjs/passport";
+import { ExtractJwt, Strategy } from "passport-jwt";
+import { ConfigService } from "@nestjs/config";
+import { AuthService, JwtPayload } from "../services/auth.service";
+import { User } from "../../database/entities/user.entity";
 
 /**
  * JWT Strategy for Passport
@@ -18,7 +18,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'your-secret-key-change-in-production'),
+      secretOrKey: configService.get<string>(
+        "JWT_SECRET",
+        "your-secret-key-change-in-production",
+      ),
     });
   }
 
@@ -30,7 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const user = await this.authService.validatePayload(payload);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid token or user not found');
+      throw new UnauthorizedException("Invalid token or user not found");
     }
 
     return user;

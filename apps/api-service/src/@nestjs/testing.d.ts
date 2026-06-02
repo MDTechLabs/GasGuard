@@ -1,4 +1,4 @@
-declare module '@nestjs/testing' {
+declare module "@nestjs/testing" {
   export class Test {
     static createTestingModule(metadata: any): {
       compile(): Promise<TestingModule>;
@@ -9,4 +9,3 @@ declare module '@nestjs/testing' {
     get<T>(type: any): T;
   }
 }
-

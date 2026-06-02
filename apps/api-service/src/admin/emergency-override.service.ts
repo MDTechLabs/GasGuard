@@ -3,19 +3,23 @@ import {
   ForbiddenException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AuditLog, EventType, OutcomeStatus } from '../audit/entities/audit-log.entity';
-import { UserRole } from '../rbac/enums/role.enum';
-import { createHash, randomBytes } from 'crypto';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import {
+  AuditLog,
+  EventType,
+  OutcomeStatus,
+} from "../audit/entities/audit-log.entity";
+import { UserRole } from "../rbac/enums/role.enum";
+import { createHash, randomBytes } from "crypto";
 
 export type OverrideScope =
-  | 'bypass_rate_limit'
-  | 'force_transaction'
-  | 'unlock_user'
-  | 'reset_api_key'
-  | 'clear_suspicious_flag';
+  | "bypass_rate_limit"
+  | "force_transaction"
+  | "unlock_user"
+  | "reset_api_key"
+  | "clear_suspicious_flag";
 
 export interface OverrideToken {
   token: string;
@@ -31,7 +35,7 @@ export interface OverrideAuditEntry {
   scope: OverrideScope;
   targetResource: string;
   justification: string;
-  outcome: 'issued' | 'used' | 'expired' | 'revoked';
+  outcome: "issued" | "used" | "expired" | "revoked";
   timestamp: Date;
   integrity: string;
 }
@@ -70,15 +74,30 @@ export class EmergencyOverrideService {
       );
     }
 
-    const raw = randomBytes(32).toString('hex');
+    const raw = randomBytes(32).toString("hex");
     const token = `eo_${raw}`;
     const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
 
-    this.tokens.set(token, { token, scope, issuedTo: adminId, expiresAt, usedAt: null });
+    this.tokens.set(token, {
+      token,
+      scope,
+      issuedTo: adminId,
+      expiresAt,
+      usedAt: null,
+    });
 
-    await this.recordAudit(token, adminId, scope, targetResource, justification, 'issued');
+    await this.recordAudit(
+      token,
+      adminId,
+      scope,
+      targetResource,
+      justification,
+      "issued",
+    );
 
-    this.logger.warn(`Override token issued: admin=${adminId} scope=${scope} resource=${targetResource}`);
+    this.logger.warn(
+      `Override token issued: admin=${adminId} scope=${scope} resource=${targetResource}`,
+    );
     return { token, expiresAt };
   }
 
@@ -91,17 +110,24 @@ export class EmergencyOverrideService {
     const record = this.tokens.get(token);
 
     if (!record) {
-      throw new ForbiddenException('Invalid or unknown override token');
+      throw new ForbiddenException("Invalid or unknown override token");
     }
 
     if (record.usedAt) {
-      throw new ForbiddenException('Override token has already been used');
+      throw new ForbiddenException("Override token has already been used");
     }
 
     if (record.expiresAt < new Date()) {
-      await this.recordAudit(token, record.issuedTo, record.scope, targetResource, justification, 'expired');
+      await this.recordAudit(
+        token,
+        record.issuedTo,
+        record.scope,
+        targetResource,
+        justification,
+        "expired",
+      );
       this.tokens.delete(token);
-      throw new ForbiddenException('Override token has expired');
+      throw new ForbiddenException("Override token has expired");
     }
 
     if (record.scope !== expectedScope) {
@@ -111,20 +137,40 @@ export class EmergencyOverrideService {
     }
 
     record.usedAt = new Date();
-    await this.recordAudit(token, record.issuedTo, record.scope, targetResource, justification, 'used');
+    await this.recordAudit(
+      token,
+      record.issuedTo,
+      record.scope,
+      targetResource,
+      justification,
+      "used",
+    );
 
-    this.logger.warn(`Override token CONSUMED: admin=${record.issuedTo} scope=${record.scope} resource=${targetResource}`);
+    this.logger.warn(
+      `Override token CONSUMED: admin=${record.issuedTo} scope=${record.scope} resource=${targetResource}`,
+    );
   }
 
-  async revokeOverrideToken(token: string, revokedBy: string, revokedByRole: UserRole): Promise<void> {
+  async revokeOverrideToken(
+    token: string,
+    revokedBy: string,
+    revokedByRole: UserRole,
+  ): Promise<void> {
     this.requireSuperAdmin(revokedByRole);
 
     const record = this.tokens.get(token);
     if (!record) {
-      throw new BadRequestException('Token not found');
+      throw new BadRequestException("Token not found");
     }
 
-    await this.recordAudit(token, revokedBy, record.scope, 'revocation', `Manually revoked by ${revokedBy}`, 'revoked');
+    await this.recordAudit(
+      token,
+      revokedBy,
+      record.scope,
+      "revocation",
+      `Manually revoked by ${revokedBy}`,
+      "revoked",
+    );
     this.tokens.delete(token);
   }
 
@@ -134,13 +180,15 @@ export class EmergencyOverrideService {
 
   private requireSuperAdmin(role: UserRole): void {
     if (role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Emergency overrides require ADMIN role');
+      throw new ForbiddenException("Emergency overrides require ADMIN role");
     }
   }
 
   private requireJustification(justification: string): void {
     if (!justification || justification.trim().length < 10) {
-      throw new BadRequestException('A meaningful justification (min 10 chars) is required for override actions');
+      throw new BadRequestException(
+        "A meaningful justification (min 10 chars) is required for override actions",
+      );
     }
   }
 
@@ -150,9 +198,9 @@ export class EmergencyOverrideService {
     scope: OverrideScope,
     targetResource: string,
     justification: string,
-    outcome: OverrideAuditEntry['outcome'],
+    outcome: OverrideAuditEntry["outcome"],
   ): Promise<void> {
-    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const tokenHash = createHash("sha256").update(token).digest("hex");
     const timestamp = new Date();
 
     const entry: OverrideAuditEntry = {
@@ -163,10 +211,12 @@ export class EmergencyOverrideService {
       justification,
       outcome,
       timestamp,
-      integrity: '',
+      integrity: "",
     };
 
-    entry.integrity = createHash('sha256').update(JSON.stringify({ ...entry, integrity: undefined })).digest('hex');
+    entry.integrity = createHash("sha256")
+      .update(JSON.stringify({ ...entry, integrity: undefined }))
+      .digest("hex");
 
     this.auditTrail.push(entry);
 

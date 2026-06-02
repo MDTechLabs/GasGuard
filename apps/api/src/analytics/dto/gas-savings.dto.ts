@@ -37,6 +37,6 @@ export class DashboardQueryDto {
   projectId?: string;
   startDate?: string;
   endDate?: string;
-  granularity?: 'hour' | 'day' | 'week' | 'month';
+  granularity?: "hour" | "day" | "week" | "month";
   limit?: number;
 }

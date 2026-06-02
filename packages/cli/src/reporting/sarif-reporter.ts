@@ -1,5 +1,5 @@
-import fs from 'fs-extra';
-import path from 'path';
+import fs from "fs-extra";
+import path from "path";
 
 export interface Finding {
   file: string;
@@ -70,7 +70,7 @@ interface SarifRule {
 interface SarifRuleProperties {
   category: string;
   precision: string;
-  'security-severity'?: string;
+  "security-severity"?: string;
 }
 
 interface SarifMessage {
@@ -130,34 +130,39 @@ interface SarifInvocation {
   executionSuccessful: boolean;
 }
 
-export async function generateSarifReport(results: ScanResult, outputPath: string): Promise<void> {
+export async function generateSarifReport(
+  results: ScanResult,
+  outputPath: string,
+): Promise<void> {
   const log = createSarifLog(results);
-  
+
   // Ensure output directory exists
   const outputDir = path.dirname(outputPath);
   await fs.ensureDir(outputDir);
-  
+
   // Write SARIF report
   await fs.writeJson(outputPath, log, { spaces: 2 });
 }
 
 function createSarifLog(results: ScanResult): SarifLog {
   const rules = extractRules(results.findings);
-  const sarifResults = results.findings.map(finding => convertFinding(finding));
-  
+  const sarifResults = results.findings.map((finding) =>
+    convertFinding(finding),
+  );
+
   const startTime = new Date(results.timestamp);
   const endTime = new Date(startTime.getTime() + 1000); // Simplified timing
-  
+
   return {
-    version: '2.1.0',
-    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    version: "2.1.0",
+    $schema: "https://json.schemastore.org/sarif-2.1.0.json",
     runs: [
       {
         tool: {
           driver: {
-            name: 'GasGuard',
-            version: '1.0.0',
-            informationUri: 'https://github.com/Nabeelahh/GasGuard',
+            name: "GasGuard",
+            version: "1.0.0",
+            informationUri: "https://github.com/Nabeelahh/GasGuard",
             rules,
           },
         },
@@ -176,12 +181,12 @@ function createSarifLog(results: ScanResult): SarifLog {
 
 function extractRules(findings: Finding[]): SarifRule[] {
   const rulesMap = new Map<string, SarifRule>();
-  
+
   for (const finding of findings) {
     if (!rulesMap.has(finding.ruleId)) {
       const category = categorizeRule(finding.ruleId);
       const severity = severityToSecurityLevel(finding.severity);
-      
+
       rulesMap.set(finding.ruleId, {
         id: finding.ruleId,
         shortDescription: {
@@ -195,46 +200,48 @@ function extractRules(findings: Finding[]): SarifRule[] {
         },
         properties: {
           category,
-          precision: 'medium',
-          'security-severity': severity,
+          precision: "medium",
+          "security-severity": severity,
         },
       });
     }
   }
-  
+
   return Array.from(rulesMap.values());
 }
 
 function convertFinding(finding: Finding): SarifResult {
   const level = severityToLevel(finding.severity);
-  const fixes = finding.suggestion ? [
-    {
-      description: {
-        text: 'Suggested fix',
-      },
-      artifactChanges: [
+  const fixes = finding.suggestion
+    ? [
         {
-          artifactLocation: {
-            uri: finding.file,
+          description: {
+            text: "Suggested fix",
           },
-          replacements: [
+          artifactChanges: [
             {
-              region: {
-                startLine: finding.line,
-                startColumn: undefined,
-                endLine: finding.line,
-                endColumn: undefined,
+              artifactLocation: {
+                uri: finding.file,
               },
-              insertedContent: {
-                text: finding.suggestion,
-              },
+              replacements: [
+                {
+                  region: {
+                    startLine: finding.line,
+                    startColumn: undefined,
+                    endLine: finding.line,
+                    endColumn: undefined,
+                  },
+                  insertedContent: {
+                    text: finding.suggestion,
+                  },
+                },
+              ],
             },
           ],
         },
-      ],
-    },
-  ] : undefined;
-  
+      ]
+    : undefined;
+
   return {
     ruleId: finding.ruleId,
     level,
@@ -262,49 +269,49 @@ function convertFinding(finding: Finding): SarifResult {
 
 function severityToLevel(severity: string): string {
   switch (severity.toLowerCase()) {
-    case 'critical':
-    case 'error':
-      return 'error';
-    case 'warning':
-      return 'warning';
-    case 'info':
-      return 'note';
+    case "critical":
+    case "error":
+      return "error";
+    case "warning":
+      return "warning";
+    case "info":
+      return "note";
     default:
-      return 'note';
+      return "note";
   }
 }
 
 function severityToSecurityLevel(severity: string): string {
   switch (severity.toLowerCase()) {
-    case 'critical':
-      return '9.0';
-    case 'error':
-      return '7.0';
-    case 'warning':
-      return '4.0';
-    case 'info':
-      return '0.0';
+    case "critical":
+      return "9.0";
+    case "error":
+      return "7.0";
+    case "warning":
+      return "4.0";
+    case "info":
+      return "0.0";
     default:
-      return '0.0';
+      return "0.0";
   }
 }
 
 function categorizeRule(ruleId: string): string {
-  if (ruleId.startsWith('SOL-')) return 'solidity';
-  if (ruleId.startsWith('VY-')) return 'vyper';
-  if (ruleId.startsWith('RS-')) return 'rust';
-  if (ruleId.startsWith('SOR-')) return 'soroban';
-  return 'general';
+  if (ruleId.startsWith("SOL-")) return "solidity";
+  if (ruleId.startsWith("VY-")) return "vyper";
+  if (ruleId.startsWith("RS-")) return "rust";
+  if (ruleId.startsWith("SOR-")) return "soroban";
+  return "general";
 }
 
 function getRuleShortDescription(ruleId: string): string {
   switch (ruleId) {
-    case 'SOL-001':
-      return 'Use bytes32 instead of string for fixed-length data';
-    case 'SOL-002':
-      return 'Use uint256 instead of uint';
-    case 'SOL-003':
-      return 'Use calldata instead of memory for read-only arguments';
+    case "SOL-001":
+      return "Use bytes32 instead of string for fixed-length data";
+    case "SOL-002":
+      return "Use uint256 instead of uint";
+    case "SOL-003":
+      return "Use calldata instead of memory for read-only arguments";
     default:
       return `Gas optimization rule ${ruleId}`;
   }
@@ -312,12 +319,12 @@ function getRuleShortDescription(ruleId: string): string {
 
 function getRuleFullDescription(ruleId: string): string {
   switch (ruleId) {
-    case 'SOL-001':
-      return 'Using bytes32 instead of string for fixed-length data can save gas';
-    case 'SOL-002':
-      return 'Using uint256 instead of uint can save gas by avoiding type conversion';
-    case 'SOL-003':
-      return 'Using calldata instead of memory for read-only arguments can save gas';
+    case "SOL-001":
+      return "Using bytes32 instead of string for fixed-length data can save gas";
+    case "SOL-002":
+      return "Using uint256 instead of uint can save gas by avoiding type conversion";
+    case "SOL-003":
+      return "Using calldata instead of memory for read-only arguments can save gas";
     default:
       return `Gas optimization rule: ${ruleId}`;
   }

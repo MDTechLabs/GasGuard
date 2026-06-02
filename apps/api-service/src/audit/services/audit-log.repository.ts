@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AuditLog, EventType, OutcomeStatus } from '../entities';
-import { 
-  AuditLogFilterDto, 
-  CreateAuditLogDto, 
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { AuditLog, EventType, OutcomeStatus } from "../entities";
+import {
+  AuditLogFilterDto,
+  CreateAuditLogDto,
   AuditLogResponseDto,
   AuditLogsPageDto,
-} from '../dto/audit-log.dto';
-import { AuditEventEmitter, AuditEventPayload } from './audit-event-emitter';
+} from "../dto/audit-log.dto";
+import { AuditEventEmitter, AuditEventPayload } from "./audit-event-emitter";
 
 @Injectable()
 export class AuditLogRepository {
@@ -43,43 +43,47 @@ export class AuditLogRepository {
   }
 
   async findWithFilters(filters: AuditLogFilterDto): Promise<AuditLogsPageDto> {
-    const query = this.auditLogRepo.createQueryBuilder('audit');
+    const query = this.auditLogRepo.createQueryBuilder("audit");
 
     if (filters.eventType) {
-      query.andWhere('audit.eventType = :eventType', { eventType: filters.eventType });
+      query.andWhere("audit.eventType = :eventType", {
+        eventType: filters.eventType,
+      });
     }
 
     if (filters.user) {
-      query.andWhere('audit.user = :user', { user: filters.user });
+      query.andWhere("audit.user = :user", { user: filters.user });
     }
 
     if (filters.apiKey) {
-      query.andWhere('audit.apiKey = :apiKey', { apiKey: filters.apiKey });
+      query.andWhere("audit.apiKey = :apiKey", { apiKey: filters.apiKey });
     }
 
     if (filters.chainId) {
-      query.andWhere('audit.chainId = :chainId', { chainId: filters.chainId });
+      query.andWhere("audit.chainId = :chainId", { chainId: filters.chainId });
     }
 
     if (filters.outcome) {
-      query.andWhere('audit.outcome = :outcome', { outcome: filters.outcome });
+      query.andWhere("audit.outcome = :outcome", { outcome: filters.outcome });
     }
 
     if (filters.from || filters.to) {
       if (filters.from && filters.to) {
-        query.andWhere('audit.timestamp BETWEEN :from AND :to', {
+        query.andWhere("audit.timestamp BETWEEN :from AND :to", {
           from: new Date(filters.from),
           to: new Date(filters.to),
         });
       } else if (filters.from) {
-        query.andWhere('audit.timestamp >= :from', { from: new Date(filters.from) });
+        query.andWhere("audit.timestamp >= :from", {
+          from: new Date(filters.from),
+        });
       } else if (filters.to) {
-        query.andWhere('audit.timestamp <= :to', { to: new Date(filters.to) });
+        query.andWhere("audit.timestamp <= :to", { to: new Date(filters.to) });
       }
     }
 
-    const sortBy = filters.sortBy || 'timestamp';
-    const sortOrder = filters.sortOrder || 'DESC';
+    const sortBy = filters.sortBy || "timestamp";
+    const sortOrder = filters.sortOrder || "DESC";
     query.orderBy(`audit.${sortBy}`, sortOrder as any);
 
     query.limit(filters.limit || 50);
@@ -96,10 +100,13 @@ export class AuditLogRepository {
     };
   }
 
-  async findByEventType(eventType: EventType, limit = 100): Promise<AuditLog[]> {
+  async findByEventType(
+    eventType: EventType,
+    limit = 100,
+  ): Promise<AuditLog[]> {
     return this.auditLogRepo.find({
       where: { eventType },
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
       take: limit,
     });
   }
@@ -107,7 +114,7 @@ export class AuditLogRepository {
   async findByUser(user: string, limit = 100): Promise<AuditLog[]> {
     return this.auditLogRepo.find({
       where: { user },
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
       take: limit,
     });
   }
@@ -115,7 +122,7 @@ export class AuditLogRepository {
   async findByApiKey(apiKey: string, limit = 100): Promise<AuditLog[]> {
     return this.auditLogRepo.find({
       where: { apiKey },
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
       take: limit,
     });
   }
@@ -123,17 +130,21 @@ export class AuditLogRepository {
   async findByChain(chainId: number, limit = 100): Promise<AuditLog[]> {
     return this.auditLogRepo.find({
       where: { chainId },
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
       take: limit,
     });
   }
 
-  async findByDateRange(from: Date, to: Date, limit = 1000): Promise<AuditLog[]> {
+  async findByDateRange(
+    from: Date,
+    to: Date,
+    limit = 1000,
+  ): Promise<AuditLog[]> {
     return this.auditLogRepo
-      .createQueryBuilder('audit')
-      .where('audit.timestamp >= :from', { from })
-      .andWhere('audit.timestamp <= :to', { to })
-      .orderBy('audit.timestamp', 'DESC')
+      .createQueryBuilder("audit")
+      .where("audit.timestamp >= :from", { from })
+      .andWhere("audit.timestamp <= :to", { to })
+      .orderBy("audit.timestamp", "DESC")
       .take(limit)
       .getMany();
   }
@@ -145,7 +156,7 @@ export class AuditLogRepository {
     const result = await this.auditLogRepo
       .createQueryBuilder()
       .delete()
-      .where('timestamp < :cutoff', { cutoff: cutoffDate })
+      .where("timestamp < :cutoff", { cutoff: cutoffDate })
       .execute();
 
     return result.affected || 0;
@@ -153,7 +164,7 @@ export class AuditLogRepository {
 
   private generateIntegrity(_dto: CreateAuditLogDto): string {
     // Simple hash placeholder - crypto not available in this build
-    return 'hash-' + Date.now().toString(36);
+    return "hash-" + Date.now().toString(36);
   }
 
   private mapToResponse(auditLog: AuditLog): AuditLogResponseDto {

@@ -7,19 +7,20 @@ import {
   AnalyzerConfig,
   Finding,
   Severity,
-} from '../core/analyzer-interface';
+} from "../core/analyzer-interface";
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private rules: Rule[] = [
     {
-      id: 'sol-001',
-      name: 'Inefficient Loop',
-      description: 'Detects loops that could be optimized to reduce gas consumption',
+      id: "sol-001",
+      name: "Inefficient Loop",
+      description:
+        "Detects loops that could be optimized to reduce gas consumption",
       severity: Severity.HIGH,
-      category: 'gas-optimization',
+      category: "gas-optimization",
       enabled: true,
-      tags: ['loops', 'gas', 'performance'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-001',
+      tags: ["loops", "gas", "performance"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-001",
       estimatedGasImpact: {
         min: 100,
         max: 5000,
@@ -27,14 +28,14 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       },
     },
     {
-      id: 'sol-002',
-      name: 'Use of storage when memory would suffice',
-      description: 'Detects unnecessary use of storage variables',
+      id: "sol-002",
+      name: "Use of storage when memory would suffice",
+      description: "Detects unnecessary use of storage variables",
       severity: Severity.HIGH,
-      category: 'gas-optimization',
+      category: "gas-optimization",
       enabled: true,
-      tags: ['storage', 'memory', 'gas'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-002',
+      tags: ["storage", "memory", "gas"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-002",
       estimatedGasImpact: {
         min: 2000,
         max: 20000,
@@ -42,14 +43,14 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       },
     },
     {
-      id: 'sol-003',
-      name: 'Uncached array length in loop',
-      description: 'Array length should be cached outside of loop to save gas',
+      id: "sol-003",
+      name: "Uncached array length in loop",
+      description: "Array length should be cached outside of loop to save gas",
       severity: Severity.MEDIUM,
-      category: 'gas-optimization',
+      category: "gas-optimization",
       enabled: true,
-      tags: ['loops', 'arrays', 'gas'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-003',
+      tags: ["loops", "arrays", "gas"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-003",
       estimatedGasImpact: {
         min: 50,
         max: 500,
@@ -57,14 +58,14 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       },
     },
     {
-      id: 'sol-004',
-      name: 'Use of ++ operator instead of ++i',
-      description: 'Using ++i is more gas efficient than i++',
+      id: "sol-004",
+      name: "Use of ++ operator instead of ++i",
+      description: "Using ++i is more gas efficient than i++",
       severity: Severity.LOW,
-      category: 'gas-optimization',
+      category: "gas-optimization",
       enabled: true,
-      tags: ['operators', 'gas'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-004',
+      tags: ["operators", "gas"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-004",
       estimatedGasImpact: {
         min: 5,
         max: 20,
@@ -72,55 +73,65 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       },
     },
     {
-      id: 'sol-006',
-      name: 'Missing Reentrancy Guard',
-      description: 'Functions that transfer ETH or tokens should have reentrancy guards',
-      severity: Severity.CRITICAL,
-      category: 'security',
-      enabled: true,
-      tags: ['security', 'reentrancy', 'vulnerability'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-006',
-    },
-    {
-      id: 'sol-007',
-      name: 'Insecure Fallback Function',
-      description: 'Fallback/default handlers should reject unknown calls or enforce strict validation',
-      severity: Severity.HIGH,
-      category: 'security',
-      enabled: true,
-      tags: ['security', 'fallback', 'receive', 'validation'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-007',
-    },
-    {
-      id: 'sol-009',
-      name: 'Missing Timelock For Sensitive Operations',
-      description: 'Critical operations should be scheduled and executed only after a mandatory delay',
-      severity: Severity.HIGH,
-      category: 'security',
-      enabled: true,
-      tags: ['security', 'timelock', 'governance', 'delay', 'authorization'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-009',
-    },
-    {
-      id: 'sol-008',
-      name: 'Unsafe External Call',
+      id: "sol-006",
+      name: "Missing Reentrancy Guard",
       description:
-        'Detects external calls with unchecked return values, dangerous delegatecall usage, or Checks-Effects-Interactions (CEI) pattern violations',
-      severity: Severity.HIGH,
-      category: 'security',
+        "Functions that transfer ETH or tokens should have reentrancy guards",
+      severity: Severity.CRITICAL,
+      category: "security",
       enabled: true,
-      tags: ['security', 'external-calls', 'return-value', 'cei', 'delegatecall'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-008',
+      tags: ["security", "reentrancy", "vulnerability"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-006",
     },
     {
-      id: 'sol-010',
-      name: 'Expensive String Operations',
-      description: 'Detects expensive string operations like concatenation that are gas inefficient on-chain',
-      severity: Severity.MEDIUM,
-      category: 'gas-optimization',
+      id: "sol-007",
+      name: "Insecure Fallback Function",
+      description:
+        "Fallback/default handlers should reject unknown calls or enforce strict validation",
+      severity: Severity.HIGH,
+      category: "security",
       enabled: true,
-      tags: ['strings', 'gas', 'optimization'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-010',
+      tags: ["security", "fallback", "receive", "validation"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-007",
+    },
+    {
+      id: "sol-009",
+      name: "Missing Timelock For Sensitive Operations",
+      description:
+        "Critical operations should be scheduled and executed only after a mandatory delay",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "timelock", "governance", "delay", "authorization"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-009",
+    },
+    {
+      id: "sol-008",
+      name: "Unsafe External Call",
+      description:
+        "Detects external calls with unchecked return values, dangerous delegatecall usage, or Checks-Effects-Interactions (CEI) pattern violations",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: [
+        "security",
+        "external-calls",
+        "return-value",
+        "cei",
+        "delegatecall",
+      ],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-008",
+    },
+    {
+      id: "sol-010",
+      name: "Expensive String Operations",
+      description:
+        "Detects expensive string operations like concatenation that are gas inefficient on-chain",
+      severity: Severity.MEDIUM,
+      category: "gas-optimization",
+      enabled: true,
+      tags: ["strings", "gas", "optimization"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-010",
       estimatedGasImpact: {
         min: 100,
         max: 10000,
@@ -128,14 +139,15 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       },
     },
     {
-      id: 'sol-011',
-      name: 'Nested Loop Gas Risk',
-      description: 'Detects nested loops which may cause excessive gas consumption',
+      id: "sol-011",
+      name: "Nested Loop Gas Risk",
+      description:
+        "Detects nested loops which may cause excessive gas consumption",
       severity: Severity.HIGH,
-      category: 'gas-optimization',
+      category: "gas-optimization",
       enabled: true,
-      tags: ['loops', 'gas', 'nested'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-011',
+      tags: ["loops", "gas", "nested"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-011",
       estimatedGasImpact: {
         min: 500,
         max: 50000,
@@ -143,83 +155,90 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       },
     },
     {
-      id: 'sol-013',
-      name: 'Unsafe Timestamp Dependency',
-      description: 'Detects use of block.timestamp or now in control flow and warns when critical logic depends on manipulable timestamps.',
+      id: "sol-013",
+      name: "Unsafe Timestamp Dependency",
+      description:
+        "Detects use of block.timestamp or now in control flow and warns when critical logic depends on manipulable timestamps.",
       severity: Severity.HIGH,
-      category: 'security',
+      category: "security",
       enabled: true,
-      tags: ['security', 'timestamp', 'blockchain', 'time-dependency'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-013',
+      tags: ["security", "timestamp", "blockchain", "time-dependency"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-013",
     },
     {
-      id: 'sol-014',
-      name: 'Insecure tx.origin Authentication',
-      description: 'Detects tx.origin usage in authentication or authorization checks and suggests using msg.sender instead.',
+      id: "sol-014",
+      name: "Insecure tx.origin Authentication",
+      description:
+        "Detects tx.origin usage in authentication or authorization checks and suggests using msg.sender instead.",
       severity: Severity.HIGH,
-      category: 'security',
+      category: "security",
       enabled: true,
-      tags: ['security', 'authentication', 'tx-origin', 'msg-sender'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-014',
+      tags: ["security", "authentication", "tx-origin", "msg-sender"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-014",
     },
     {
-      id: 'sol-012',
-      name: 'Missing Event Emission',
-      description: 'Detects state-changing functions that do not emit events',
+      id: "sol-012",
+      name: "Missing Event Emission",
+      description: "Detects state-changing functions that do not emit events",
       severity: Severity.LOW,
-      category: 'auditability',
+      category: "auditability",
       enabled: true,
-      tags: ['events', 'auditability', 'transparency'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-012',
+      tags: ["events", "auditability", "transparency"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-012",
     },
     {
-      id: 'sol-015',
-      name: 'Dead Code Paths',
-      description: 'Identifies unreachable code paths that increase maintenance complexity and may indicate logic errors',
+      id: "sol-015",
+      name: "Dead Code Paths",
+      description:
+        "Identifies unreachable code paths that increase maintenance complexity and may indicate logic errors",
       severity: Severity.MEDIUM,
-      category: 'maintainability',
+      category: "maintainability",
       enabled: true,
-      tags: ['dead-code', 'maintainability', 'unreachable'],
-      documentationUrl: 'https://docs.gasguard.dev/rules/sol-015',
+      tags: ["dead-code", "maintainability", "unreachable"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-015",
     },
   ];
-  
-  getName(): string
-  
+
+  getName(): string;
+
   getName(): string {
-    return 'SolidityAnalyzer';
+    return "SolidityAnalyzer";
   }
-  
+
   getVersion(): string {
-    return '1.0.0';
+    return "1.0.0";
   }
-  
+
   supportsLanguage(language: Language | string): boolean {
-    return language === Language.SOLIDITY || language === 'solidity' || language === 'sol';
+    return (
+      language === Language.SOLIDITY ||
+      language === "solidity" ||
+      language === "sol"
+    );
   }
-  
+
   getSupportedLanguages(): Language[] {
     return [Language.SOLIDITY];
   }
-  
+
   getRules(): Rule[] {
     return this.rules;
   }
-  
+
   async analyze(
     code: string,
     filePath: string,
-    config?: AnalyzerConfig
+    config?: AnalyzerConfig,
   ): Promise<AnalysisResult> {
     const startTime = Date.now();
     const findings: Finding[] = [];
     const errors: Array<{ file: string; message: string; error?: Error }> = [];
-    
+
     // Ensure analyzer is initialized
     if (!this.initialized) {
       await this.initialize(config);
     }
-    
+
     // Check if file should be analyzed
     if (!this.shouldAnalyzeFile(filePath, config)) {
       return {
@@ -230,264 +249,309 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         summary: { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
       };
     }
-    
+
     try {
       // Rule: sol-003 - Uncached array length in loop
-      if (this.isRuleEnabled('sol-003', config)) {
+      if (this.isRuleEnabled("sol-003", config)) {
         const uncachedArrayLoops = this.detectUncachedArrayLength(code);
-        findings.push(...uncachedArrayLoops.map(location => ({
-          ruleId: 'sol-003',
-          message: 'Array length is not cached in loop. Cache it to save gas.',
-          severity: this.getRuleSeverity('sol-003', config),
-          location: {
-            file: filePath,
-            ...location,
-          },
-          estimatedGasSavings: 200,
-          suggestedFix: {
-            description: 'Cache array length in a local variable before the loop',
-            codeSnippet: 'uint256 length = array.length;\nfor (uint256 i = 0; i < length; ++i) { ... }',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-003',
-          },
-        })));
+        findings.push(
+          ...uncachedArrayLoops.map((location) => ({
+            ruleId: "sol-003",
+            message:
+              "Array length is not cached in loop. Cache it to save gas.",
+            severity: this.getRuleSeverity("sol-003", config),
+            location: {
+              file: filePath,
+              ...location,
+            },
+            estimatedGasSavings: 200,
+            suggestedFix: {
+              description:
+                "Cache array length in a local variable before the loop",
+              codeSnippet:
+                "uint256 length = array.length;\nfor (uint256 i = 0; i < length; ++i) { ... }",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-003",
+            },
+          })),
+        );
       }
-      
+
       // Rule: sol-004 - Use of i++ instead of ++i
-      if (this.isRuleEnabled('sol-004', config)) {
+      if (this.isRuleEnabled("sol-004", config)) {
         const inefficientIncrements = this.detectInefficientIncrements(code);
-        findings.push(...inefficientIncrements.map(location => ({
-          ruleId: 'sol-004',
-          message: 'Use ++i instead of i++ to save gas',
-          severity: this.getRuleSeverity('sol-004', config),
-          location: {
-            file: filePath,
-            ...location,
-          },
-          estimatedGasSavings: 10,
-          suggestedFix: {
-            description: 'Replace i++ with ++i',
-            codeSnippet: 'for (uint256 i = 0; i < length; ++i)',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-004',
-          },
-        })));
+        findings.push(
+          ...inefficientIncrements.map((location) => ({
+            ruleId: "sol-004",
+            message: "Use ++i instead of i++ to save gas",
+            severity: this.getRuleSeverity("sol-004", config),
+            location: {
+              file: filePath,
+              ...location,
+            },
+            estimatedGasSavings: 10,
+            suggestedFix: {
+              description: "Replace i++ with ++i",
+              codeSnippet: "for (uint256 i = 0; i < length; ++i)",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-004",
+            },
+          })),
+        );
       }
-      
+
       // Rule: sol-005 - Public function that could be external
-      if (this.isRuleEnabled('sol-005', config)) {
-        const publicFunctions = this.detectPublicFunctionsThatCouldBeExternal(code);
-        findings.push(...publicFunctions.map(location => ({
-          ruleId: 'sol-005',
-          message: 'Function is public but could be external to save gas',
-          severity: this.getRuleSeverity('sol-005', config),
-          location: {
-            file: filePath,
-            ...location,
-          },
-          estimatedGasSavings: 300,
-          suggestedFix: {
-            description: 'Change function visibility from public to external',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-005',
-          },
-        })));
+      if (this.isRuleEnabled("sol-005", config)) {
+        const publicFunctions =
+          this.detectPublicFunctionsThatCouldBeExternal(code);
+        findings.push(
+          ...publicFunctions.map((location) => ({
+            ruleId: "sol-005",
+            message: "Function is public but could be external to save gas",
+            severity: this.getRuleSeverity("sol-005", config),
+            location: {
+              file: filePath,
+              ...location,
+            },
+            estimatedGasSavings: 300,
+            suggestedFix: {
+              description: "Change function visibility from public to external",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-005",
+            },
+          })),
+        );
       }
-      
+
       // Rule: sol-006 - Missing Reentrancy Guard
-      if (this.isRuleEnabled('sol-006', config)) {
+      if (this.isRuleEnabled("sol-006", config)) {
         const missingGuards = this.detectMissingReentrancyGuards(code);
-        findings.push(...missingGuards.map(location => ({
-          ruleId: 'sol-006',
-          message: 'Function transfers ETH/tokens but lacks reentrancy guard',
-          severity: this.getRuleSeverity('sol-006', config),
-          location: {
-            file: filePath,
-            ...location,
-          },
-          suggestedFix: {
-            description: 'Add reentrancy guard modifier to prevent reentrancy attacks',
-            codeSnippet: 'function withdraw() external nonReentrant { ... }',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-006',
-          },
-        })));
+        findings.push(
+          ...missingGuards.map((location) => ({
+            ruleId: "sol-006",
+            message: "Function transfers ETH/tokens but lacks reentrancy guard",
+            severity: this.getRuleSeverity("sol-006", config),
+            location: {
+              file: filePath,
+              ...location,
+            },
+            suggestedFix: {
+              description:
+                "Add reentrancy guard modifier to prevent reentrancy attacks",
+              codeSnippet: "function withdraw() external nonReentrant { ... }",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-006",
+            },
+          })),
+        );
       }
 
       // Rule: sol-007 - Insecure Fallback Function
-      if (this.isRuleEnabled('sol-007', config)) {
+      if (this.isRuleEnabled("sol-007", config)) {
         const insecureFallbacks = this.detectInsecureFallbackFunctions(code);
-        findings.push(...insecureFallbacks.map(location => ({
-          ruleId: 'sol-007',
-          message: 'Fallback/receive handler is permissive or executes sensitive logic without strict validation',
-          severity: this.getRuleSeverity('sol-007', config),
-          location: {
-            file: filePath,
-            ...location,
-          },
-          suggestedFix: {
-            description: 'Keep fallback minimal: reject unknown calls, avoid sensitive logic, and validate accepted ETH transfers',
-            codeSnippet: 'fallback() external payable {\n    revert("Unknown function call");\n}',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-007',
-          },
-        })));
+        findings.push(
+          ...insecureFallbacks.map((location) => ({
+            ruleId: "sol-007",
+            message:
+              "Fallback/receive handler is permissive or executes sensitive logic without strict validation",
+            severity: this.getRuleSeverity("sol-007", config),
+            location: {
+              file: filePath,
+              ...location,
+            },
+            suggestedFix: {
+              description:
+                "Keep fallback minimal: reject unknown calls, avoid sensitive logic, and validate accepted ETH transfers",
+              codeSnippet:
+                'fallback() external payable {\n    revert("Unknown function call");\n}',
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-007",
+            },
+          })),
+        );
       }
 
       // Rule: sol-009 - Missing Timelock For Sensitive Operations
-      if (this.isRuleEnabled('sol-009', config)) {
-        const missingTimelocks = this.detectMissingTimelockForSensitiveOperations(code);
-        findings.push(...missingTimelocks.map(location => ({
-          ruleId: 'sol-009',
-          message: location.message,
-          severity: this.getRuleSeverity('sol-009', config),
-          location: {
-            file: filePath,
-            startLine: location.startLine,
-            endLine: location.endLine,
-          },
-          suggestedFix: {
-            description: 'Use a timelock flow: schedule operation, enforce delay with block.timestamp checks, and execute after delay with role-based access control',
-            codeSnippet: 'bytes32 opId = keccak256(data);\npendingOperations[opId] = block.timestamp + TIMELOCK_DELAY;\nemit OperationScheduled(opId, pendingOperations[opId]);\n\nrequire(block.timestamp >= pendingOperations[opId], "Timelock not expired");\nexecuteOperation(opId);\nemit OperationExecuted(opId);',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-009',
-          },
-        })));
+      if (this.isRuleEnabled("sol-009", config)) {
+        const missingTimelocks =
+          this.detectMissingTimelockForSensitiveOperations(code);
+        findings.push(
+          ...missingTimelocks.map((location) => ({
+            ruleId: "sol-009",
+            message: location.message,
+            severity: this.getRuleSeverity("sol-009", config),
+            location: {
+              file: filePath,
+              startLine: location.startLine,
+              endLine: location.endLine,
+            },
+            suggestedFix: {
+              description:
+                "Use a timelock flow: schedule operation, enforce delay with block.timestamp checks, and execute after delay with role-based access control",
+              codeSnippet:
+                'bytes32 opId = keccak256(data);\npendingOperations[opId] = block.timestamp + TIMELOCK_DELAY;\nemit OperationScheduled(opId, pendingOperations[opId]);\n\nrequire(block.timestamp >= pendingOperations[opId], "Timelock not expired");\nexecuteOperation(opId);\nemit OperationExecuted(opId);',
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-009",
+            },
+          })),
+        );
       }
 
       // Rule: sol-013 - Unsafe Timestamp Dependency
-      if (this.isRuleEnabled('sol-013', config)) {
+      if (this.isRuleEnabled("sol-013", config)) {
         const timestampDependencies = this.detectTimestampDependencies(code);
-        findings.push(...timestampDependencies.map(location => ({
-          ruleId: 'sol-013',
-          message: location.message,
-          severity: this.getRuleSeverity('sol-013', config),
-          location: {
-            file: filePath,
-            startLine: location.startLine,
-            endLine: location.endLine,
-          },
-          suggestedFix: {
-            description: 'Avoid using block.timestamp or now for critical control flow. Use a secure timelock, on-chain delay based on block.number, or an oracle-backed time source.',
-            codeSnippet: 'require(block.timestamp >= unlockTime, "Too early"); // avoid relying on timestamp for security-critical decisions',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-013',
-          },
-        })));
+        findings.push(
+          ...timestampDependencies.map((location) => ({
+            ruleId: "sol-013",
+            message: location.message,
+            severity: this.getRuleSeverity("sol-013", config),
+            location: {
+              file: filePath,
+              startLine: location.startLine,
+              endLine: location.endLine,
+            },
+            suggestedFix: {
+              description:
+                "Avoid using block.timestamp or now for critical control flow. Use a secure timelock, on-chain delay based on block.number, or an oracle-backed time source.",
+              codeSnippet:
+                'require(block.timestamp >= unlockTime, "Too early"); // avoid relying on timestamp for security-critical decisions',
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-013",
+            },
+          })),
+        );
       }
 
       // Rule: sol-014 - Insecure tx.origin Authentication
-      if (this.isRuleEnabled('sol-014', config)) {
+      if (this.isRuleEnabled("sol-014", config)) {
         const txOriginFindings = this.detectTxOriginUsage(code);
-        findings.push(...txOriginFindings.map(location => ({
-          ruleId: 'sol-014',
-          message: location.message,
-          severity: this.getRuleSeverity('sol-014', config),
-          location: {
-            file: filePath,
-            startLine: location.startLine,
-            endLine: location.endLine,
-          },
-          suggestedFix: {
-            description: 'Use msg.sender for authentication and authorization checks instead of tx.origin to prevent phishing and contract-based attacks.',
-            codeSnippet: 'require(msg.sender == owner, "Unauthorized");',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-014',
-          },
-        })));
+        findings.push(
+          ...txOriginFindings.map((location) => ({
+            ruleId: "sol-014",
+            message: location.message,
+            severity: this.getRuleSeverity("sol-014", config),
+            location: {
+              file: filePath,
+              startLine: location.startLine,
+              endLine: location.endLine,
+            },
+            suggestedFix: {
+              description:
+                "Use msg.sender for authentication and authorization checks instead of tx.origin to prevent phishing and contract-based attacks.",
+              codeSnippet: 'require(msg.sender == owner, "Unauthorized");',
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-014",
+            },
+          })),
+        );
       }
-      
+
       // Rule: sol-008 - Unsafe External Calls
-      if (this.isRuleEnabled('sol-008', config)) {
+      if (this.isRuleEnabled("sol-008", config)) {
         const unsafeExternalCalls = this.detectUnsafeExternalCalls(code);
-        findings.push(...unsafeExternalCalls.map(loc => ({
-          ruleId: 'sol-008',
-          message: loc.message,
-          severity: this.getRuleSeverity('sol-008', config),
-          location: {
-            file: filePath,
-            startLine: loc.startLine,
-            endLine: loc.endLine,
-          },
-          suggestedFix: {
-            description:
-              'Validate all external calls: capture and check return values, follow the Checks-Effects-Interactions pattern, and avoid delegatecall to untrusted contracts',
-            codeSnippet:
-              '// Capture and validate return value\n(bool success, ) = addr.call{value: amount}("");\nrequire(success, "External call failed");\n\n// Follow CEI: update state BEFORE the external call\nbalances[msg.sender] = 0;\n(bool ok, ) = msg.sender.call{value: amount}("");\nrequire(ok, "Transfer failed");',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-008',
-          },
-        })));
+        findings.push(
+          ...unsafeExternalCalls.map((loc) => ({
+            ruleId: "sol-008",
+            message: loc.message,
+            severity: this.getRuleSeverity("sol-008", config),
+            location: {
+              file: filePath,
+              startLine: loc.startLine,
+              endLine: loc.endLine,
+            },
+            suggestedFix: {
+              description:
+                "Validate all external calls: capture and check return values, follow the Checks-Effects-Interactions pattern, and avoid delegatecall to untrusted contracts",
+              codeSnippet:
+                '// Capture and validate return value\n(bool success, ) = addr.call{value: amount}("");\nrequire(success, "External call failed");\n\n// Follow CEI: update state BEFORE the external call\nbalances[msg.sender] = 0;\n(bool ok, ) = msg.sender.call{value: amount}("");\nrequire(ok, "Transfer failed");',
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-008",
+            },
+          })),
+        );
       }
-      
+
       // Rule: sol-010 - Expensive String Operations
-      if (this.isRuleEnabled('sol-010', config)) {
+      if (this.isRuleEnabled("sol-010", config)) {
         const expensiveStringOps = this.detectExpensiveStringOperations(code);
-        findings.push(...expensiveStringOps.map(location => ({
-          ruleId: 'sol-010',
-          message: 'Expensive string operation detected. Consider using bytes instead.',
-          severity: this.getRuleSeverity('sol-010', config),
-          location: {
-            file: filePath,
-            ...location,
-          },
-          estimatedGasSavings: 500,
-          suggestedFix: {
-            description: 'Replace string with bytes for gas efficiency, or offload string processing to the client.',
-            codeSnippet: 'bytes public data = "0x1234";',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-010',
-          },
-        })));
+        findings.push(
+          ...expensiveStringOps.map((location) => ({
+            ruleId: "sol-010",
+            message:
+              "Expensive string operation detected. Consider using bytes instead.",
+            severity: this.getRuleSeverity("sol-010", config),
+            location: {
+              file: filePath,
+              ...location,
+            },
+            estimatedGasSavings: 500,
+            suggestedFix: {
+              description:
+                "Replace string with bytes for gas efficiency, or offload string processing to the client.",
+              codeSnippet: 'bytes public data = "0x1234";',
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-010",
+            },
+          })),
+        );
       }
-      
+
       // Rule: sol-011 - Nested Loop Gas Risk
-      if (this.isRuleEnabled('sol-011', config)) {
+      if (this.isRuleEnabled("sol-011", config)) {
         const nestedLoops = this.detectNestedLoops(code);
-        findings.push(...nestedLoops.map(location => ({
-          ruleId: 'sol-011',
-          message: `Nested loop detected (depth: ${location.depth}). May exceed block gas limits.`,
-          severity: this.getRuleSeverity('sol-011', config),
-          location: {
-            file: filePath,
-            startLine: location.startLine,
-            endLine: location.endLine,
-          },
-          estimatedGasSavings: 2000,
-          suggestedFix: {
-            description: 'Consider refactoring to reduce loop depth or preprocess data off-chain.',
-            codeSnippet: '// Avoid nested loops or limit iteration bounds',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-011',
-          },
-        })));
+        findings.push(
+          ...nestedLoops.map((location) => ({
+            ruleId: "sol-011",
+            message: `Nested loop detected (depth: ${location.depth}). May exceed block gas limits.`,
+            severity: this.getRuleSeverity("sol-011", config),
+            location: {
+              file: filePath,
+              startLine: location.startLine,
+              endLine: location.endLine,
+            },
+            estimatedGasSavings: 2000,
+            suggestedFix: {
+              description:
+                "Consider refactoring to reduce loop depth or preprocess data off-chain.",
+              codeSnippet: "// Avoid nested loops or limit iteration bounds",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-011",
+            },
+          })),
+        );
       }
-      
+
       // Rule: sol-012 - Missing Event Emission
-      if (this.isRuleEnabled('sol-012', config)) {
+      if (this.isRuleEnabled("sol-012", config)) {
         const missingEvents = this.detectMissingEventEmissions(code);
-        findings.push(...missingEvents.map(location => ({
-          ruleId: 'sol-012',
-          message: 'State-changing function does not emit events. Consider adding events for auditability.',
-          severity: this.getRuleSeverity('sol-012', config),
-          location: {
-            file: filePath,
-            ...location,
-          },
-          suggestedFix: {
-            description: 'Add event emissions for state changes.',
-            codeSnippet: 'event StateChanged(address indexed user, uint256 amount);\n...\nemit StateChanged(msg.sender, value);',
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-012',
-          },
-        })));
+        findings.push(
+          ...missingEvents.map((location) => ({
+            ruleId: "sol-012",
+            message:
+              "State-changing function does not emit events. Consider adding events for auditability.",
+            severity: this.getRuleSeverity("sol-012", config),
+            location: {
+              file: filePath,
+              ...location,
+            },
+            suggestedFix: {
+              description: "Add event emissions for state changes.",
+              codeSnippet:
+                "event StateChanged(address indexed user, uint256 amount);\n...\nemit StateChanged(msg.sender, value);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-012",
+            },
+          })),
+        );
       }
-      
+
       // Rule: sol-015 - Dead Code Paths
-      if (this.isRuleEnabled('sol-015', config)) {
+      if (this.isRuleEnabled("sol-015", config)) {
         const deadCodePaths = this.detectDeadCodePaths(code);
-        findings.push(...deadCodePaths.map(location => ({
-          ruleId: 'sol-015',
-          message: location.message,
-          severity: this.getRuleSeverity('sol-015', config),
-          location: {
-            file: filePath,
-            startLine: location.startLine,
-            endLine: location.endLine,
-          },
-          suggestedFix: {
-            description: location.suggestedFix,
-            documentationUrl: 'https://docs.gasguard.dev/rules/sol-015',
-          },
-        })));
+        findings.push(
+          ...deadCodePaths.map((location) => ({
+            ruleId: "sol-015",
+            message: location.message,
+            severity: this.getRuleSeverity("sol-015", config),
+            location: {
+              file: filePath,
+              startLine: location.startLine,
+              endLine: location.endLine,
+            },
+            suggestedFix: {
+              description: location.suggestedFix,
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-015",
+            },
+          })),
+        );
       }
     } catch (error) {
       errors.push({
@@ -496,9 +560,9 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         error: error instanceof Error ? error : undefined,
       });
     }
-    
+
     const analysisTime = Date.now() - startTime;
-    
+
     return {
       findings,
       filesAnalyzed: 1,
@@ -509,53 +573,52 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       errors: errors.length > 0 ? errors : undefined,
     };
   }
-  
-  
+
   private isRuleEnabled(ruleId: string, config?: AnalyzerConfig): boolean {
     const cfg = config || this.config;
-    
+
     if (!cfg.rules || !(ruleId in cfg.rules)) {
       // Use default enabled state from rule definition
       const rule = this.getRule(ruleId);
       return rule?.enabled ?? true;
     }
-    
+
     const ruleConfig = cfg.rules[ruleId];
-    
-    if (typeof ruleConfig === 'boolean') {
+
+    if (typeof ruleConfig === "boolean") {
       return ruleConfig;
     }
-    
+
     return ruleConfig.enabled ?? true;
   }
-  
-  
+
   private getRuleSeverity(ruleId: string, config?: AnalyzerConfig): Severity {
     const cfg = config || this.config;
     const rule = this.getRule(ruleId);
-    
+
     if (!rule) {
       return Severity.MEDIUM;
     }
-    
+
     if (cfg.rules && ruleId in cfg.rules) {
       const ruleConfig = cfg.rules[ruleId];
-      if (typeof ruleConfig === 'object' && ruleConfig.severity) {
+      if (typeof ruleConfig === "object" && ruleConfig.severity) {
         return ruleConfig.severity;
       }
     }
-    
+
     return rule.severity;
   }
-  
-  
-  private detectUncachedArrayLength(code: string): Array<{ startLine: number; endLine: number }> {
+
+  private detectUncachedArrayLength(
+    code: string,
+  ): Array<{ startLine: number; endLine: number }> {
     const findings: Array<{ startLine: number; endLine: number }> = [];
-    const lines = code.split('\n');
-    
+    const lines = code.split("\n");
+
     // Simple regex to detect for loops with .length in condition
     const forLoopPattern = /for\s*\([^)]*\.length[^)]*\)/;
-    
+
     lines.forEach((line, index) => {
       if (forLoopPattern.test(line)) {
         findings.push({
@@ -564,36 +627,40 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         });
       }
     });
-    
+
     return findings;
   }
-  
-  private detectInefficientIncrements(code: string): Array<{ startLine: number; endLine: number }> {
+
+  private detectInefficientIncrements(
+    code: string,
+  ): Array<{ startLine: number; endLine: number }> {
     const findings: Array<{ startLine: number; endLine: number }> = [];
-    const lines = code.split('\n');
-    
+    const lines = code.split("\n");
+
     // Detect i++ in for loops (but not ++i)
     const inefficientIncrementPattern = /\bi\+\+(?!\s*\))/;
-    
+
     lines.forEach((line, index) => {
-      if (line.includes('for') && inefficientIncrementPattern.test(line)) {
+      if (line.includes("for") && inefficientIncrementPattern.test(line)) {
         findings.push({
           startLine: index + 1,
           endLine: index + 1,
         });
       }
     });
-    
+
     return findings;
   }
-  
-  private detectPublicFunctionsThatCouldBeExternal(code: string): Array<{ startLine: number; endLine: number }> {
+
+  private detectPublicFunctionsThatCouldBeExternal(
+    code: string,
+  ): Array<{ startLine: number; endLine: number }> {
     const findings: Array<{ startLine: number; endLine: number }> = [];
-    const lines = code.split('\n');
-    
+    const lines = code.split("\n");
+
     // Simple heuristic: public functions that are not called internally
     const publicFunctionPattern = /function\s+\w+\s*\([^)]*\)\s+public/;
-    
+
     lines.forEach((line, index) => {
       if (publicFunctionPattern.test(line)) {
         findings.push({
@@ -602,19 +669,22 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         });
       }
     });
-    
+
     return findings;
   }
-  
-  private detectUnnecessaryStorageUsage(code: string): Array<{ startLine: number; endLine: number }> {
+
+  private detectUnnecessaryStorageUsage(
+    code: string,
+  ): Array<{ startLine: number; endLine: number }> {
     const findings: Array<{ startLine: number; endLine: number }> = [];
-    const lines = code.split('\n');
+    const lines = code.split("\n");
 
     // Detect storage variables in function parameters or local variables
-    const storagePattern = /\b(string|bytes|uint\[\]|address\[\])\s+storage\s+\w+/;
+    const storagePattern =
+      /\b(string|bytes|uint\[\]|address\[\])\s+storage\s+\w+/;
 
     lines.forEach((line, index) => {
-      if (storagePattern.test(line) && !line.includes('function')) {
+      if (storagePattern.test(line) && !line.includes("function")) {
         findings.push({
           startLine: index + 1,
           endLine: index + 1,
@@ -625,9 +695,11 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     return findings;
   }
 
-  private detectMissingReentrancyGuards(code: string): Array<{ startLine: number; endLine: number }> {
+  private detectMissingReentrancyGuards(
+    code: string,
+  ): Array<{ startLine: number; endLine: number }> {
     const findings: Array<{ startLine: number; endLine: number }> = [];
-    const lines = code.split('\n');
+    const lines = code.split("\n");
 
     // Pattern to detect functions that transfer ETH or tokens
     const transferPatterns = [
@@ -648,7 +720,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     ];
 
     // Find all function definitions
-    const functionPattern = /^\s*function\s+(\w+)\s*\([^}]*\)\s*(\w+)?\s*(\w+)?\s*\{/;
+    const functionPattern =
+      /^\s*function\s+(\w+)\s*\([^}]*\)\s*(\w+)?\s*(\w+)?\s*\{/;
 
     lines.forEach((line, index) => {
       const functionMatch = line.match(functionPattern);
@@ -658,9 +731,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
 
         // Check if function has reentrancy guard
         let hasGuard = false;
-        for (let i = Math.max(0, index - 5); i <= Math.min(lines.length - 1, index + 5); i++) {
+        for (
+          let i = Math.max(0, index - 5);
+          i <= Math.min(lines.length - 1, index + 5);
+          i++
+        ) {
           const checkLine = lines[i];
-          if (guardPatterns.some(pattern => pattern.test(checkLine))) {
+          if (guardPatterns.some((pattern) => pattern.test(checkLine))) {
             hasGuard = true;
             break;
           }
@@ -681,7 +758,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
               inFunction = true;
             }
 
-            if (inFunction && transferPatterns.some(pattern => pattern.test(currentLine))) {
+            if (
+              inFunction &&
+              transferPatterns.some((pattern) => pattern.test(currentLine))
+            ) {
               findings.push({
                 startLine: functionStartLine,
                 endLine: functionStartLine,
@@ -703,8 +783,12 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private detectTimestampDependencies(
     code: string,
   ): Array<{ startLine: number; endLine: number; message: string }> {
-    const findings: Array<{ startLine: number; endLine: number; message: string }> = [];
-    const lines = code.split('\n');
+    const findings: Array<{
+      startLine: number;
+      endLine: number;
+      message: string;
+    }> = [];
+    const lines = code.split("\n");
     let inBlockComment = false;
 
     const timestampPattern = /\b(?:block\.timestamp|now)\b/;
@@ -714,17 +798,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       const line = lines[i];
       const trimmed = line.trim();
 
-      if (trimmed.startsWith('/*') || trimmed.startsWith('/**')) {
+      if (trimmed.startsWith("/*") || trimmed.startsWith("/**")) {
         inBlockComment = true;
       }
       if (inBlockComment) {
-        if (trimmed.includes('*/')) {
+        if (trimmed.includes("*/")) {
           inBlockComment = false;
         }
         continue;
       }
 
-      if (trimmed.startsWith('//')) {
+      if (trimmed.startsWith("//")) {
         continue;
       }
 
@@ -740,7 +824,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         startLine: i + 1,
         endLine: i + 1,
         message:
-          'Unsafe reliance on block.timestamp/now detected. Block timestamps are manipulable by miners, so avoid using them for critical control flow.',
+          "Unsafe reliance on block.timestamp/now detected. Block timestamps are manipulable by miners, so avoid using them for critical control flow.",
       });
     }
 
@@ -750,8 +834,12 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private detectTxOriginUsage(
     code: string,
   ): Array<{ startLine: number; endLine: number; message: string }> {
-    const findings: Array<{ startLine: number; endLine: number; message: string }> = [];
-    const lines = code.split('\n');
+    const findings: Array<{
+      startLine: number;
+      endLine: number;
+      message: string;
+    }> = [];
+    const lines = code.split("\n");
     let inBlockComment = false;
 
     const txOriginPattern = /\btx\.origin\b/;
@@ -760,17 +848,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       const line = lines[i];
       const trimmed = line.trim();
 
-      if (trimmed.startsWith('/*') || trimmed.startsWith('/**')) {
+      if (trimmed.startsWith("/*") || trimmed.startsWith("/**")) {
         inBlockComment = true;
       }
       if (inBlockComment) {
-        if (trimmed.includes('*/')) {
+        if (trimmed.includes("*/")) {
           inBlockComment = false;
         }
         continue;
       }
 
-      if (trimmed.startsWith('//')) {
+      if (trimmed.startsWith("//")) {
         continue;
       }
 
@@ -779,7 +867,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
           startLine: i + 1,
           endLine: i + 1,
           message:
-            'Insecure tx.origin authentication detected. Use msg.sender instead of tx.origin for authorization checks.',
+            "Insecure tx.origin authentication detected. Use msg.sender instead of tx.origin for authorization checks.",
         });
       }
     }
@@ -787,10 +875,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     return findings;
   }
 
-  private detectInsecureFallbackFunctions(code: string): Array<{ startLine: number; endLine: number }> {
+  private detectInsecureFallbackFunctions(
+    code: string,
+  ): Array<{ startLine: number; endLine: number }> {
     const findings: Array<{ startLine: number; endLine: number }> = [];
-    const lines = code.split('\n');
-    const fallbackDeclarationPattern = /^\s*(fallback|receive)\s*\(\s*\)\s*[^;{]*\{/;
+    const lines = code.split("\n");
+    const fallbackDeclarationPattern =
+      /^\s*(fallback|receive)\s*\(\s*\)\s*[^;{]*\{/;
 
     const hasSensitiveOperation = (body: string): boolean => {
       const sensitivePatterns = [
@@ -802,20 +893,27 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         /\.send\s*\(/,
       ];
 
-      return sensitivePatterns.some(pattern => pattern.test(body));
+      return sensitivePatterns.some((pattern) => pattern.test(body));
     };
 
     const hasStateMutation = (bodyLines: string[]): boolean => {
-      const localDeclarationPattern = /^\s*(?:u?int(?:8|16|32|64|128|256)?|address|bool|string|bytes(?:\d+)?|bytes|mapping\s*\(|var|memory|storage)\b/;
-      const stateMutationPattern = /\b[A-Za-z_]\w*(?:\[[^\]]+\])?\s*(?:\+\+|--|\+=|-=|\*=|\/=|%=|=)\s*[^=]/;
+      const localDeclarationPattern =
+        /^\s*(?:u?int(?:8|16|32|64|128|256)?|address|bool|string|bytes(?:\d+)?|bytes|mapping\s*\(|var|memory|storage)\b/;
+      const stateMutationPattern =
+        /\b[A-Za-z_]\w*(?:\[[^\]]+\])?\s*(?:\+\+|--|\+=|-=|\*=|\/=|%=|=)\s*[^=]/;
 
       for (const line of bodyLines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+        if (
+          !trimmed ||
+          trimmed.startsWith("//") ||
+          trimmed.startsWith("/*") ||
+          trimmed.startsWith("*")
+        ) {
           continue;
         }
 
-        if (trimmed.startsWith('emit ')) {
+        if (trimmed.startsWith("emit ")) {
           continue;
         }
 
@@ -832,7 +930,11 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     };
 
     const hasExplicitReject = (body: string): boolean => {
-      return /\brevert\s*\(/.test(body) || /\brequire\s*\(\s*false\b/.test(body) || /\bassert\s*\(\s*false\b/.test(body);
+      return (
+        /\brevert\s*\(/.test(body) ||
+        /\brequire\s*\(\s*false\b/.test(body) ||
+        /\bassert\s*\(\s*false\b/.test(body)
+      );
     };
 
     const hasInputValidation = (body: string): boolean => {
@@ -841,24 +943,36 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         /\bif\s*\([^)]*msg\.(sender|value|data)[^)]*\)\s*\{?\s*revert\s*\(/,
       ];
 
-      return validationPatterns.some(pattern => pattern.test(body));
+      return validationPatterns.some((pattern) => pattern.test(body));
     };
 
     const isOnlyEventsOrNoop = (bodyLines: string[]): boolean => {
       const executable = bodyLines
-        .map(line => line.trim())
-        .filter(line => line && line !== '{' && line !== '}' && !line.startsWith('//') && !line.startsWith('/*') && !line.startsWith('*'));
+        .map((line) => line.trim())
+        .filter(
+          (line) =>
+            line &&
+            line !== "{" &&
+            line !== "}" &&
+            !line.startsWith("//") &&
+            !line.startsWith("/*") &&
+            !line.startsWith("*"),
+        );
 
       if (executable.length === 0) {
         return true;
       }
 
-      return executable.every(line => line.startsWith('emit ') || line === ';');
+      return executable.every(
+        (line) => line.startsWith("emit ") || line === ";",
+      );
     };
 
     for (let i = 0; i < lines.length; i++) {
       const declarationLine = lines[i];
-      const declarationMatch = declarationLine.match(fallbackDeclarationPattern);
+      const declarationMatch = declarationLine.match(
+        fallbackDeclarationPattern,
+      );
 
       if (!declarationMatch) {
         continue;
@@ -892,7 +1006,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         }
       }
 
-      const body = bodyLines.join('\n');
+      const body = bodyLines.join("\n");
       const sensitive = hasSensitiveOperation(body);
       const mutatesState = hasStateMutation(bodyLines);
       const explicitReject = hasExplicitReject(body);
@@ -900,10 +1014,15 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       const eventsOnly = isOnlyEventsOrNoop(bodyLines);
 
       const insecureFallback =
-        handlerType === 'fallback' && !explicitReject && !validatesInput && !eventsOnly;
+        handlerType === "fallback" &&
+        !explicitReject &&
+        !validatesInput &&
+        !eventsOnly;
 
       const insecureReceive =
-        handlerType === 'receive' && (sensitive || mutatesState) && !validatesInput;
+        handlerType === "receive" &&
+        (sensitive || mutatesState) &&
+        !validatesInput;
 
       if (sensitive || mutatesState || insecureFallback || insecureReceive) {
         findings.push({
@@ -919,20 +1038,30 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private detectMissingTimelockForSensitiveOperations(
     code: string,
   ): Array<{ startLine: number; endLine: number; message: string }> {
-    const findings: Array<{ startLine: number; endLine: number; message: string }> = [];
-    const lines = code.split('\n');
+    const findings: Array<{
+      startLine: number;
+      endLine: number;
+      message: string;
+    }> = [];
+    const lines = code.split("\n");
 
     const functionDecl = /^\s*function\s+(\w+)\s*\(([^)]*)\)\s*([^\{;]*)\{/;
-    const sensitiveNamePattern = /(withdraw|transferOwnership|upgrade|set(?:Config|Parameter|Fee|Admin|Owner)?|grantRole|revokeRole|pause|unpause|mint|burn|treasury|emergency)/i;
+    const sensitiveNamePattern =
+      /(withdraw|transferOwnership|upgrade|set(?:Config|Parameter|Fee|Admin|Owner)?|grantRole|revokeRole|pause|unpause|mint|burn|treasury|emergency)/i;
     const schedulerNamePattern = /^(queue|schedule|propose)/i;
     const executeNamePattern = /^execute/i;
     const cancelNamePattern = /^cancel/i;
 
-    const contractHasTracking = /(pending|queued|operations?|timelock|eta|executeAfter|unlockTime|operationId)/i.test(code);
-    const contractHasSchedule = /function\s+(?:queue|schedule|propose)\w*\s*\(/i.test(code);
+    const contractHasTracking =
+      /(pending|queued|operations?|timelock|eta|executeAfter|unlockTime|operationId)/i.test(
+        code,
+      );
+    const contractHasSchedule =
+      /function\s+(?:queue|schedule|propose)\w*\s*\(/i.test(code);
     const contractHasExecute = /function\s+execute\w*\s*\(/i.test(code);
     const contractHasCancel = /function\s+cancel\w*\s*\(/i.test(code);
-    const hasTimelockEvents = /event\s+\w*(Scheduled|Executed|Cancelled|Canceled)\w*\s*\(/i.test(code);
+    const hasTimelockEvents =
+      /event\s+\w*(Scheduled|Executed|Cancelled|Canceled)\w*\s*\(/i.test(code);
 
     const hasDelayEnforcement = (body: string): boolean => {
       const delayPatterns = [
@@ -941,11 +1070,12 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         /\+\s*(TIMELOCK|DELAY|timelock|delay)/,
         /executeAfter|unlockTime|eta|readyAt|scheduledAt/i,
       ];
-      return delayPatterns.some(pattern => pattern.test(body));
+      return delayPatterns.some((pattern) => pattern.test(body));
     };
 
     const hasAuthorization = (signature: string, body: string): boolean => {
-      const signatureAuth = /(onlyOwner|onlyAdmin|onlyRole|governance|timelockAdmin)/i;
+      const signatureAuth =
+        /(onlyOwner|onlyAdmin|onlyRole|governance|timelockAdmin)/i;
       const bodyAuth = [
         /require\s*\([^)]*msg\.sender[^)]*(owner|admin|governance)[^)]*\)/i,
         /hasRole\s*\(/,
@@ -957,7 +1087,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         return true;
       }
 
-      return bodyAuth.some(pattern => pattern.test(body));
+      return bodyAuth.some((pattern) => pattern.test(body));
     };
 
     const hasTrackingReference = (body: string): boolean => {
@@ -966,7 +1096,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         /mapping\s*\(/,
         /delete\s+\w+/,
       ];
-      return patterns.some(pattern => pattern.test(body));
+      return patterns.some((pattern) => pattern.test(body));
     };
 
     const isStateChanging = (body: string): boolean => {
@@ -979,7 +1109,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         /_revokeRole\s*\(/,
       ];
 
-      return stateChangePatterns.some(pattern => pattern.test(body));
+      return stateChangePatterns.some((pattern) => pattern.test(body));
     };
 
     let i = 0;
@@ -991,7 +1121,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       }
 
       const functionName = match[1];
-      const functionSignatureSuffix = match[3] || '';
+      const functionSignatureSuffix = match[3] || "";
       const functionStartLine = i + 1;
 
       let braceDepth = 0;
@@ -1021,7 +1151,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         }
       }
 
-      const functionBody = bodyLines.join('\n');
+      const functionBody = bodyLines.join("\n");
       const isViewOrPure = /\b(view|pure)\b/.test(functionSignatureSuffix);
       const isSensitive = sensitiveNamePattern.test(functionName);
       const isScheduler = schedulerNamePattern.test(functionName);
@@ -1048,12 +1178,20 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       }
 
       // Sensitive state-changing operations should not execute immediately.
-      if (isSensitive && !isScheduler && !isExecutor && !isCanceller && !isViewOrPure) {
+      if (
+        isSensitive &&
+        !isScheduler &&
+        !isExecutor &&
+        !isCanceller &&
+        !isViewOrPure
+      ) {
         const stateChanging = isStateChanging(functionBody);
         if (stateChanging) {
           const hasDelay = hasDelayEnforcement(functionBody);
-          const hasTracking = hasTrackingReference(functionBody) || contractHasTracking;
-          const contractHasTimelockFlow = contractHasSchedule && contractHasExecute;
+          const hasTracking =
+            hasTrackingReference(functionBody) || contractHasTracking;
+          const contractHasTimelockFlow =
+            contractHasSchedule && contractHasExecute;
 
           if (!hasDelay || !hasTracking || !contractHasTimelockFlow) {
             findings.push({
@@ -1073,15 +1211,20 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       findings.push({
         startLine: 1,
         endLine: 1,
-        message: 'Timelock flow is missing cancellation capability for queued operations',
+        message:
+          "Timelock flow is missing cancellation capability for queued operations",
       });
     }
 
-    if ((contractHasSchedule || contractHasExecute || contractHasCancel) && !hasTimelockEvents) {
+    if (
+      (contractHasSchedule || contractHasExecute || contractHasCancel) &&
+      !hasTimelockEvents
+    ) {
       findings.push({
         startLine: 1,
         endLine: 1,
-        message: 'Timelock operations should emit schedule/execute/cancel events for transparency',
+        message:
+          "Timelock operations should emit schedule/execute/cancel events for transparency",
       });
     }
 
@@ -1097,9 +1240,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private detectUnsafeExternalCalls(
     code: string,
   ): Array<{ startLine: number; endLine: number; message: string }> {
-    const findings: Array<{ startLine: number; endLine: number; message: string }> = [];
-    const lines = code.split('\n');
-    
+    const findings: Array<{
+      startLine: number;
+      endLine: number;
+      message: string;
+    }> = [];
+    const lines = code.split("\n");
+
     // Helpers ----------------------------------------------------------------
 
     /** Returns true when the line (or the immediately preceding line) contains a
@@ -1113,7 +1260,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
 
     /** Returns true when the trimmed string is a comment or empty. */
     const isCommentOrEmpty = (s: string): boolean =>
-      !s || s.startsWith('//') || s.startsWith('*') || s.startsWith('/*');
+      !s || s.startsWith("//") || s.startsWith("*") || s.startsWith("/*");
 
     // Track multi-line block comments so we never inspect comment bodies.
     let inBlockComment = false;
@@ -1123,12 +1270,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       const trimmed = lines[i].trim();
 
       // Block-comment gating
-      if (trimmed.startsWith('/*') || trimmed.startsWith('/**')) inBlockComment = true;
+      if (trimmed.startsWith("/*") || trimmed.startsWith("/**"))
+        inBlockComment = true;
       if (inBlockComment) {
-        if (trimmed.includes('*/')) inBlockComment = false;
+        if (trimmed.includes("*/")) inBlockComment = false;
         continue;
       }
-      if (trimmed.startsWith('//')) continue;
+      if (trimmed.startsWith("//")) continue;
 
       // 1a. delegatecall — always flag regardless of return-value capture.
       //     delegatecall executes external bytecode inside the caller's own
@@ -1139,8 +1287,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
           startLine: i + 1,
           endLine: i + 1,
           message:
-            'Use of delegatecall detected — target executes in caller storage context; ' +
-            'ensure the target contract is trusted, audited, and non-upgradeable',
+            "Use of delegatecall detected — target executes in caller storage context; " +
+            "ensure the target contract is trusted, audited, and non-upgradeable",
         });
         continue; // Don't also fire the generic unchecked-call rule for the same line.
       }
@@ -1151,7 +1299,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
           startLine: i + 1,
           endLine: i + 1,
           message:
-            'External call return value not checked — always capture and validate: ' +
+            "External call return value not checked — always capture and validate: " +
             '(bool success, ) = addr.call(...); require(success, "Call failed")',
         });
       }
@@ -1215,10 +1363,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
             const t = line.trim();
             if (
               isCommentOrEmpty(t) ||
-              t.startsWith('emit ') ||
-              t.startsWith('require(') ||
-              t.startsWith('revert') ||
-              t === '}' ||
+              t.startsWith("emit ") ||
+              t.startsWith("require(") ||
+              t.startsWith("revert") ||
+              t === "}" ||
               localVarKeyword.test(line)
             ) {
               continue;
@@ -1229,8 +1377,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 startLine: functionStartLine,
                 endLine: functionStartLine,
                 message:
-                  'Checks-Effects-Interactions (CEI) violation — state is mutated after an external call; ' +
-                  'move all state updates before the external interaction to prevent reentrancy',
+                  "Checks-Effects-Interactions (CEI) violation — state is mutated after an external call; " +
+                  "move all state updates before the external interaction to prevent reentrancy",
               });
               ceiViolationFound = true;
             }
@@ -1243,10 +1391,12 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     return findings;
   }
 
-  private detectExpensiveStringOperations(code: string): Array<{ startLine: number; endLine: number }> {
+  private detectExpensiveStringOperations(
+    code: string,
+  ): Array<{ startLine: number; endLine: number }> {
     const findings: Array<{ startLine: number; endLine: number }> = [];
-    const lines = code.split('\n');
-    
+    const lines = code.split("\n");
+
     const expensiveStringPatterns = [
       /string\s+concat\s*\(/,
       /string\.concat\s*\(/,
@@ -1258,7 +1408,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     ];
 
     lines.forEach((line, index) => {
-      if (expensiveStringPatterns.some(pattern => pattern.test(line))) {
+      if (expensiveStringPatterns.some((pattern) => pattern.test(line))) {
         findings.push({
           startLine: index + 1,
           endLine: index + 1,
@@ -1269,43 +1419,49 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     return findings;
   }
 
-  private detectNestedLoops(code: string): Array<{ startLine: number; endLine: number; depth: number }> {
-    const findings: Array<{ startLine: number; endLine: number; depth: number }> = [];
-    const lines = code.split('\n');
-    
+  private detectNestedLoops(
+    code: string,
+  ): Array<{ startLine: number; endLine: number; depth: number }> {
+    const findings: Array<{
+      startLine: number;
+      endLine: number;
+      depth: number;
+    }> = [];
+    const lines = code.split("\n");
+
     const loopPattern = /\b(for|while)\s*\(/;
-    
+
     let braceDepth = 0;
     let loopDepth = 0;
-    let loopStack: number[] = [];
+    const loopStack: number[] = [];
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const openBraces = (line.match(/\{/g) || []).length;
       const closeBraces = (line.match(/\}/g) || []).length;
-      
+
       if (loopPattern.test(line)) {
         loopDepth++;
         loopStack.push(i + 1);
-        
+
         if (loopDepth > 1) {
           findings.push({
             startLine: i + 1,
             endLine: i + 1,
-            depth: loopDepth
+            depth: loopDepth,
           });
         }
       }
-      
+
       braceDepth += openBraces;
       braceDepth -= closeBraces;
-      
+
       while (braceDepth < loopStack.length - 1) {
         loopStack.pop();
         loopDepth--;
       }
     }
-    
+
     return findings;
   }
 
@@ -1326,19 +1482,20 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       suggestedFix: string;
       codeSnippet?: string;
     }> = [];
-    const lines = code.split('\n');
-    
+    const lines = code.split("\n");
+
     const functionPattern = /^\s*function\s+(\w+)\s*\(/;
     const authModifierPattern = /(onlyOwner|onlyAdmin|onlyRole|auth|hasRole)/i;
-    const authRequirePattern = /require\s*\([^)]*(msg\.sender|hasRole|_checkRole)[^)]*\)/;
-    
+    const authRequirePattern =
+      /require\s*\([^)]*(msg\.sender|hasRole|_checkRole)[^)]*\)/;
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (/\b(selfdestruct|suicide)\s*\(/.test(line)) {
         const destructLine = i + 1;
         let hasAuthCheck = false;
-        let functionName = 'unknown';
-        
+        let functionName = "unknown";
+
         for (let j = i; j >= 0; j--) {
           const checkLine = lines[j];
           const funcMatch = checkLine.match(functionPattern);
@@ -1349,19 +1506,23 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
           }
           if (authRequirePattern.test(checkLine)) hasAuthCheck = true;
         }
-        
+
         if (!hasAuthCheck) {
           findings.push({
-            startLine: destructLine, endLine: destructLine,
+            startLine: destructLine,
+            endLine: destructLine,
             message: `Unsafe selfdestruct detected in function '${functionName}' without access controls. Selfdestruct can lock assets.`,
-            suggestedFix: 'Add access control modifier (onlyOwner/onlyAdmin) or multi-signature requirement',
+            suggestedFix:
+              "Add access control modifier (onlyOwner/onlyAdmin) or multi-signature requirement",
             codeSnippet: `function ${functionName}() external onlyOwner { ... selfdestruct(payable(owner)); }`,
           });
         } else {
           findings.push({
-            startLine: destructLine, endLine: destructLine,
+            startLine: destructLine,
+            endLine: destructLine,
             message: `Selfdestruct usage in function '${functionName}'. Ensure multi-sig or timelock is in place.`,
-            suggestedFix: 'Consider adding a timelock delay and multi-signature requirement',
+            suggestedFix:
+              "Consider adding a timelock delay and multi-signature requirement",
           });
         }
       }
@@ -1369,46 +1530,49 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     return findings;
   }
 
-  private detectMissingEventEmissions(code: string): Array<{ startLine: number; endLine: number }> {
+  private detectMissingEventEmissions(
+    code: string,
+  ): Array<{ startLine: number; endLine: number }> {
     const findings: Array<{ startLine: number; endLine: number }> = [];
-    const lines = code.split('\n');
-    
-    const functionPattern = /^\s*function\s+(\w+)\s*\([^}]*\)\s*(\w+)?\s*(\w+)?\s*\{/;
-    
+    const lines = code.split("\n");
+
+    const functionPattern =
+      /^\s*function\s+(\w+)\s*\([^}]*\)\s*(\w+)?\s*(\w+)?\s*\{/;
+
     for (let i = 0; i < lines.length; i++) {
       const functionMatch = lines[i].match(functionPattern);
       if (functionMatch) {
         const functionName = functionMatch[1];
-        const functionSignatureSuffix = functionMatch[2] || '';
+        const functionSignatureSuffix = functionMatch[2] || "";
         const isViewOrPure = /\b(view|pure)\b/.test(functionSignatureSuffix);
         const functionStartLine = i + 1;
-        
+
         if (isViewOrPure) {
           continue;
         }
-        
+
         let braceCount = 0;
         let hasStateMutation = false;
         let hasEventEmission = false;
         let bodyStarted = false;
-        
+
         for (let j = i; j < lines.length; j++) {
           const currentLine = lines[j];
           const openBraces = (currentLine.match(/\{/g) || []).length;
           const closeBraces = (currentLine.match(/\}/g) || []).length;
-          
+
           braceCount += openBraces;
           braceCount -= closeBraces;
-          
+
           if (openBraces > 0) {
             bodyStarted = true;
           }
-          
+
           if (bodyStarted) {
             if (/^\s*emit\s/.test(currentLine)) {
               hasEventEmission = true;
             }
-            
+
             const stateMutationPatterns = [
               /\b\w+\s*(?:\[[^\]]+\])?\s*(?:=|\+=|-=|\*=|\/=|%=)\s*[^=]/,
               /\b\w+\s*\+\+/,
@@ -1418,16 +1582,19 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
               /payable\s*\(\s*\w+\s*\)\.transfer\s*\(/,
               /payable\s*\(\s*\w+\s*\)\.send\s*\(/,
             ];
-            if (!hasStateMutation && stateMutationPatterns.some(pattern => pattern.test(currentLine))) {
+            if (
+              !hasStateMutation &&
+              stateMutationPatterns.some((pattern) => pattern.test(currentLine))
+            ) {
               hasStateMutation = true;
             }
           }
-          
+
           if (braceCount === 0 && bodyStarted) {
             break;
           }
         }
-        
+
         if (hasStateMutation && !hasEventEmission) {
           findings.push({
             startLine: functionStartLine,
@@ -1436,7 +1603,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         }
       }
     }
-    
+
     return findings;
   }
 
@@ -1444,53 +1611,79 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
    * Detects dead code paths (sol-015):
    * Identifies unreachable code after unconditional exit statements
    */
-  private detectDeadCodePaths(code: string): Array<{ startLine: number; endLine: number; message: string; suggestedFix: string }> {
-    const findings: Array<{ startLine: number; endLine: number; message: string; suggestedFix: string }> = [];
-    const lines = code.split('\n');
-    
+  private detectDeadCodePaths(code: string): Array<{
+    startLine: number;
+    endLine: number;
+    message: string;
+    suggestedFix: string;
+  }> {
+    const findings: Array<{
+      startLine: number;
+      endLine: number;
+      message: string;
+      suggestedFix: string;
+    }> = [];
+    const lines = code.split("\n");
+
     const functionPattern = /^\s*function\s+(\w+)\s*\(/;
-    
+
     for (let i = 0; i < lines.length; i++) {
       const funcMatch = lines[i].match(functionPattern);
       if (!funcMatch) continue;
-      
+
       const functionName = funcMatch[1];
       let braceDepth = 0;
       let bodyStarted = false;
       const bodyLines: Array<{ line: string; num: number; depth: number }> = [];
-      
+
       for (let j = i; j < lines.length; j++) {
         const cl = lines[j];
         const opens = (cl.match(/\{/g) || []).length;
         const closes = (cl.match(/\}/g) || []).length;
         if (opens > 0) bodyStarted = true;
         braceDepth += opens - closes;
-        if (bodyStarted) bodyLines.push({ line: cl, num: j + 1, depth: braceDepth });
+        if (bodyStarted)
+          bodyLines.push({ line: cl, num: j + 1, depth: braceDepth });
         if (bodyStarted && braceDepth === 0) break;
       }
-      
+
       let exitFoundAtLine = -1;
       let exitDepth = -1;
-      
+
       for (const bl of bodyLines) {
         const trimmed = bl.line.trim();
-        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed === '{' || trimmed === '}') continue;
-        
+        if (
+          !trimmed ||
+          trimmed.startsWith("//") ||
+          trimmed.startsWith("*") ||
+          trimmed === "{" ||
+          trimmed === "}"
+        )
+          continue;
+
         const isUnconditionalExit =
           /^\s*return\b(?!s)/.test(bl.line) ||
           /^\s*revert\b/.test(bl.line) ||
           /^\s*selfdestruct\s*\(/.test(bl.line);
-        
+
         if (isUnconditionalExit && bl.depth === 1) {
           exitFoundAtLine = bl.num;
           exitDepth = bl.depth;
         }
       }
-      
+
       if (exitFoundAtLine > 0) {
         for (const bl of bodyLines) {
           const trimmed = bl.line.trim();
-          if (bl.num > exitFoundAtLine && bl.depth <= exitDepth && !trimmed.startsWith('//') && !trimmed.startsWith('*') && trimmed !== '' && trimmed !== '{' && trimmed !== '}') {
+          if (
+            bl.num > exitFoundAtLine &&
+            bl.depth <= exitDepth &&
+            !trimmed.startsWith("//") &&
+            !trimmed.startsWith("*") &&
+            trimmed !== "" &&
+            trimmed !== "{" &&
+            trimmed !== "}"
+          ) {
             findings.push({
               startLine: exitFoundAtLine,
               endLine: bl.num,

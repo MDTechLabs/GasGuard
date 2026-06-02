@@ -1,4 +1,4 @@
-import { RuleViolation } from '../../scanner/interfaces/scanner.interface';
+import { RuleViolation } from "../../scanner/interfaces/scanner.interface";
 
 export interface FormattedViolation extends RuleViolation {
   severityIcon: string;

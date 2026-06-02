@@ -1,24 +1,32 @@
-import { Injectable, UnauthorizedException, NotFoundException, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
-import { ApiKeyRepository } from './api-key.repository';
-import { AuditLogService } from './audit-log.service';
-import { ApiKey, ApiKeyStatus } from '../entities/api-key.entity';
-import { EventType } from '../entities/audit-log.entity';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as crypto from "crypto";
+import { ApiKeyRepository } from "./api-key.repository";
+import { AuditLogService } from "./audit-log.service";
+import { ApiKey, ApiKeyStatus } from "../entities/api-key.entity";
+import { EventType } from "../entities/audit-log.entity";
 import {
   CreateApiKeyDto,
   ApiKeyResponseDto,
   ApiKeyStatusDto,
   ApiKeyListResponseDto,
   ApiKeyRotationResponseDto,
-} from '../dto/api-key.dto';
+} from "../dto/api-key.dto";
 
 export class ApiKeyExpiredException extends HttpException {
   constructor(expiredAt: Date, keyId: string) {
     super(
       {
-        error: 'APIKeyExpired',
-        message: 'This API key has expired. Please rotate or request a new key.',
+        error: "APIKeyExpired",
+        message:
+          "This API key has expired. Please rotate or request a new key.",
         expiredAt: expiredAt.toISOString(),
         keyId,
       },
@@ -31,8 +39,8 @@ export class ApiKeyRevokedException extends HttpException {
   constructor(keyId: string) {
     super(
       {
-        error: 'APIKeyRevoked',
-        message: 'This API key has been revoked.',
+        error: "APIKeyRevoked",
+        message: "This API key has been revoked.",
         keyId,
       },
       HttpStatus.UNAUTHORIZED,
@@ -51,18 +59,24 @@ export class ApiKeyService {
     private readonly auditLogService: AuditLogService,
     private readonly configService: ConfigService,
   ) {
-    this.defaultExpiryDays = this.configService.get<number>('API_KEY_DEFAULT_EXPIRY_DAYS', 90);
-    this.rotationGracePeriodHours = this.configService.get<number>('API_KEY_ROTATION_GRACE_PERIOD_HOURS', 24);
-    this.keyPrefix = this.configService.get<string>('API_KEY_PREFIX', 'gg');
+    this.defaultExpiryDays = this.configService.get<number>(
+      "API_KEY_DEFAULT_EXPIRY_DAYS",
+      90,
+    );
+    this.rotationGracePeriodHours = this.configService.get<number>(
+      "API_KEY_ROTATION_GRACE_PERIOD_HOURS",
+      24,
+    );
+    this.keyPrefix = this.configService.get<string>("API_KEY_PREFIX", "gg");
   }
 
   /**
    * Generate a cryptographically secure API key
    */
   private generateApiKey(): { rawKey: string; keyHash: string } {
-    const randomPart = crypto.randomBytes(32).toString('base64url');
+    const randomPart = crypto.randomBytes(32).toString("base64url");
     const rawKey = `${this.keyPrefix}_${randomPart}`;
-    const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+    const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
     return { rawKey, keyHash };
   }
 
@@ -70,7 +84,7 @@ export class ApiKeyService {
    * Hash an existing API key
    */
   hashApiKey(rawKey: string): string {
-    return crypto.createHash('sha256').update(rawKey).digest('hex');
+    return crypto.createHash("sha256").update(rawKey).digest("hex");
   }
 
   /**
@@ -117,17 +131,21 @@ export class ApiKeyService {
       keyHash,
       status: ApiKeyStatus.ACTIVE,
       expiresAt,
-      role: createDto.role || 'user',
+      role: createDto.role || "user",
       requestCount: 0,
     });
 
     // Emit audit event
-    this.auditLogService.emitApiKeyEvent(EventType.API_KEY_CREATED, merchantId, {
-      keyId: apiKey.id,
-      name: apiKey.name,
-      role: apiKey.role,
-      expiresAt: apiKey.expiresAt,
-    });
+    this.auditLogService.emitApiKeyEvent(
+      EventType.API_KEY_CREATED,
+      merchantId,
+      {
+        keyId: apiKey.id,
+        name: apiKey.name,
+        role: apiKey.role,
+        expiresAt: apiKey.expiresAt,
+      },
+    );
 
     return {
       id: apiKey.id,
@@ -152,20 +170,24 @@ export class ApiKeyService {
     const apiKey = await this.apiKeyRepository.findActiveByKeyHash(keyHash);
 
     if (!apiKey) {
-      throw new UnauthorizedException('Invalid API key');
+      throw new UnauthorizedException("Invalid API key");
     }
 
     // Check if expired
     if (this.isExpired(apiKey)) {
       // Mark as expired in database
       await this.apiKeyRepository.updateStatus(apiKey.id, ApiKeyStatus.EXPIRED);
-      
+
       // Emit audit event
-      this.auditLogService.emitApiKeyEvent(EventType.API_KEY_REVOKED, apiKey.merchantId, {
-        keyId: apiKey.id,
-        reason: 'expired',
-        expiredAt: apiKey.expiresAt,
-      });
+      this.auditLogService.emitApiKeyEvent(
+        EventType.API_KEY_REVOKED,
+        apiKey.merchantId,
+        {
+          keyId: apiKey.id,
+          reason: "expired",
+          expiredAt: apiKey.expiresAt,
+        },
+      );
 
       throw new ApiKeyExpiredException(apiKey.expiresAt, apiKey.id);
     }
@@ -186,11 +208,11 @@ export class ApiKeyService {
     const apiKey = await this.apiKeyRepository.findById(keyId);
 
     if (!apiKey) {
-      throw new NotFoundException('API key not found');
+      throw new NotFoundException("API key not found");
     }
 
     if (apiKey.merchantId !== merchantId) {
-      throw new ForbiddenException('You do not have access to this API key');
+      throw new ForbiddenException("You do not have access to this API key");
     }
 
     const isExpired = this.isExpired(apiKey);
@@ -267,15 +289,15 @@ export class ApiKeyService {
     const oldKey = await this.apiKeyRepository.findById(keyId);
 
     if (!oldKey) {
-      throw new NotFoundException('API key not found');
+      throw new NotFoundException("API key not found");
     }
 
     if (oldKey.merchantId !== merchantId) {
-      throw new ForbiddenException('You do not have access to this API key');
+      throw new ForbiddenException("You do not have access to this API key");
     }
 
     if (oldKey.status === ApiKeyStatus.REVOKED) {
-      throw new ForbiddenException('Cannot rotate a revoked API key');
+      throw new ForbiddenException("Cannot rotate a revoked API key");
     }
 
     // Generate new key
@@ -305,12 +327,16 @@ export class ApiKeyService {
     );
 
     // Emit audit event
-    this.auditLogService.emitApiKeyEvent(EventType.API_KEY_ROTATED, merchantId, {
-      oldKeyId: oldKey.id,
-      newKeyId: newKey.id,
-      reason: reason || 'user-initiated',
-      gracePeriodEndsAt: oldKeyGracePeriodEndsAt,
-    });
+    this.auditLogService.emitApiKeyEvent(
+      EventType.API_KEY_ROTATED,
+      merchantId,
+      {
+        oldKeyId: oldKey.id,
+        newKeyId: newKey.id,
+        reason: reason || "user-initiated",
+        gracePeriodEndsAt: oldKeyGracePeriodEndsAt,
+      },
+    );
 
     return {
       id: newKey.id,
@@ -333,24 +359,28 @@ export class ApiKeyService {
     const apiKey = await this.apiKeyRepository.findById(keyId);
 
     if (!apiKey) {
-      throw new NotFoundException('API key not found');
+      throw new NotFoundException("API key not found");
     }
 
     if (apiKey.merchantId !== merchantId) {
-      throw new ForbiddenException('You do not have access to this API key');
+      throw new ForbiddenException("You do not have access to this API key");
     }
 
     if (apiKey.status === ApiKeyStatus.REVOKED) {
-      throw new ForbiddenException('API key is already revoked');
+      throw new ForbiddenException("API key is already revoked");
     }
 
     await this.apiKeyRepository.updateStatus(keyId, ApiKeyStatus.REVOKED);
 
     // Emit audit event
-    this.auditLogService.emitApiKeyEvent(EventType.API_KEY_REVOKED, merchantId, {
-      revokedKeyId: keyId,
-      reason: reason || 'user-initiated',
-    });
+    this.auditLogService.emitApiKeyEvent(
+      EventType.API_KEY_REVOKED,
+      merchantId,
+      {
+        revokedKeyId: keyId,
+        reason: reason || "user-initiated",
+      },
+    );
   }
 
   /**
@@ -363,11 +393,15 @@ export class ApiKeyService {
       await this.apiKeyRepository.updateStatus(key.id, ApiKeyStatus.EXPIRED);
 
       // Emit audit event
-      this.auditLogService.emitApiKeyEvent(EventType.API_KEY_REVOKED, key.merchantId, {
-        keyId: key.id,
-        reason: 'expired',
-        expiredAt: key.expiresAt,
-      });
+      this.auditLogService.emitApiKeyEvent(
+        EventType.API_KEY_REVOKED,
+        key.merchantId,
+        {
+          keyId: key.id,
+          reason: "expired",
+          expiredAt: key.expiresAt,
+        },
+      );
     }
 
     return expiredKeys.length;
@@ -385,11 +419,15 @@ export class ApiKeyService {
       await this.apiKeyRepository.updateStatus(key.id, ApiKeyStatus.REVOKED);
 
       // Emit audit event
-      this.auditLogService.emitApiKeyEvent(EventType.API_KEY_REVOKED, key.merchantId, {
-        keyId: key.id,
-        reason: 'grace-period-ended',
-        rotatedFromId: key.rotatedFromId,
-      });
+      this.auditLogService.emitApiKeyEvent(
+        EventType.API_KEY_REVOKED,
+        key.merchantId,
+        {
+          keyId: key.id,
+          reason: "grace-period-ended",
+          rotatedFromId: key.rotatedFromId,
+        },
+      );
     }
 
     return keysToRevoke.length;

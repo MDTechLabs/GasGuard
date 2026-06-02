@@ -3,20 +3,20 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-import { JwtUser } from '../strategies/jwt.strategy';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { ROLES_KEY } from "../decorators/roles.decorator";
+import { JwtUser } from "../strategies/jwt.strategy";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // If no roles are required, allow access
     if (!requiredRoles || requiredRoles.length === 0) {
@@ -27,8 +27,8 @@ export class RolesGuard implements CanActivate {
 
     if (!user) {
       throw new ForbiddenException({
-        error: 'Forbidden',
-        message: 'Access denied: User not authenticated',
+        error: "Forbidden",
+        message: "Access denied: User not authenticated",
         timestamp: new Date().toISOString(),
       });
     }
@@ -40,8 +40,8 @@ export class RolesGuard implements CanActivate {
 
     if (!hasRole) {
       throw new ForbiddenException({
-        error: 'Forbidden',
-        message: `Access denied: Required roles are [${requiredRoles.join(', ')}]`,
+        error: "Forbidden",
+        message: `Access denied: Required roles are [${requiredRoles.join(", ")}]`,
         timestamp: new Date().toISOString(),
       });
     }

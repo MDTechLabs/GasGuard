@@ -1,28 +1,32 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { 
-  ScanRequestDto, 
-  ScanResponseDto, 
-  ScanStatusDto, 
-  ScanStatus, 
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import {
+  ScanRequestDto,
+  ScanResponseDto,
+  ScanStatusDto,
+  ScanStatus,
   QueueStatusDto,
   FindingDto,
-  SummaryDto 
-} from './dto/scan.dto';
+  SummaryDto,
+} from "./dto/scan.dto";
 
 // Severity enum
 enum Severity {
-  CRITICAL = 'critical',
-  HIGH = 'high',
-  MEDIUM = 'medium',
-  LOW = 'low',
-  INFO = 'info'
+  CRITICAL = "critical",
+  HIGH = "high",
+  MEDIUM = "medium",
+  LOW = "low",
+  INFO = "info",
 }
 
 // Simplified interfaces for now
 interface Finding {
   ruleId: string;
   message: string;
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  severity: "critical" | "high" | "medium" | "low" | "info";
   location: {
     file: string;
     startLine: number;
@@ -67,7 +71,10 @@ export class ScanService {
   constructor() {}
 
   private generateId(): string {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    return (
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15)
+    );
   }
 
   async performScan(scanRequest: ScanRequestDto): Promise<ScanResponseDto> {
@@ -80,9 +87,9 @@ export class ScanService {
         scanId,
         status: ScanStatus.RUNNING,
         progress: 0,
-        currentOperation: 'Initializing scan',
+        currentOperation: "Initializing scan",
         lastUpdated: new Date().toISOString(),
-        startedAt: new Date().toISOString()
+        startedAt: new Date().toISOString(),
       };
       this.activeScans.set(scanId, status);
 
@@ -104,17 +111,28 @@ export class ScanService {
         errors: result.errors?.map((err: any) => ({
           file: err.file,
           message: err.message,
-          error: err.error?.message
+          error: err.error?.message,
         })),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       this.scanResults.set(scanId, response);
-      this.updateScanStatus(scanId, ScanStatus.COMPLETED, 100, 'Scan completed');
+      this.updateScanStatus(
+        scanId,
+        ScanStatus.COMPLETED,
+        100,
+        "Scan completed",
+      );
 
       return response;
     } catch (error) {
-      this.updateScanStatus(scanId, ScanStatus.FAILED, 0, 'Scan failed', (error as Error).message);
+      this.updateScanStatus(
+        scanId,
+        ScanStatus.FAILED,
+        0,
+        "Scan failed",
+        (error as Error).message,
+      );
       throw error;
     }
   }
@@ -126,9 +144,9 @@ export class ScanService {
       scanId,
       status: ScanStatus.PENDING,
       progress: 0,
-      currentOperation: 'Queued for processing',
+      currentOperation: "Queued for processing",
       lastUpdated: new Date().toISOString(),
-      startedAt: new Date().toISOString()
+      startedAt: new Date().toISOString(),
     };
 
     this.activeScans.set(scanId, status);
@@ -139,7 +157,13 @@ export class ScanService {
       try {
         await this.performScan(scanRequest);
       } catch (error) {
-        this.updateScanStatus(scanId, ScanStatus.FAILED, 0, 'Scan failed', (error as Error).message);
+        this.updateScanStatus(
+          scanId,
+          ScanStatus.FAILED,
+          0,
+          "Scan failed",
+          (error as Error).message,
+        );
       }
     }, 100);
 
@@ -170,12 +194,14 @@ export class ScanService {
   }
 
   async getQueueStatus(): Promise<QueueStatusDto> {
-    const activeScans = Array.from(this.activeScans.values())
-      .filter(status => status.status === ScanStatus.RUNNING).length;
-    
+    const activeScans = Array.from(this.activeScans.values()).filter(
+      (status) => status.status === ScanStatus.RUNNING,
+    ).length;
+
     const completedScans = this.scanResults.size;
-    const queueLength = Array.from(this.activeScans.values())
-      .filter(status => status.status === ScanStatus.PENDING).length;
+    const queueLength = Array.from(this.activeScans.values()).filter(
+      (status) => status.status === ScanStatus.PENDING,
+    ).length;
 
     // Mock values for now
     const averageProcessingTime = 30;
@@ -186,7 +212,7 @@ export class ScanService {
       activeScans,
       completedScans,
       averageProcessingTime,
-      estimatedWaitTime
+      estimatedWaitTime,
     };
   }
 
@@ -200,41 +226,49 @@ export class ScanService {
       throw new BadRequestException(`Scan ${scanId} has already completed`);
     }
 
-    this.updateScanStatus(scanId, ScanStatus.CANCELLED, 0, 'Scan cancelled by user');
+    this.updateScanStatus(
+      scanId,
+      ScanStatus.CANCELLED,
+      0,
+      "Scan cancelled by user",
+    );
 
     return { message: `Scan ${scanId} cancelled successfully` };
   }
 
-  private async executeScan(scanRequest: ScanRequestDto, scanId: string): Promise<AnalysisResult> {
-    this.updateScanStatus(scanId, ScanStatus.RUNNING, 10, 'Parsing code');
+  private async executeScan(
+    scanRequest: ScanRequestDto,
+    scanId: string,
+  ): Promise<AnalysisResult> {
+    this.updateScanStatus(scanId, ScanStatus.RUNNING, 10, "Parsing code");
 
     // Mock analyzer implementation - in real scenario, this would use the actual analyzer
     const mockFindings: Finding[] = await this.analyzeCode(scanRequest);
 
-    this.updateScanStatus(scanId, ScanStatus.RUNNING, 80, 'Analyzing results');
+    this.updateScanStatus(scanId, ScanStatus.RUNNING, 80, "Analyzing results");
 
     // Apply basic scoring
-    const scoredFindings = mockFindings.map(finding => {
+    const scoredFindings = mockFindings.map((finding) => {
       const score = this.calculateBasicScore(finding);
       return {
         ...finding,
         metadata: {
           ...finding.metadata,
           score,
-          riskLevel: this.getRiskLevel(score)
-        }
+          riskLevel: this.getRiskLevel(score),
+        },
       };
     });
 
-    this.updateScanStatus(scanId, ScanStatus.RUNNING, 95, 'Finalizing results');
+    this.updateScanStatus(scanId, ScanStatus.RUNNING, 95, "Finalizing results");
 
     return {
       findings: scoredFindings,
       filesAnalyzed: 1,
       analysisTime: 0, // Will be set by caller
-      analyzerVersion: '1.0.0',
+      analyzerVersion: "1.0.0",
       summary: this.calculateSummary(scoredFindings),
-      totalEstimatedGasSavings: this.calculateGasSavings(scoredFindings)
+      totalEstimatedGasSavings: this.calculateGasSavings(scoredFindings),
     };
   }
 
@@ -250,37 +284,37 @@ export class ScanService {
   private getMockFindings(scanRequest: ScanRequestDto): Finding[] {
     const findings: Finding[] = [];
 
-    if (scanRequest.code.includes('require(msg.sender == owner)')) {
+    if (scanRequest.code.includes("require(msg.sender == owner)")) {
       findings.push({
-        ruleId: 'inefficient-access-control',
-        message: 'Inefficient access control pattern detected',
+        ruleId: "inefficient-access-control",
+        message: "Inefficient access control pattern detected",
         severity: Severity.MEDIUM,
         location: {
-          file: scanRequest.filePath || 'contract.sol',
+          file: scanRequest.filePath || "contract.sol",
           startLine: 1,
-          endLine: 1
+          endLine: 1,
         },
         estimatedGasSavings: 2000,
         suggestedFix: {
-          description: 'Use modifiers or role-based access control'
-        }
+          description: "Use modifiers or role-based access control",
+        },
       });
     }
 
-    if (scanRequest.code.includes('.call(')) {
+    if (scanRequest.code.includes(".call(")) {
       findings.push({
-        ruleId: 'unchecked-call',
-        message: 'Unchecked external call detected',
+        ruleId: "unchecked-call",
+        message: "Unchecked external call detected",
         severity: Severity.HIGH,
         location: {
-          file: scanRequest.filePath || 'contract.sol',
+          file: scanRequest.filePath || "contract.sol",
           startLine: 1,
-          endLine: 1
+          endLine: 1,
         },
         estimatedGasSavings: 21000,
         suggestedFix: {
-          description: 'Check return value of external calls'
-        }
+          description: "Check return value of external calls",
+        },
       });
     }
 
@@ -288,11 +322,11 @@ export class ScanService {
   }
 
   private updateScanStatus(
-    scanId: string, 
-    status: ScanStatus, 
-    progress: number, 
-    operation: string, 
-    errorMessage?: string
+    scanId: string,
+    status: ScanStatus,
+    progress: number,
+    operation: string,
+    errorMessage?: string,
   ): void {
     const currentStatus = this.activeScans.get(scanId);
     if (!currentStatus) return;
@@ -304,9 +338,12 @@ export class ScanService {
       currentOperation: operation,
       lastUpdated: new Date().toISOString(),
       errorMessage,
-      completedAt: (status === ScanStatus.COMPLETED || status === ScanStatus.FAILED || status === ScanStatus.CANCELLED) 
-        ? new Date().toISOString() 
-        : undefined
+      completedAt:
+        status === ScanStatus.COMPLETED ||
+        status === ScanStatus.FAILED ||
+        status === ScanStatus.CANCELLED
+          ? new Date().toISOString()
+          : undefined,
     };
 
     this.activeScans.set(scanId, updatedStatus);
@@ -321,14 +358,17 @@ export class ScanService {
       estimatedGasSavings: finding.estimatedGasSavings,
       suggestedFix: finding.suggestedFix,
       score: finding.metadata?.score,
-      riskLevel: finding.metadata?.riskLevel
+      riskLevel: finding.metadata?.riskLevel,
     };
   }
 
   private convertSummary(summary: any, findings: Finding[]): SummaryDto {
-    const totalScore = findings.reduce((sum, f) => sum + (f.metadata?.score || 0), 0);
+    const totalScore = findings.reduce(
+      (sum, f) => sum + (f.metadata?.score || 0),
+      0,
+    );
     const riskLevel = this.getRiskLevel(totalScore / findings.length);
-    
+
     return {
       critical: summary.critical || 0,
       high: summary.high || 0,
@@ -336,57 +376,57 @@ export class ScanService {
       low: summary.low || 0,
       info: summary.info || 0,
       totalScore,
-      riskLevel
+      riskLevel,
     };
   }
 
   private calculateSummary(findings: Finding[]): any {
     return {
-      critical: findings.filter(f => f.severity === Severity.CRITICAL).length,
-      high: findings.filter(f => f.severity === Severity.HIGH).length,
-      medium: findings.filter(f => f.severity === Severity.MEDIUM).length,
-      low: findings.filter(f => f.severity === Severity.LOW).length,
-      info: findings.filter(f => f.severity === Severity.INFO).length
+      critical: findings.filter((f) => f.severity === Severity.CRITICAL).length,
+      high: findings.filter((f) => f.severity === Severity.HIGH).length,
+      medium: findings.filter((f) => f.severity === Severity.MEDIUM).length,
+      low: findings.filter((f) => f.severity === Severity.LOW).length,
+      info: findings.filter((f) => f.severity === Severity.INFO).length,
     };
   }
 
   private calculateGasSavings(findings: Finding[]): number {
     return findings
-      .filter(f => f.estimatedGasSavings)
+      .filter((f) => f.estimatedGasSavings)
       .reduce((sum, f) => sum + (f.estimatedGasSavings || 0), 0);
   }
 
   private calculateBasicScore(finding: Finding): number {
     let score = 0;
     switch (finding.severity) {
-      case 'critical':
+      case "critical":
         score = 90;
         break;
-      case 'high':
+      case "high":
         score = 70;
         break;
-      case 'medium':
+      case "medium":
         score = 50;
         break;
-      case 'low':
+      case "low":
         score = 30;
         break;
-      case 'info':
+      case "info":
         score = 10;
         break;
     }
-    
+
     if (finding.estimatedGasSavings) {
       score += Math.min(finding.estimatedGasSavings / 1000, 20); // Max 20 points for gas savings
     }
-    
+
     return score;
   }
 
-  private getRiskLevel(score: number): 'critical' | 'high' | 'medium' | 'low' {
-    if (score >= 80) return 'critical';
-    if (score >= 60) return 'high';
-    if (score >= 40) return 'medium';
-    return 'low';
+  private getRiskLevel(score: number): "critical" | "high" | "medium" | "low" {
+    if (score >= 80) return "critical";
+    if (score >= 60) return "high";
+    if (score >= 40) return "medium";
+    return "low";
   }
 }

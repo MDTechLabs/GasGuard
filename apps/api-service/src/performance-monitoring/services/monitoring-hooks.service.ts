@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 export interface MetricLabels {
   [key: string]: string | number | boolean | undefined;
@@ -65,7 +65,11 @@ export class MonitoringHooksService {
     return next;
   }
 
-  observeHistogram(name: string, value: number, labels?: MetricLabels): HistogramMetricSnapshot {
+  observeHistogram(
+    name: string,
+    value: number,
+    labels?: MetricLabels,
+  ): HistogramMetricSnapshot {
     const key = this.buildMetricKey(name, labels);
     const current = this.histograms.get(key) || {
       count: 0,
@@ -126,7 +130,10 @@ export class MonitoringHooksService {
       }, {});
   }
 
-  private parseMetricKey(key: string): { name: string; labels: Record<string, string> } {
+  private parseMetricKey(key: string): {
+    name: string;
+    labels: Record<string, string>;
+  } {
     return JSON.parse(key) as { name: string; labels: Record<string, string> };
   }
 

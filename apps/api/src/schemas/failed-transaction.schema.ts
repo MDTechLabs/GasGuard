@@ -21,18 +21,18 @@ export interface TransactionMetadata {
   gasLimit: string;
   maxFeePerGas?: string;
   maxPriorityFeePerGas?: string;
-  transactionType: 'legacy' | 'eip1559' | 'eip2930';
+  transactionType: "legacy" | "eip1559" | "eip2930";
 }
 
-export type FailureCategory = 
-  | 'underpriced_gas'
-  | 'out_of_gas'
-  | 'contract_revert'
-  | 'slippage_exceeded'
-  | 'nonce_conflict'
-  | 'insufficient_balance'
-  | 'network_error'
-  | 'unknown';
+export type FailureCategory =
+  | "underpriced_gas"
+  | "out_of_gas"
+  | "contract_revert"
+  | "slippage_exceeded"
+  | "nonce_conflict"
+  | "insufficient_balance"
+  | "network_error"
+  | "unknown";
 
 export interface FailureAnalysis {
   wallet: string;
@@ -59,7 +59,7 @@ export interface ChainFailureStats {
 export interface MitigationRecommendation {
   id: string;
   category: FailureCategory;
-  priority: 'low' | 'medium' | 'high';
+  priority: "low" | "medium" | "high";
   title: string;
   description: string;
   action: string;
@@ -85,7 +85,7 @@ export interface TransactionAnalysisResponse {
 }
 
 export interface FailedTransactionEvent {
-  type: 'transaction_failed';
+  type: "transaction_failed";
   data: FailedTransaction;
   timestamp: string;
 }
@@ -120,7 +120,7 @@ export interface RootCauseAnalysis {
     };
     timing?: {
       blockTime: number;
-      congestion: 'low' | 'medium' | 'high';
+      congestion: "low" | "medium" | "high";
     };
   };
 }

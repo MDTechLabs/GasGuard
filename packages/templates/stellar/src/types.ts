@@ -1,5 +1,5 @@
 /** Available Soroban contract template types. */
-export type TemplateKind = 'token' | 'counter' | 'nft' | 'multisig';
+export type TemplateKind = "token" | "counter" | "nft" | "multisig";
 
 /** Options passed to the template generator. */
 export interface GeneratorOptions {
@@ -43,7 +43,7 @@ export interface ValidationIssue {
   /** Human-readable message. */
   message: string;
   /** Severity level. */
-  severity: 'error' | 'warning' | 'info';
+  severity: "error" | "warning" | "info";
 }
 
 /** Validation result returned by the template validator. */

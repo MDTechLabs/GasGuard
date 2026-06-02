@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import {
   GasSubsidyCap,
   GasSubsidyUsageLog,
@@ -9,7 +9,7 @@ import {
   SubsidyCapType,
   SubsidyStatus,
   AlertLevel,
-} from '../entities/gas-subsidy.entity';
+} from "../entities/gas-subsidy.entity";
 
 export interface SubsidyUsageRecord {
   walletAddress: string;
@@ -84,7 +84,10 @@ export class GasSubsidyService {
   /**
    * Get subsidy cap for a wallet
    */
-  async getCap(walletAddress: string, capType?: SubsidyCapType): Promise<GasSubsidyCap | null> {
+  async getCap(
+    walletAddress: string,
+    capType?: SubsidyCapType,
+  ): Promise<GasSubsidyCap | null> {
     const where: any = { walletAddress };
     if (capType) {
       where.capType = capType;
@@ -92,14 +95,17 @@ export class GasSubsidyService {
 
     return this.capRepository.findOne({
       where,
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
   }
 
   /**
    * Check if usage is allowed and get current subsidy status
    */
-  async checkSubsidy(walletAddress: string, amount: number): Promise<SubsidyCheckResult> {
+  async checkSubsidy(
+    walletAddress: string,
+    amount: number,
+  ): Promise<SubsidyCheckResult> {
     const cap = await this.getCap(walletAddress);
 
     if (!cap) {
@@ -111,7 +117,7 @@ export class GasSubsidyService {
         maxSubsidy: 0,
         usagePercentage: 0,
         alertLevel: AlertLevel.NONE,
-        message: 'No subsidy cap defined',
+        message: "No subsidy cap defined",
       };
     }
 
@@ -130,15 +136,15 @@ export class GasSubsidyService {
     // Determine if allowed
     let allowed = true;
     let alertLevel = AlertLevel.NONE;
-    let message = 'Subsidy available';
+    let message = "Subsidy available";
 
     if (usagePercentage >= cap.hardCap) {
       allowed = false;
       alertLevel = AlertLevel.BLOCKED;
-      message = 'Subsidy cap exceeded';
+      message = "Subsidy cap exceeded";
     } else if (usagePercentage >= cap.warningThreshold) {
       alertLevel = AlertLevel.WARNING;
-      message = 'Approaching subsidy cap';
+      message = "Approaching subsidy cap";
     }
 
     // Check for suspicious patterns
@@ -168,10 +174,15 @@ export class GasSubsidyService {
    */
   async recordUsage(record: SubsidyUsageRecord): Promise<GasSubsidyUsageLog> {
     // First check subsidy availability
-    const checkResult = await this.checkSubsidy(record.walletAddress, record.amount);
+    const checkResult = await this.checkSubsidy(
+      record.walletAddress,
+      record.amount,
+    );
 
     if (!checkResult.allowed) {
-      throw new Error(`Subsidy not available for wallet ${record.walletAddress}`);
+      throw new Error(
+        `Subsidy not available for wallet ${record.walletAddress}`,
+      );
     }
 
     // Log the usage
@@ -202,12 +213,16 @@ export class GasSubsidyService {
   /**
    * Update cap usage after recording
    */
-  private async updateCapUsage(walletAddress: string, amount: number): Promise<void> {
+  private async updateCapUsage(
+    walletAddress: string,
+    amount: number,
+  ): Promise<void> {
     const cap = await this.getCap(walletAddress);
     if (!cap) return;
 
     cap.currentUsage = Number(cap.currentUsage) + amount;
-    cap.usagePercentage = (Number(cap.currentUsage) / Number(cap.maxSubsidyAmount)) * 100;
+    cap.usagePercentage =
+      (Number(cap.currentUsage) / Number(cap.maxSubsidyAmount)) * 100;
     cap.lastUsageAt = new Date();
 
     // Update status based on usage
@@ -225,7 +240,7 @@ export class GasSubsidyService {
    */
   private async resetCapPeriod(cap: GasSubsidyCap): Promise<void> {
     const { periodStart, periodEnd } = this.calculatePeriod(cap.capType);
-    
+
     cap.periodStart = periodStart;
     cap.periodEnd = periodEnd;
     cap.currentUsage = 0;
@@ -238,7 +253,10 @@ export class GasSubsidyService {
   /**
    * Calculate period dates based on cap type
    */
-  private calculatePeriod(capType: SubsidyCapType): { periodStart: Date; periodEnd: Date } {
+  private calculatePeriod(capType: SubsidyCapType): {
+    periodStart: Date;
+    periodEnd: Date;
+  } {
     const now = new Date();
     const periodStart = new Date(now);
     const periodEnd = new Date(now);
@@ -278,7 +296,7 @@ export class GasSubsidyService {
         walletAddress,
         acknowledged: false,
       },
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
     });
 
     if (existingAlert && existingAlert.usagePercentage >= cap.usagePercentage) {
@@ -319,17 +337,22 @@ export class GasSubsidyService {
 
     return this.alertRepository.find({
       where,
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
     });
   }
 
   /**
    * Acknowledge an alert
    */
-  async acknowledgeAlert(alertId: string, acknowledgedBy: string): Promise<GasSubsidyAlert> {
-    const alert = await this.alertRepository.findOne({ where: { id: alertId } });
+  async acknowledgeAlert(
+    alertId: string,
+    acknowledgedBy: string,
+  ): Promise<GasSubsidyAlert> {
+    const alert = await this.alertRepository.findOne({
+      where: { id: alertId },
+    });
     if (!alert) {
-      throw new Error('Alert not found');
+      throw new Error("Alert not found");
     }
 
     alert.acknowledged = true;
@@ -348,7 +371,7 @@ export class GasSubsidyService {
   ): Promise<GasSubsidyUsageLog[]> {
     return this.usageLogRepository.find({
       where: { walletAddress },
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
       take: limit,
     });
   }
@@ -364,7 +387,7 @@ export class GasSubsidyService {
 
     return this.capRepository.find({
       where,
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
   }
 
@@ -385,22 +408,35 @@ export class GasSubsidyService {
     }>;
   }> {
     const allCaps = await this.capRepository.find();
-    
-    const activeWallets = allCaps.filter(c => c.status === SubsidyStatus.ACTIVE).length;
-    const warnedWallets = allCaps.filter(c => c.usagePercentage >= c.warningThreshold && c.usagePercentage < c.hardCap).length;
-    const exceededWallets = allCaps.filter(c => c.status === SubsidyStatus.EXCEEDED).length;
-    
+
+    const activeWallets = allCaps.filter(
+      (c) => c.status === SubsidyStatus.ACTIVE,
+    ).length;
+    const warnedWallets = allCaps.filter(
+      (c) =>
+        c.usagePercentage >= c.warningThreshold &&
+        c.usagePercentage < c.hardCap,
+    ).length;
+    const exceededWallets = allCaps.filter(
+      (c) => c.status === SubsidyStatus.EXCEEDED,
+    ).length;
+
     // Get flagged wallets count
-    const flaggedCount = await this.flagRepository.count({ where: { active: true } });
+    const flaggedCount = await this.flagRepository.count({
+      where: { active: true },
+    });
 
     // Calculate total usage
-    const totalUsage = allCaps.reduce((sum, c) => sum + Number(c.currentUsage), 0);
+    const totalUsage = allCaps.reduce(
+      (sum, c) => sum + Number(c.currentUsage),
+      0,
+    );
 
     // Get top consumers
     const topConsumers = allCaps
       .sort((a, b) => Number(b.currentUsage) - Number(a.currentUsage))
       .slice(0, 10)
-      .map(c => ({
+      .map((c) => ({
         walletAddress: c.walletAddress,
         usage: Number(c.currentUsage),
         percentage: c.usagePercentage,
@@ -427,14 +463,14 @@ export class GasSubsidyService {
   }> {
     const recentFlags = await this.flagRepository.find({
       where: { walletAddress, active: true },
-      order: { lastDetectedAt: 'DESC' },
+      order: { lastDetectedAt: "DESC" },
     });
 
     if (recentFlags.length === 0) {
       return { isSuspicious: false, blocked: false, severity: 0 };
     }
 
-    const highestSeverity = Math.max(...recentFlags.map(f => f.severity));
+    const highestSeverity = Math.max(...recentFlags.map((f) => f.severity));
     return {
       isSuspicious: true,
       blocked: highestSeverity >= 8,
@@ -445,29 +481,43 @@ export class GasSubsidyService {
   /**
    * Analyze and flag suspicious usage
    */
-  private async analyzeAndFlagSuspiciousUsage(record: SubsidyUsageRecord): Promise<void> {
+  private async analyzeAndFlagSuspiciousUsage(
+    record: SubsidyUsageRecord,
+  ): Promise<void> {
     const recentLogs = await this.usageLogRepository.find({
       where: { walletAddress: record.walletAddress },
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
       take: 10,
     });
 
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const recentCount = recentLogs.filter(l => new Date(l.timestamp) > oneHourAgo).length;
+    const recentCount = recentLogs.filter(
+      (l) => new Date(l.timestamp) > oneHourAgo,
+    ).length;
 
     // Flag if too many transactions in short period
     if (recentCount > 50) {
-      await this.flagUsage(record.walletAddress, 'rapid_transactions', 
-        `Unusually high transaction rate: ${recentCount} transactions in the last hour`, 8);
+      await this.flagUsage(
+        record.walletAddress,
+        "rapid_transactions",
+        `Unusually high transaction rate: ${recentCount} transactions in the last hour`,
+        8,
+      );
     }
 
     // Flag if transaction amount is unusually high
     if (recentLogs.length > 0) {
-      const avgAmount = recentLogs.reduce((sum, l) => sum + Number(l.amount), 0) / recentLogs.length;
+      const avgAmount =
+        recentLogs.reduce((sum, l) => sum + Number(l.amount), 0) /
+        recentLogs.length;
       if (Number(record.amount) > avgAmount * 10) {
-        await this.flagUsage(record.walletAddress, 'unusual_amount',
-          `Transaction amount ${record.amount} is ${(Number(record.amount) / avgAmount).toFixed(1)}x the average`, 6);
+        await this.flagUsage(
+          record.walletAddress,
+          "unusual_amount",
+          `Transaction amount ${record.amount} is ${(Number(record.amount) / avgAmount).toFixed(1)}x the average`,
+          6,
+        );
       }
     }
   }
@@ -508,7 +558,9 @@ export class GasSubsidyService {
   /**
    * Get active suspicious usage flags
    */
-  async getSuspiciousFlags(walletAddress?: string): Promise<SuspiciousUsageFlag[]> {
+  async getSuspiciousFlags(
+    walletAddress?: string,
+  ): Promise<SuspiciousUsageFlag[]> {
     const where: any = { active: true };
     if (walletAddress) {
       where.walletAddress = walletAddress;
@@ -516,7 +568,7 @@ export class GasSubsidyService {
 
     return this.flagRepository.find({
       where,
-      order: { severity: 'DESC', lastDetectedAt: 'DESC' },
+      order: { severity: "DESC", lastDetectedAt: "DESC" },
     });
   }
 
@@ -526,7 +578,7 @@ export class GasSubsidyService {
   async clearSuspiciousFlag(flagId: string): Promise<SuspiciousUsageFlag> {
     const flag = await this.flagRepository.findOne({ where: { id: flagId } });
     if (!flag) {
-      throw new Error('Flag not found');
+      throw new Error("Flag not found");
     }
 
     flag.active = false;

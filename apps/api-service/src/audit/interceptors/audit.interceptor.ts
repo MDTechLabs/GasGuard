@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { AuditLogService } from '../services/audit-log.service';
+import { Injectable } from "@nestjs/common";
+import { AuditLogService } from "../services/audit-log.service";
 
 @Injectable()
 export class AuditInterceptor {
@@ -25,7 +25,7 @@ export class AuditInterceptor {
       const statusCode = response.statusCode || 200;
 
       this.auditLogService.emitApiRequest(
-        apiKey || 'anonymous',
+        apiKey || "anonymous",
         url,
         method,
         statusCode,
@@ -39,7 +39,7 @@ export class AuditInterceptor {
       const statusCode = error.status || 500;
 
       this.auditLogService.emitApiRequest(
-        apiKey || 'anonymous',
+        apiKey || "anonymous",
         url,
         method,
         statusCode,
@@ -55,13 +55,13 @@ export class AuditInterceptor {
   private extractApiKey(request: any): string | null {
     // Check Authorization header
     const authHeader = request.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
       return authHeader.slice(7);
     }
 
     // Check X-API-Key header
-    if (request.headers['x-api-key']) {
-      return request.headers['x-api-key'];
+    if (request.headers["x-api-key"]) {
+      return request.headers["x-api-key"];
     }
 
     // Check query parameters
@@ -74,12 +74,12 @@ export class AuditInterceptor {
 
   private shouldSkipAudit(url: string): boolean {
     const excludePatterns = [
-      '/health',
-      '/health/ready',
-      '/health/live',
-      '/metrics',
-      '/swagger',
-      '/api-docs',
+      "/health",
+      "/health/ready",
+      "/health/live",
+      "/metrics",
+      "/swagger",
+      "/api-docs",
     ];
 
     return excludePatterns.some((pattern) => url.includes(pattern));

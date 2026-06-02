@@ -1,1 +1,1 @@
-export * from './rbac.service';
+export * from "./rbac.service";

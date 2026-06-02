@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { NetworkMetrics, GasPriceSnapshot } from '../interfaces/gas-price.interface';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { NetworkConfigService } from '../config/network-config.service';
+import { Injectable, Logger } from "@nestjs/common";
+import {
+  NetworkMetrics,
+  GasPriceSnapshot,
+} from "../interfaces/gas-price.interface";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { NetworkConfigService } from "../config/network-config.service";
 
 /**
  * NetworkMonitorService
@@ -65,23 +68,28 @@ export class NetworkMonitorService {
         this.priceSnapshotCache.set(chainId, snapshot);
       }
 
-      this.logger.debug('Network metrics updated successfully');
+      this.logger.debug("Network metrics updated successfully");
     } catch (error) {
-      this.logger.error('Failed to update network metrics', error);
+      this.logger.error("Failed to update network metrics", error);
     }
   }
 
   /**
    * Fetch metrics from Soroban RPC endpoint
    */
-  private async fetchNetworkMetricsFromRpc(chainId: string): Promise<NetworkMetrics> {
+  private async fetchNetworkMetricsFromRpc(
+    chainId: string,
+  ): Promise<NetworkMetrics> {
     // This would connect to actual Soroban RPC in production
     // For now, return mock data with some randomization to simulate network conditions
     const network = this.networkConfigService.getNetworkConfig(chainId);
 
     const baseLoad = network.baselineLoad;
     const randomFluctuation = Math.random() * 30 - 15; // -15 to +15
-    const congestionLevel = Math.max(0, Math.min(100, baseLoad + randomFluctuation));
+    const congestionLevel = Math.max(
+      0,
+      Math.min(100, baseLoad + randomFluctuation),
+    );
 
     return {
       congestionLevel,
@@ -100,12 +108,16 @@ export class NetworkMonitorService {
   /**
    * Create a gas price snapshot based on current metrics
    */
-  private async createGasPriceSnapshot(chainId: string): Promise<GasPriceSnapshot> {
+  private async createGasPriceSnapshot(
+    chainId: string,
+  ): Promise<GasPriceSnapshot> {
     const network = this.networkConfigService.getNetworkConfig(chainId);
     const metrics = await this.getNetworkMetrics(chainId);
 
     // Calculate surge multiplier based on congestion
-    const surgeMultiplier = this.calculateSurgeMultiplier(metrics.congestionLevel);
+    const surgeMultiplier = this.calculateSurgeMultiplier(
+      metrics.congestionLevel,
+    );
 
     // Base price (stroops per instruction) - Soroban default
     const basePrice = network.baseFeePerInstruction;
@@ -141,10 +153,10 @@ export class NetworkMonitorService {
       return 1.0;
     } else if (congestionLevel < 60) {
       // Medium congestion: linear increase
-      return 1.0 + (congestionLevel - 30) / 30 * 0.5; // 1.0 to 1.5
+      return 1.0 + ((congestionLevel - 30) / 30) * 0.5; // 1.0 to 1.5
     } else if (congestionLevel < 85) {
       // High congestion: accelerated increase
-      return 1.5 + (congestionLevel - 60) / 25 * 1.0; // 1.5 to 2.5
+      return 1.5 + ((congestionLevel - 60) / 25) * 1.0; // 1.5 to 2.5
     } else {
       // Critical congestion: exponential scaling
       const excessCongestion = congestionLevel - 85;

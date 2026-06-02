@@ -1,9 +1,9 @@
-export type RuleSeverity = 'error' | 'warning' | 'info';
+export type RuleSeverity = "error" | "warning" | "info";
 export type RuleCategory =
-  | 'storage-optimization'
-  | 'gas-optimization'
-  | 'security'
-  | 'best-practices';
+  | "storage-optimization"
+  | "gas-optimization"
+  | "security"
+  | "best-practices";
 
 export interface RuleDefinition {
   name: string;

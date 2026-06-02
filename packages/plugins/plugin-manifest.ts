@@ -12,34 +12,34 @@ export type SemanticVersion = string;
  * Plugin severity level
  */
 export enum PluginSeverity {
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
-  CRITICAL = 'critical',
+  INFO = "info",
+  WARNING = "warning",
+  ERROR = "error",
+  CRITICAL = "critical",
 }
 
 /**
  * Supported programming languages for analysis
  */
 export enum SupportedLanguage {
-  SOLIDITY = 'solidity',
-  RUST = 'rust',
-  VYPER = 'vyper',
-  PYTHON = 'python',
-  JAVASCRIPT = 'javascript',
-  TYPESCRIPT = 'typescript',
+  SOLIDITY = "solidity",
+  RUST = "rust",
+  VYPER = "vyper",
+  PYTHON = "python",
+  JAVASCRIPT = "javascript",
+  TYPESCRIPT = "typescript",
 }
 
 /**
  * Plugin capability category
  */
 export enum PluginCapability {
-  GAS_OPTIMIZATION = 'gas-optimization',
-  SECURITY_ANALYSIS = 'security-analysis',
-  CODE_QUALITY = 'code-quality',
-  PERFORMANCE = 'performance',
-  COMPATIBILITY = 'compatibility',
-  CUSTOM = 'custom',
+  GAS_OPTIMIZATION = "gas-optimization",
+  SECURITY_ANALYSIS = "security-analysis",
+  CODE_QUALITY = "code-quality",
+  PERFORMANCE = "performance",
+  COMPATIBILITY = "compatibility",
+  CUSTOM = "custom",
 }
 
 /**
@@ -79,7 +79,7 @@ export interface ContactInfo {
  * Plugin repository information
  */
 export interface RepositoryInfo {
-  type: 'git' | 'svn' | 'hg' | 'pijul';
+  type: "git" | "svn" | "hg" | "pijul";
   url: string;
   directory?: string;
 }
@@ -196,7 +196,7 @@ export interface PluginManifest {
   funding?: FundingInfo[];
 
   /** Plugin status */
-  status?: 'stable' | 'beta' | 'alpha' | 'deprecated';
+  status?: "stable" | "beta" | "alpha" | "deprecated";
 
   /** Deprecation message if deprecated */
   deprecationMessage?: string;
@@ -252,7 +252,7 @@ export interface PluginRegistryEntry {
  * Compatibility check result
  */
 export interface CompatibilityStatus {
-  type: 'error' | 'warning' | 'info';
+  type: "error" | "warning" | "info";
   code: string;
   message: string;
   details?: any;

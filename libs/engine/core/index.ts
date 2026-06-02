@@ -1,8 +1,5 @@
-
-
-export * from './analyzer-interface';
-export * from './analyzer-registry';
-
+export * from "./analyzer-interface";
+export * from "./analyzer-registry";
 
 export type {
   Analyzer,
@@ -10,15 +7,8 @@ export type {
   AnalysisResult,
   Finding,
   Rule,
-} from './analyzer-interface';
+} from "./analyzer-interface";
 
-export {
-  Language,
-  Severity,
-  BaseAnalyzer,
-} from './analyzer-interface';
+export { Language, Severity, BaseAnalyzer } from "./analyzer-interface";
 
-export {
-  AnalyzerRegistry,
-} from './analyzer-registry';
-
+export { AnalyzerRegistry } from "./analyzer-registry";

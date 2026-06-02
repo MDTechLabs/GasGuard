@@ -1,4 +1,4 @@
-export type ViolationSeverity = 'error' | 'warning' | 'info';
+export type ViolationSeverity = "error" | "warning" | "info";
 
 export interface RuleViolation {
   ruleName: string;

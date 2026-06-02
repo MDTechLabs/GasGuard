@@ -2,8 +2,8 @@
  * Cache Decorator
  * Decorator for caching method results
  */
-import { CacheService } from './cache.service';
-import { cacheKeys, getTTL } from './cache-config';
+import { CacheService } from "./cache.service";
+import { cacheKeys, getTTL } from "./cache-config";
 
 /**
  * Decorator to cache method results
@@ -14,7 +14,11 @@ export function Cacheable(
   queryType: string,
   keyBuilder?: (args: any[]) => string,
 ) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
@@ -25,7 +29,9 @@ export function Cacheable(
       }
 
       // Build cache key
-      const key = keyBuilder ? keyBuilder(args) : `${propertyKey}:${JSON.stringify(args)}`;
+      const key = keyBuilder
+        ? keyBuilder(args)
+        : `${propertyKey}:${JSON.stringify(args)}`;
 
       // Get or fetch
       return cacheService.getOrFetch(
@@ -44,8 +50,14 @@ export function Cacheable(
  * Decorator to invalidate cache
  * @param keyPatterns - Patterns to invalidate (can use chainId from args)
  */
-export function InvalidateCache(keyPatterns: (args: any[]) => string | string[]) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export function InvalidateCache(
+  keyPatterns: (args: any[]) => string | string[],
+) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {

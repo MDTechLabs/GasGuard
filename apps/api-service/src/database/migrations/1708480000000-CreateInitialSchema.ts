@@ -2,11 +2,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 import { DatabaseIndexOptimization } from "../optimization/index-optimization";
 
 export class CreateInitialSchema1708480000000 implements MigrationInterface {
-    name = 'CreateInitialSchema1708480000000'
+  name = "CreateInitialSchema1708480000000";
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        // Create tables
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // Create tables
+    await queryRunner.query(`
             CREATE TABLE "transactions" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "transaction_hash" character varying(100) NOT NULL,
@@ -32,7 +32,7 @@ export class CreateInitialSchema1708480000000 implements MigrationInterface {
             )
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE TABLE "merchants" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "name" character varying(100) NOT NULL,
@@ -55,7 +55,7 @@ export class CreateInitialSchema1708480000000 implements MigrationInterface {
             )
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE TABLE "chains" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "name" character varying(50) NOT NULL,
@@ -77,7 +77,7 @@ export class CreateInitialSchema1708480000000 implements MigrationInterface {
             )
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             CREATE TABLE "analysis_results" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "merchant_id" character varying(100) NOT NULL,
@@ -101,105 +101,211 @@ export class CreateInitialSchema1708480000000 implements MigrationInterface {
             )
         `);
 
-        // Create basic indexes
-        await queryRunner.query(`CREATE INDEX "idx_transaction_hash" ON "transactions" ("transaction_hash")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_id" ON "transactions" ("merchant_id")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_id" ON "transactions" ("chain_id")`);
-        await queryRunner.query(`CREATE INDEX "idx_contract_address" ON "transactions" ("contract_address")`);
-        await queryRunner.query(`CREATE INDEX "idx_gas_used" ON "transactions" ("gas_used")`);
-        await queryRunner.query(`CREATE INDEX "idx_status" ON "transactions" ("status")`);
-        await queryRunner.query(`CREATE INDEX "idx_transaction_type" ON "transactions" ("transaction_type")`);
-        await queryRunner.query(`CREATE INDEX "idx_created_at" ON "transactions" ("created_at")`);
-        await queryRunner.query(`CREATE INDEX "idx_created_at_auto" ON "transactions" ("created_at_auto")`);
-        await queryRunner.query(`CREATE INDEX "idx_region" ON "transactions" ("region")`);
-        await queryRunner.query(`CREATE INDEX "idx_user_id" ON "transactions" ("user_id")`);
-        await queryRunner.query(`CREATE INDEX "idx_retry_count" ON "transactions" ("retry_count")`);
-        await queryRunner.query(`CREATE INDEX "idx_priority" ON "transactions" ("priority")`);
+    // Create basic indexes
+    await queryRunner.query(
+      `CREATE INDEX "idx_transaction_hash" ON "transactions" ("transaction_hash")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_id" ON "transactions" ("merchant_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_id" ON "transactions" ("chain_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_contract_address" ON "transactions" ("contract_address")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_gas_used" ON "transactions" ("gas_used")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_status" ON "transactions" ("status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_transaction_type" ON "transactions" ("transaction_type")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_created_at" ON "transactions" ("created_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_created_at_auto" ON "transactions" ("created_at_auto")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_region" ON "transactions" ("region")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_user_id" ON "transactions" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_retry_count" ON "transactions" ("retry_count")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_priority" ON "transactions" ("priority")`,
+    );
 
-        await queryRunner.query(`CREATE INDEX "idx_merchant_name" ON "merchants" ("name")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_slug" ON "merchants" ("slug")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_status" ON "merchants" ("status")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_plan" ON "merchants" ("plan")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_tier" ON "merchants" ("tier")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_email" ON "merchants" ("email")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_country" ON "merchants" ("country")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_last_active" ON "merchants" ("last_active_at")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_created_at" ON "merchants" ("created_at")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_created_at_auto" ON "merchants" ("created_at_auto")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_verified" ON "merchants" ("is_verified")`);
-        await queryRunner.query(`CREATE INDEX "idx_merchant_category" ON "merchants" ("category")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_name" ON "merchants" ("name")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_slug" ON "merchants" ("slug")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_status" ON "merchants" ("status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_plan" ON "merchants" ("plan")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_tier" ON "merchants" ("tier")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_email" ON "merchants" ("email")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_country" ON "merchants" ("country")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_last_active" ON "merchants" ("last_active_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_created_at" ON "merchants" ("created_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_created_at_auto" ON "merchants" ("created_at_auto")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_verified" ON "merchants" ("is_verified")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_merchant_category" ON "merchants" ("category")`,
+    );
 
-        await queryRunner.query(`CREATE INDEX "idx_chain_name" ON "chains" ("name")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_id_unique" ON "chains" ("chain_id")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_network" ON "chains" ("network")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_status" ON "chains" ("status")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_type" ON "chains" ("type")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_gas_price" ON "chains" ("average_gas_price")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_gas_volatility" ON "chains" ("gas_volatility")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_transaction_count" ON "chains" ("transaction_count")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_reliability" ON "chains" ("reliability_score")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_created_at" ON "chains" ("created_at")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_created_at_auto" ON "chains" ("created_at_auto")`);
-        await queryRunner.query(`CREATE INDEX "idx_chain_currency" ON "chains" ("currency")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_name" ON "chains" ("name")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_id_unique" ON "chains" ("chain_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_network" ON "chains" ("network")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_status" ON "chains" ("status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_type" ON "chains" ("type")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_gas_price" ON "chains" ("average_gas_price")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_gas_volatility" ON "chains" ("gas_volatility")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_transaction_count" ON "chains" ("transaction_count")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_reliability" ON "chains" ("reliability_score")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_created_at" ON "chains" ("created_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_created_at_auto" ON "chains" ("created_at_auto")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_chain_currency" ON "chains" ("currency")`,
+    );
 
-        await queryRunner.query(`CREATE INDEX "idx_analysis_merchant_id" ON "analysis_results" ("merchant_id")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_chain_id" ON "analysis_results" ("chain_id")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_contract_address" ON "analysis_results" ("contract_address")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_language" ON "analysis_results" ("language")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_status" ON "analysis_results" ("status")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_violation_count" ON "analysis_results" ("violation_count")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_gas_savings" ON "analysis_results" ("estimated_gas_savings")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_cost_savings" ON "analysis_results" ("estimated_cost_savings")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_created_at" ON "analysis_results" ("created_at")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_created_at_auto" ON "analysis_results" ("created_at_auto")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_version" ON "analysis_results" ("analyzer_version")`);
-        await queryRunner.query(`CREATE INDEX "idx_analysis_priority" ON "analysis_results" ("priority")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_merchant_id" ON "analysis_results" ("merchant_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_chain_id" ON "analysis_results" ("chain_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_contract_address" ON "analysis_results" ("contract_address")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_language" ON "analysis_results" ("language")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_status" ON "analysis_results" ("status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_violation_count" ON "analysis_results" ("violation_count")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_gas_savings" ON "analysis_results" ("estimated_gas_savings")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_cost_savings" ON "analysis_results" ("estimated_cost_savings")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_created_at" ON "analysis_results" ("created_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_created_at_auto" ON "analysis_results" ("created_at_auto")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_version" ON "analysis_results" ("analyzer_version")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_analysis_priority" ON "analysis_results" ("priority")`,
+    );
 
-        // Apply optimized indexes for analytics
-        await DatabaseIndexOptimization.applyOptimizedIndexes(queryRunner);
+    // Apply optimized indexes for analytics
+    await DatabaseIndexOptimization.applyOptimizedIndexes(queryRunner);
 
-        // Create unique constraints
-        await queryRunner.query(`ALTER TABLE "merchants" ADD CONSTRAINT "UQ_merchant_name" UNIQUE ("name")`);
-        await queryRunner.query(`ALTER TABLE "merchants" ADD CONSTRAINT "UQ_merchant_slug" UNIQUE ("slug")`);
-        await queryRunner.query(`ALTER TABLE "chains" ADD CONSTRAINT "UQ_chain_name" UNIQUE ("name")`);
-        await queryRunner.query(`ALTER TABLE "chains" ADD CONSTRAINT "UQ_chain_id" UNIQUE ("chain_id")`);
+    // Create unique constraints
+    await queryRunner.query(
+      `ALTER TABLE "merchants" ADD CONSTRAINT "UQ_merchant_name" UNIQUE ("name")`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "merchants" ADD CONSTRAINT "UQ_merchant_slug" UNIQUE ("slug")`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "chains" ADD CONSTRAINT "UQ_chain_name" UNIQUE ("name")`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "chains" ADD CONSTRAINT "UQ_chain_id" UNIQUE ("chain_id")`,
+    );
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // Drop optimized indexes first
+    const optimizedIndexes = [
+      "idx_merchant_chain_date",
+      "idx_merchant_status_date",
+      "idx_merchant_gas_date",
+      "idx_chain_status_date",
+      "idx_chain_gas_date",
+      "idx_chain_merchant_date",
+      "idx_recent_transactions",
+      "idx_high_gas_transactions",
+      "idx_failed_transactions",
+      "idx_analysis_merchant_chain_date",
+      "idx_analysis_language_status_date",
+      "idx_analysis_savings_date",
+      "idx_merchant_status_plan_date",
+      "idx_merchant_last_active",
+      "idx_chain_status_type_date",
+      "idx_chain_reliability_date",
+      "idx_transaction_covering",
+      "idx_analysis_covering",
+    ];
+
+    for (const indexName of optimizedIndexes) {
+      try {
+        await queryRunner.query(`DROP INDEX IF EXISTS ${indexName}`);
+      } catch (error) {
+        // Index might not exist, continue
+      }
     }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        // Drop optimized indexes first
-        const optimizedIndexes = [
-            'idx_merchant_chain_date',
-            'idx_merchant_status_date',
-            'idx_merchant_gas_date',
-            'idx_chain_status_date',
-            'idx_chain_gas_date',
-            'idx_chain_merchant_date',
-            'idx_recent_transactions',
-            'idx_high_gas_transactions',
-            'idx_failed_transactions',
-            'idx_analysis_merchant_chain_date',
-            'idx_analysis_language_status_date',
-            'idx_analysis_savings_date',
-            'idx_merchant_status_plan_date',
-            'idx_merchant_last_active',
-            'idx_chain_status_type_date',
-            'idx_chain_reliability_date',
-            'idx_transaction_covering',
-            'idx_analysis_covering'
-        ];
-
-        for (const indexName of optimizedIndexes) {
-            try {
-                await queryRunner.query(`DROP INDEX IF EXISTS ${indexName}`);
-            } catch (error) {
-                // Index might not exist, continue
-            }
-        }
-
-        // Drop tables
-        await queryRunner.query(`DROP TABLE "analysis_results"`);
-        await queryRunner.query(`DROP TABLE "chains"`);
-        await queryRunner.query(`DROP TABLE "merchants"`);
-        await queryRunner.query(`DROP TABLE "transactions"`);
-    }
+    // Drop tables
+    await queryRunner.query(`DROP TABLE "analysis_results"`);
+    await queryRunner.query(`DROP TABLE "chains"`);
+    await queryRunner.query(`DROP TABLE "merchants"`);
+    await queryRunner.query(`DROP TABLE "transactions"`);
+  }
 }

@@ -1,9 +1,6 @@
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { ApiKeyService } from '../../audit/services/api-key.service';
-import { ApiKey } from '../../audit/entities/api-key.entity';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ApiKeyService } from "../../audit/services/api-key.service";
+import { ApiKey } from "../../audit/entities/api-key.entity";
 
 /**
  * Interface for request with API key authentication
@@ -27,31 +24,33 @@ export class ApiKeyAuthGuard {
 
   async canActivate(context: any): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    
+
     // Extract API key from request
     const rawApiKey = this.extractApiKey(request);
-    
+
     if (!rawApiKey) {
-      throw new UnauthorizedException('API key is required. Provide it via Authorization header (Bearer), X-API-Key header, or apiKey query parameter.');
+      throw new UnauthorizedException(
+        "API key is required. Provide it via Authorization header (Bearer), X-API-Key header, or apiKey query parameter.",
+      );
     }
 
     try {
       // Validate the API key
       const apiKey = await this.apiKeyService.validateApiKey(rawApiKey);
-      
+
       // Attach API key info to request for downstream use
       request.apiKey = apiKey;
       request.merchantId = apiKey.merchantId;
-      
+
       return true;
     } catch (error) {
       // Re-throw API key specific errors
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      
+
       // Generic error for other cases
-      throw new UnauthorizedException('Invalid API key');
+      throw new UnauthorizedException("Invalid API key");
     }
   }
 
@@ -61,12 +60,12 @@ export class ApiKeyAuthGuard {
   private extractApiKey(request: any): string | null {
     // Check Authorization header (Bearer token)
     const authHeader = request.headers?.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
       return authHeader.slice(7);
     }
 
     // Check X-API-Key header
-    const apiKeyHeader = request.headers?.['x-api-key'];
+    const apiKeyHeader = request.headers?.["x-api-key"];
     if (apiKeyHeader) {
       return apiKeyHeader;
     }
@@ -90,10 +89,10 @@ export class OptionalApiKeyAuthGuard {
 
   async canActivate(context: any): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    
+
     // Extract API key from request
     const rawApiKey = this.extractApiKey(request);
-    
+
     if (!rawApiKey) {
       // No API key provided, but that's okay for optional guard
       return true;
@@ -102,11 +101,11 @@ export class OptionalApiKeyAuthGuard {
     try {
       // Validate the API key
       const apiKey = await this.apiKeyService.validateApiKey(rawApiKey);
-      
+
       // Attach API key info to request for downstream use
       request.apiKey = apiKey;
       request.merchantId = apiKey.merchantId;
-      
+
       return true;
     } catch (error) {
       // Even with invalid key, optional guard allows request through
@@ -121,12 +120,12 @@ export class OptionalApiKeyAuthGuard {
   private extractApiKey(request: any): string | null {
     // Check Authorization header (Bearer token)
     const authHeader = request.headers?.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
       return authHeader.slice(7);
     }
 
     // Check X-API-Key header
-    const apiKeyHeader = request.headers?.['x-api-key'];
+    const apiKeyHeader = request.headers?.["x-api-key"];
     if (apiKeyHeader) {
       return apiKeyHeader;
     }

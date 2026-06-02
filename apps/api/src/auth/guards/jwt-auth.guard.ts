@@ -2,13 +2,13 @@ import {
   Injectable,
   ExecutionContext,
   UnauthorizedException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { AuthGuard } from "@nestjs/passport";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
+export class JwtAuthGuard extends AuthGuard("jwt") {
   constructor(private reflector: Reflector) {
     super();
   }
@@ -31,18 +31,18 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err: any, user: any, info: any) {
     // Custom error handling
     if (err || !user) {
-      let message = 'Invalid or expired JWT access token.';
+      let message = "Invalid or expired JWT access token.";
 
-      if (info?.name === 'TokenExpiredError') {
-        message = 'JWT access token has expired.';
-      } else if (info?.name === 'JsonWebTokenError') {
-        message = 'Invalid JWT access token format.';
+      if (info?.name === "TokenExpiredError") {
+        message = "JWT access token has expired.";
+      } else if (info?.name === "JsonWebTokenError") {
+        message = "Invalid JWT access token format.";
       } else if (info?.message) {
         message = info.message;
       }
 
       throw new UnauthorizedException({
-        error: 'Unauthorized',
+        error: "Unauthorized",
         message,
         timestamp: new Date().toISOString(),
       });

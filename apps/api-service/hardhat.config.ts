@@ -16,21 +16,21 @@ const config: HardhatUserConfig = {
       chainId: 1337,
       mining: {
         auto: true,
-        interval: 1000
+        interval: 1000,
       },
       accounts: {
         count: 20,
-        accountsBalance: "10000000000000000000000" // 10,000 ETH
-      }
+        accountsBalance: "10000000000000000000000", // 10,000 ETH
+      },
     },
     localhost: {
       url: "http://127.0.0.1:8545",
-      chainId: 1337
-    }
+      chainId: 1337,
+    },
   },
   mocha: {
-    timeout: 40000
-  }
+    timeout: 40000,
+  },
 };
 
 export default config;

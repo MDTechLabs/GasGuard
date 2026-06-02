@@ -1,5 +1,5 @@
-import { EntityRepository, Repository } from 'typeorm';
-import { GasBaseline } from '../entities/gas-baseline.entity';
+import { EntityRepository, Repository } from "typeorm";
+import { GasBaseline } from "../entities/gas-baseline.entity";
 
 @EntityRepository(GasBaseline)
 export class GasBaselineRepository extends Repository<GasBaseline> {
@@ -52,11 +52,13 @@ export class GasBaselineRepository extends Repository<GasBaseline> {
    * Delete old baselines
    */
   async deleteOldBaselines(olderThanDays: number): Promise<number> {
-    const cutoffDate = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+    const cutoffDate = new Date(
+      Date.now() - olderThanDays * 24 * 60 * 60 * 1000,
+    );
 
     const result = await this.createQueryBuilder()
       .delete()
-      .where('lastUpdated < :cutoff', { cutoff: cutoffDate })
+      .where("lastUpdated < :cutoff", { cutoff: cutoffDate })
       .execute();
 
     return result.affected || 0;

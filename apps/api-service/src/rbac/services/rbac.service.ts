@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../../database/entities/user.entity';
-import { UserRole, hasRoleAccess } from '../enums/role.enum';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { User } from "../../database/entities/user.entity";
+import { UserRole, hasRoleAccess } from "../enums/role.enum";
 
 /**
  * DTO for creating a new user
@@ -59,7 +64,9 @@ export class RbacService {
     });
 
     if (existingUser) {
-      throw new ConflictException(`User with email ${dto.email} already exists`);
+      throw new ConflictException(
+        `User with email ${dto.email} already exists`,
+      );
     }
 
     const user = this.userRepository.create({
@@ -101,9 +108,9 @@ export class RbacService {
    */
   async findByEmailWithPassword(email: string): Promise<User | null> {
     return this.userRepository
-      .createQueryBuilder('user')
-      .addSelect('user.passwordHash')
-      .where('user.email = :email', { email })
+      .createQueryBuilder("user")
+      .addSelect("user.passwordHash")
+      .where("user.email = :email", { email })
       .getOne();
   }
 
@@ -125,7 +132,7 @@ export class RbacService {
 
     // Prevent changing own role (security measure)
     if (id === dto.updatedBy) {
-      throw new BadRequestException('Cannot change your own role');
+      throw new BadRequestException("Cannot change your own role");
     }
 
     user.role = dto.role;
@@ -140,7 +147,7 @@ export class RbacService {
 
     // Prevent self-deletion
     if (id === deletedBy) {
-      throw new BadRequestException('Cannot delete your own account');
+      throw new BadRequestException("Cannot delete your own account");
     }
 
     await this.userRepository.remove(user);
@@ -156,20 +163,20 @@ export class RbacService {
     skip?: number;
     take?: number;
   }): Promise<{ users: User[]; total: number }> {
-    const queryBuilder = this.userRepository.createQueryBuilder('user');
+    const queryBuilder = this.userRepository.createQueryBuilder("user");
 
     if (options?.merchantId) {
-      queryBuilder.andWhere('user.merchantId = :merchantId', {
+      queryBuilder.andWhere("user.merchantId = :merchantId", {
         merchantId: options.merchantId,
       });
     }
 
     if (options?.role) {
-      queryBuilder.andWhere('user.role = :role', { role: options.role });
+      queryBuilder.andWhere("user.role = :role", { role: options.role });
     }
 
     if (options?.isActive !== undefined) {
-      queryBuilder.andWhere('user.isActive = :isActive', {
+      queryBuilder.andWhere("user.isActive = :isActive", {
         isActive: options.isActive,
       });
     }
@@ -265,19 +272,29 @@ export class RbacService {
     locked: number;
   }> {
     const total = await this.userRepository.count();
-    const active = await this.userRepository.count({ where: { isActive: true } });
-    const inactive = await this.userRepository.count({ where: { isActive: false } });
+    const active = await this.userRepository.count({
+      where: { isActive: true },
+    });
+    const inactive = await this.userRepository.count({
+      where: { isActive: false },
+    });
 
     const byRole: Record<UserRole, number> = {
-      [UserRole.ADMIN]: await this.userRepository.count({ where: { role: UserRole.ADMIN } }),
-      [UserRole.OPERATOR]: await this.userRepository.count({ where: { role: UserRole.OPERATOR } }),
-      [UserRole.VIEWER]: await this.userRepository.count({ where: { role: UserRole.VIEWER } }),
+      [UserRole.ADMIN]: await this.userRepository.count({
+        where: { role: UserRole.ADMIN },
+      }),
+      [UserRole.OPERATOR]: await this.userRepository.count({
+        where: { role: UserRole.OPERATOR },
+      }),
+      [UserRole.VIEWER]: await this.userRepository.count({
+        where: { role: UserRole.VIEWER },
+      }),
     };
 
     // Count locked users (where lockedUntil is in the future)
     const lockedResult = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.lockedUntil > NOW()')
+      .createQueryBuilder("user")
+      .where("user.lockedUntil > NOW()")
       .getCount();
 
     return {

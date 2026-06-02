@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { AuditLogService } from '../../audit/services/audit-log.service';
-import { EventType } from '../../audit/entities';
+import { Injectable } from "@nestjs/common";
+import { AuditLogService } from "../../audit/services/audit-log.service";
+import { EventType } from "../../audit/entities";
 
 /**
  * EXAMPLE: Integration of Audit Logging in API Key Management Service
@@ -16,10 +16,10 @@ export class ApiKeyManagementExample {
   async createApiKeyExample(merchantId: string, keyDetails: any) {
     // Business logic to create API key
     const newKey = {
-      id: 'key_' + Date.now(),
+      id: "key_" + Date.now(),
       name: keyDetails.name,
-      status: 'active',
-      role: keyDetails.role || 'user',
+      status: "active",
+      role: keyDetails.role || "user",
       createdAt: new Date(),
     };
 
@@ -39,7 +39,7 @@ export class ApiKeyManagementExample {
   }
 
   async rotateApiKeyExample(merchantId: string, oldKeyId: string) {
-    const newKeyId = 'key_' + Date.now();
+    const newKeyId = "key_" + Date.now();
 
     // Business logic to rotate key
 
@@ -50,7 +50,7 @@ export class ApiKeyManagementExample {
       {
         oldKeyId,
         newKeyId,
-        reason: 'scheduled rotation',
+        reason: "scheduled rotation",
         timestamp: new Date(),
       },
     );
@@ -67,7 +67,7 @@ export class ApiKeyManagementExample {
       merchantId,
       {
         revokedKeyId: keyId,
-        reason: reason || 'user-initiated',
+        reason: reason || "user-initiated",
         revokedAt: new Date(),
       },
     );
@@ -91,12 +91,13 @@ export class GasTransactionServiceExample {
   ) {
     // Business logic to submit gas transaction
     const result = {
-      transactionHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      transactionHash:
+        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
       gasUsed: 21000,
-      gasPrice: '45 gwei',
-      senderAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-      method: 'transfer',
-      value: '1.5',
+      gasPrice: "45 gwei",
+      senderAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      method: "transfer",
+      value: "1.5",
     };
 
     // ✅ Emit audit event for gas transaction
@@ -110,7 +111,7 @@ export class GasTransactionServiceExample {
       {
         method: result.method,
         value: result.value,
-        status: 'confirmed',
+        status: "confirmed",
         submittedAt: new Date(),
       },
     );
@@ -124,10 +125,17 @@ export class GasTransactionServiceExample {
     amount: number,
   ) {
     // Business logic for subsidy submission
-    const submissionId = 'subsidy_' + Date.now();
+    const submissionId = "subsidy_" + Date.now();
 
     // ✅ Emit audit event for gas submission
-    this.auditLogService.emitApiRequest('test-key', '/api/test', 'POST', 200, undefined, undefined);
+    this.auditLogService.emitApiRequest(
+      "test-key",
+      "/api/test",
+      "POST",
+      200,
+      undefined,
+      undefined,
+    );
 
     return submissionId;
   }
@@ -155,16 +163,18 @@ export class AuditReportingExample {
 
     return {
       merchantId,
-      period: 'last_30_days',
+      period: "last_30_days",
       totalEvents: logs.total,
       events: logs.data,
       summary: {
-        apiRequests: logs.data.filter((e) => e.eventType === 'APIRequest').length,
-        keyEvents: logs.data.filter((e) =>
-          ['KeyCreated', 'KeyRotated', 'KeyRevoked'].includes(e.eventType),
-        ).length,
-        gasTransactions: logs.data.filter((e) => e.eventType === 'GasTransaction')
+        apiRequests: logs.data.filter((e) => e.eventType === "APIRequest")
           .length,
+        keyEvents: logs.data.filter((e) =>
+          ["KeyCreated", "KeyRotated", "KeyRevoked"].includes(e.eventType),
+        ).length,
+        gasTransactions: logs.data.filter(
+          (e) => e.eventType === "GasTransaction",
+        ).length,
       },
     };
   }
@@ -172,7 +182,7 @@ export class AuditReportingExample {
   async generateComplianceReport(fromDate: string, toDate: string) {
     // Get all key lifecycle events for compliance audit
     const keyCreations = await this.auditLogService.queryLogs({
-      eventType: 'KeyCreated' as any,
+      eventType: "KeyCreated" as any,
       from: fromDate,
       to: toDate,
       limit: 10000,
@@ -180,7 +190,7 @@ export class AuditReportingExample {
     });
 
     const keyRotations = await this.auditLogService.queryLogs({
-      eventType: 'KeyRotated' as any,
+      eventType: "KeyRotated" as any,
       from: fromDate,
       to: toDate,
       limit: 10000,
@@ -188,7 +198,7 @@ export class AuditReportingExample {
     });
 
     const keyRevocations = await this.auditLogService.queryLogs({
-      eventType: 'KeyRevoked' as any,
+      eventType: "KeyRevoked" as any,
       from: fromDate,
       to: toDate,
       limit: 10000,
@@ -212,8 +222,8 @@ export class AuditReportingExample {
 
   async getFailedRequestsReport(merchantId?: string) {
     const filters: any = {
-      eventType: 'APIRequest' as any,
-      outcome: 'failure' as any,
+      eventType: "APIRequest" as any,
+      outcome: "failure" as any,
       limit: 10000,
       offset: 0,
     };
@@ -229,10 +239,7 @@ export class AuditReportingExample {
     return this.auditLogService.queryLogs(filters);
   }
 
-  async exportAuditTrail(
-    format: 'csv' | 'json',
-    filters?: any,
-  ) {
+  async exportAuditTrail(format: "csv" | "json", filters?: any) {
     return this.auditLogService.exportLogs(format, filters);
   }
 }

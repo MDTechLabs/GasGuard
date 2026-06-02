@@ -1,4 +1,4 @@
-import { ValidationIssue, ValidationResult } from './types';
+import { ValidationIssue, ValidationResult } from "./types";
 
 // ── Security patterns ─────────────────────────────────────────────────────────
 
@@ -9,38 +9,38 @@ const REQUIRED_PATTERNS: Array<{
   pattern: RegExp;
   code: string;
   message: string;
-  severity: ValidationIssue['severity'];
+  severity: ValidationIssue["severity"];
 }> = [
   {
     pattern: /#!\[no_std\]/,
-    code: 'NO_STD_MISSING',
-    message: 'Soroban contracts must declare `#![no_std]`.',
-    severity: 'error',
+    code: "NO_STD_MISSING",
+    message: "Soroban contracts must declare `#![no_std]`.",
+    severity: "error",
   },
   {
     pattern: /use soroban_sdk::/,
-    code: 'SOROBAN_SDK_MISSING',
-    message: 'Contract must import from `soroban_sdk`.',
-    severity: 'error',
+    code: "SOROBAN_SDK_MISSING",
+    message: "Contract must import from `soroban_sdk`.",
+    severity: "error",
   },
   {
     pattern: /#\[contract\]/,
-    code: 'CONTRACT_MACRO_MISSING',
-    message: 'Contract struct must be annotated with `#[contract]`.',
-    severity: 'error',
+    code: "CONTRACT_MACRO_MISSING",
+    message: "Contract struct must be annotated with `#[contract]`.",
+    severity: "error",
   },
   {
     pattern: /#\[contractimpl\]/,
-    code: 'CONTRACTIMPL_MISSING',
-    message: 'Implementation block must be annotated with `#[contractimpl]`.',
-    severity: 'error',
+    code: "CONTRACTIMPL_MISSING",
+    message: "Implementation block must be annotated with `#[contractimpl]`.",
+    severity: "error",
   },
   {
     pattern: /\.require_auth\(\)/,
-    code: 'REQUIRE_AUTH_MISSING',
+    code: "REQUIRE_AUTH_MISSING",
     message:
-      'No `require_auth()` call found. All state-mutating functions must authorise the caller.',
-    severity: 'error',
+      "No `require_auth()` call found. All state-mutating functions must authorise the caller.",
+    severity: "error",
   },
 ];
 
@@ -51,37 +51,37 @@ const FORBIDDEN_PATTERNS: Array<{
   pattern: RegExp;
   code: string;
   message: string;
-  severity: ValidationIssue['severity'];
+  severity: ValidationIssue["severity"];
 }> = [
   {
     pattern: /\bunwrap\(\)/,
-    code: 'UNSAFE_UNWRAP',
+    code: "UNSAFE_UNWRAP",
     message:
       'Avoid `.unwrap()` — use `.expect("…")` with a descriptive message or handle the `None` case explicitly.',
-    severity: 'warning',
+    severity: "warning",
   },
   {
     pattern: /panic!\(\s*"[^"]*"\s*\)/,
-    code: 'BARE_PANIC',
+    code: "BARE_PANIC",
     message:
-      'Prefer `assert!` or structured error types over bare `panic!` for better diagnostics.',
-    severity: 'info',
+      "Prefer `assert!` or structured error types over bare `panic!` for better diagnostics.",
+    severity: "info",
   },
   {
     // Detect raw integer arithmetic that could overflow (+, -, *) without
     // checked_* or saturating_* equivalents, only for i128/u64/u32 literals.
     pattern: /\b(i128|u64|u32|u128)\b[^;]*[^._][\+\-\*][^=][^;]*;/,
-    code: 'UNCHECKED_ARITHMETIC',
+    code: "UNCHECKED_ARITHMETIC",
     message:
-      'Potential unchecked arithmetic detected. Prefer `checked_add`, `checked_sub`, or `saturating_*` methods.',
-    severity: 'warning',
+      "Potential unchecked arithmetic detected. Prefer `checked_add`, `checked_sub`, or `saturating_*` methods.",
+    severity: "warning",
   },
   {
     pattern: /std::collections::/,
-    code: 'STD_COLLECTIONS',
+    code: "STD_COLLECTIONS",
     message:
-      'Do not use `std::collections`. Use Soroban SDK types (`Map`, `Vec`) instead.',
-    severity: 'error',
+      "Do not use `std::collections`. Use Soroban SDK types (`Map`, `Vec`) instead.",
+    severity: "error",
   },
 ];
 
@@ -95,15 +95,15 @@ const RECOMMENDED_PATTERNS: Array<{
 }> = [
   {
     pattern: /env\.events\(\)\.publish/,
-    code: 'NO_EVENTS',
+    code: "NO_EVENTS",
     message:
-      'No event emission detected. Consider publishing events for on-chain observability.',
+      "No event emission detected. Consider publishing events for on-chain observability.",
   },
   {
     pattern: /#\[contracttype\]/,
-    code: 'NO_CONTRACTTYPE',
+    code: "NO_CONTRACTTYPE",
     message:
-      'No `#[contracttype]` annotation found. Structured data types improve SDK interoperability.',
+      "No `#[contracttype]` annotation found. Structured data types improve SDK interoperability.",
   },
 ];
 
@@ -151,22 +151,22 @@ export class TemplateValidator {
         issues.push({
           code: check.code,
           message: check.message,
-          severity: 'info',
+          severity: "info",
         });
       }
     }
 
     // 4. Placeholder check – the generator should have substituted all tokens
-    if (source.includes('{{CONTRACT_NAME}}')) {
+    if (source.includes("{{CONTRACT_NAME}}")) {
       issues.push({
-        code: 'UNRESOLVED_PLACEHOLDER',
+        code: "UNRESOLVED_PLACEHOLDER",
         message:
-          '`{{CONTRACT_NAME}}` placeholder was not replaced. Run the generator before validating.',
-        severity: 'error',
+          "`{{CONTRACT_NAME}}` placeholder was not replaced. Run the generator before validating.",
+        severity: "error",
       });
     }
 
-    const hasErrors = issues.some((i) => i.severity === 'error');
+    const hasErrors = issues.some((i) => i.severity === "error");
 
     return {
       valid: !hasErrors,

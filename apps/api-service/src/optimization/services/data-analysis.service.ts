@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
-import { Transaction } from '../../database/entities/transaction.entity';
-import { Chain } from '../../database/entities/chain.entity';
-import { Merchant } from '../../database/entities/merchant.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, Between } from "typeorm";
+import { Transaction } from "../../database/entities/transaction.entity";
+import { Chain } from "../../database/entities/chain.entity";
+import { Merchant } from "../../database/entities/merchant.entity";
 
 @Injectable()
 export class DataAnalysisService {
@@ -69,7 +69,9 @@ export class DataAnalysisService {
       });
 
       if (transactions.length === 0) {
-        throw new Error(`No transactions found for merchant ${merchantId} in the specified period`);
+        throw new Error(
+          `No transactions found for merchant ${merchantId} in the specified period`,
+        );
       }
 
       // Calculate overall statistics
@@ -79,30 +81,36 @@ export class DataAnalysisService {
       let totalGasPrice = 0;
 
       // Group transactions by chain
-      const chainMap = new Map<string, {
-        transactionCount: number;
-        totalGasUsed: number;
-        totalCostUSD: number;
-        successfulTransactions: number;
-      }>();
+      const chainMap = new Map<
+        string,
+        {
+          transactionCount: number;
+          totalGasUsed: number;
+          totalCostUSD: number;
+          successfulTransactions: number;
+        }
+      >();
 
       // Group transactions by hour for time-based analysis
-      const hourlyMap = new Map<number, {
-        transactionCount: number;
-        totalGasPriceSum: number;
-        totalCostUSD: number;
-      }>();
+      const hourlyMap = new Map<
+        number,
+        {
+          transactionCount: number;
+          totalGasPriceSum: number;
+          totalCostUSD: number;
+        }
+      >();
 
       for (const transaction of transactions) {
         // Overall stats
         totalGasUsed += Number(transaction.gasUsed || 0);
         totalCostUSD += Number(transaction.transactionFee || 0);
-        
+
         if (transaction.gasPrice) {
           totalGasPrice += Number(transaction.gasPrice);
         }
 
-        if (transaction.status === 'success') {
+        if (transaction.status === "success") {
           successfulTransactions++;
         }
 
@@ -120,7 +128,7 @@ export class DataAnalysisService {
         chainData.transactionCount++;
         chainData.totalGasUsed += Number(transaction.gasUsed || 0);
         chainData.totalCostUSD += Number(transaction.transactionFee || 0);
-        if (transaction.status === 'success') {
+        if (transaction.status === "success") {
           chainData.successfulTransactions++;
         }
 
@@ -145,25 +153,34 @@ export class DataAnalysisService {
       // Get chain names for the breakdown
       const chainIds = Array.from(chainMap.keys());
       const chains = await this.chainRepository.findByIds(chainIds);
-      const chainNameMap = new Map(chains.map(chain => [chain.id, chain.name]));
+      const chainNameMap = new Map(
+        chains.map((chain) => [chain.id, chain.name]),
+      );
 
-      const chainBreakdown = Array.from(chainMap.entries()).map(([chainId, data]) => ({
-        chainId,
-        chainName: chainNameMap.get(chainId) || chainId,
-        transactionCount: data.transactionCount,
-        totalGasUsed: data.totalGasUsed,
-        totalCostUSD: data.totalCostUSD,
-        avgGasUsed: data.transactionCount > 0 ? data.totalGasUsed / data.transactionCount : 0,
-        successRate: data.transactionCount > 0 
-          ? (data.successfulTransactions / data.transactionCount) * 100 
-          : 0,
-      }));
+      const chainBreakdown = Array.from(chainMap.entries()).map(
+        ([chainId, data]) => ({
+          chainId,
+          chainName: chainNameMap.get(chainId) || chainId,
+          transactionCount: data.transactionCount,
+          totalGasUsed: data.totalGasUsed,
+          totalCostUSD: data.totalCostUSD,
+          avgGasUsed:
+            data.transactionCount > 0
+              ? data.totalGasUsed / data.transactionCount
+              : 0,
+          successRate:
+            data.transactionCount > 0
+              ? (data.successfulTransactions / data.transactionCount) * 100
+              : 0,
+        }),
+      );
 
       // Calculate gas price volatility
-      const avgGasPrice = transactions.length > 0 ? totalGasPrice / transactions.length : 0;
+      const avgGasPrice =
+        transactions.length > 0 ? totalGasPrice / transactions.length : 0;
       let minGasPrice = Infinity;
       let maxGasPrice = -Infinity;
-      
+
       for (const transaction of transactions) {
         if (transaction.gasPrice) {
           const gasPrice = Number(transaction.gasPrice);
@@ -180,16 +197,22 @@ export class DataAnalysisService {
         minGasPrice,
         maxGasPrice,
         avgGasPrice,
-        volatilityIndex: maxGasPrice > 0 ? (maxGasPrice - minGasPrice) / maxGasPrice : 0,
+        volatilityIndex:
+          maxGasPrice > 0 ? (maxGasPrice - minGasPrice) / maxGasPrice : 0,
       };
 
       // Prepare hourly patterns
-      const timeBasedPatterns = Array.from(hourlyMap.entries()).map(([hour, data]) => ({
-        hour,
-        transactionCount: data.transactionCount,
-        avgGasPrice: data.transactionCount > 0 ? data.totalGasPriceSum / data.transactionCount : 0,
-        totalCostUSD: data.totalCostUSD,
-      })).sort((a, b) => a.hour - b.hour);
+      const timeBasedPatterns = Array.from(hourlyMap.entries())
+        .map(([hour, data]) => ({
+          hour,
+          transactionCount: data.transactionCount,
+          avgGasPrice:
+            data.transactionCount > 0
+              ? data.totalGasPriceSum / data.transactionCount
+              : 0,
+          totalCostUSD: data.totalCostUSD,
+        }))
+        .sort((a, b) => a.hour - b.hour);
 
       return {
         merchantId,
@@ -197,10 +220,15 @@ export class DataAnalysisService {
           totalTransactions: transactions.length,
           successfulTransactions,
           failedTransactions: transactions.length - successfulTransactions,
-          successRate: transactions.length > 0 ? (successfulTransactions / transactions.length) * 100 : 0,
-          avgGasUsed: transactions.length > 0 ? totalGasUsed / transactions.length : 0,
+          successRate:
+            transactions.length > 0
+              ? (successfulTransactions / transactions.length) * 100
+              : 0,
+          avgGasUsed:
+            transactions.length > 0 ? totalGasUsed / transactions.length : 0,
           totalGasUsed,
-          avgGasPrice: transactions.length > 0 ? totalGasPrice / transactions.length : 0,
+          avgGasPrice:
+            transactions.length > 0 ? totalGasPrice / transactions.length : 0,
           totalCostUSD,
         },
         chainBreakdown,
@@ -208,7 +236,10 @@ export class DataAnalysisService {
         timeBasedPatterns,
       };
     } catch (error) {
-      this.logger.error(`Failed to analyze transactions for merchant ${merchantId}`, error);
+      this.logger.error(
+        `Failed to analyze transactions for merchant ${merchantId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -216,9 +247,14 @@ export class DataAnalysisService {
   /**
    * Get transaction analysis for a specific time range
    */
-  async getTransactionAnalysis(merchantId: string, daysBack: number = 30): Promise<any> {
+  async getTransactionAnalysis(
+    merchantId: string,
+    daysBack: number = 30,
+  ): Promise<any> {
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - daysBack * 24 * 60 * 60 * 1000);
+    const startDate = new Date(
+      endDate.getTime() - daysBack * 24 * 60 * 60 * 1000,
+    );
 
     return this.analyzeMerchantTransactions(merchantId, startDate, endDate);
   }
@@ -226,20 +262,28 @@ export class DataAnalysisService {
   /**
    * Compare chain costs for a merchant
    */
-  async compareChainCosts(merchantId: string, daysBack: number = 30): Promise<Array<{
-    chainId: string;
-    chainName: string;
-    avgGasUsed: number;
-    avgCostPerTransaction: number;
-    transactionCount: number;
-    successRate: number;
-  }>> {
+  async compareChainCosts(
+    merchantId: string,
+    daysBack: number = 30,
+  ): Promise<
+    Array<{
+      chainId: string;
+      chainName: string;
+      avgGasUsed: number;
+      avgCostPerTransaction: number;
+      transactionCount: number;
+      successRate: number;
+    }>
+  > {
     const analysis = await this.getTransactionAnalysis(merchantId, daysBack);
-    return analysis.chainBreakdown.map(chain => ({
+    return analysis.chainBreakdown.map((chain) => ({
       chainId: chain.chainId,
       chainName: chain.chainName,
       avgGasUsed: chain.avgGasUsed,
-      avgCostPerTransaction: chain.transactionCount > 0 ? chain.totalCostUSD / chain.transactionCount : 0,
+      avgCostPerTransaction:
+        chain.transactionCount > 0
+          ? chain.totalCostUSD / chain.transactionCount
+          : 0,
       transactionCount: chain.transactionCount,
       successRate: chain.successRate,
     }));

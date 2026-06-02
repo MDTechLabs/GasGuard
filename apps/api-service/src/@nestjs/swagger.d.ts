@@ -1,4 +1,4 @@
-declare module '@nestjs/swagger' {
+declare module "@nestjs/swagger" {
   export function ApiTags(...tags: string[]): ClassDecorator;
   export function ApiOperation(options: any): MethodDecorator;
   export function ApiResponse(options: any): MethodDecorator;

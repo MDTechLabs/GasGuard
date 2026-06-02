@@ -4,10 +4,14 @@ import {
   ConflictException,
   NotFoundException,
   Logger,
-} from '@nestjs/common';
+} from "@nestjs/common";
 
-export type WithdrawalStatus = 'pending' | 'processing' | 'completed' | 'failed';
-export type WithdrawalPriority = 'low' | 'medium' | 'high' | 'critical';
+export type WithdrawalStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed";
+export type WithdrawalPriority = "low" | "medium" | "high" | "critical";
 
 export interface WithdrawalRequest {
   id: string;
@@ -45,10 +49,12 @@ export class WithdrawalQueueService {
     merchantId: string,
     amount: number,
     currency: string,
-    priority: WithdrawalPriority = 'medium',
+    priority: WithdrawalPriority = "medium",
   ): WithdrawalRequest {
     if (amount <= 0) {
-      throw new BadRequestException('Withdrawal amount must be greater than zero');
+      throw new BadRequestException(
+        "Withdrawal amount must be greater than zero",
+      );
     }
 
     const duplicate = this.queue.find(
@@ -56,7 +62,7 @@ export class WithdrawalQueueService {
         r.userId === userId &&
         r.amount === amount &&
         r.currency === currency &&
-        r.status === 'pending',
+        r.status === "pending",
     );
 
     if (duplicate) {
@@ -72,7 +78,7 @@ export class WithdrawalQueueService {
       amount,
       currency,
       priority,
-      status: 'pending',
+      status: "pending",
       queuePosition: 0,
       retryCount: 0,
       createdAt: new Date(),
@@ -81,38 +87,45 @@ export class WithdrawalQueueService {
     this.queue.push(request);
     this.sortQueue();
 
-    this.logger.log(`Enqueued withdrawal ${request.id} for user ${userId} (${priority} priority)`);
+    this.logger.log(
+      `Enqueued withdrawal ${request.id} for user ${userId} (${priority} priority)`,
+    );
     return { ...request };
   }
 
   async processBatch(batchSize = 10): Promise<WithdrawalRequest[]> {
     const pending = this.queue
-      .filter((r) => r.status === 'pending')
+      .filter((r) => r.status === "pending")
       .slice(0, batchSize);
 
     const results: WithdrawalRequest[] = [];
 
     for (const request of pending) {
-      request.status = 'processing';
+      request.status = "processing";
 
       try {
         await this.executeWithdrawal(request);
-        request.status = 'completed';
+        request.status = "completed";
         request.processedAt = new Date();
         this.logger.log(`Withdrawal ${request.id} completed`);
       } catch (err) {
         request.retryCount += 1;
         if (request.retryCount >= MAX_RETRIES) {
-          request.status = 'failed';
-          request.failureReason = err instanceof Error ? err.message : String(err);
-          this.logger.error(`Withdrawal ${request.id} failed after ${MAX_RETRIES} retries`);
+          request.status = "failed";
+          request.failureReason =
+            err instanceof Error ? err.message : String(err);
+          this.logger.error(
+            `Withdrawal ${request.id} failed after ${MAX_RETRIES} retries`,
+          );
         } else {
-          request.status = 'pending';
-          this.logger.warn(`Withdrawal ${request.id} retrying (attempt ${request.retryCount})`);
+          request.status = "pending";
+          this.logger.warn(
+            `Withdrawal ${request.id} retrying (attempt ${request.retryCount})`,
+          );
         }
       }
 
-      if (request.status === 'completed' || request.status === 'failed') {
+      if (request.status === "completed" || request.status === "failed") {
         const idx = this.queue.indexOf(request);
         if (idx !== -1) this.queue.splice(idx, 1);
         this.processed.push(request);
@@ -145,10 +158,10 @@ export class WithdrawalQueueService {
 
     return {
       queueLength: this.queue.length,
-      pending: byStatus('pending'),
-      processing: byStatus('processing'),
-      completed: byStatus('completed'),
-      failed: byStatus('failed'),
+      pending: byStatus("pending"),
+      processing: byStatus("processing"),
+      completed: byStatus("completed"),
+      failed: byStatus("failed"),
     };
   }
 
@@ -167,7 +180,7 @@ export class WithdrawalQueueService {
   // Placeholder for real withdrawal execution logic
   private async executeWithdrawal(request: WithdrawalRequest): Promise<void> {
     if (!request.userId || !request.amount) {
-      throw new Error('Invalid withdrawal parameters');
+      throw new Error("Invalid withdrawal parameters");
     }
   }
 }

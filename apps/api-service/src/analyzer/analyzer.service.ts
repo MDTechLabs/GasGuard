@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { ScannerService } from '../scanner/scanner.service';
-import { RuleViolation } from '../scanner/interfaces/scanner.interface';
+import { Injectable } from "@nestjs/common";
+import { ScannerService } from "../scanner/scanner.service";
+import { RuleViolation } from "../scanner/interfaces/scanner.interface";
 import {
   AnalysisReport,
   StorageSavings,
   FormattedViolation,
-} from './interfaces/analyzer.interface';
+} from "./interfaces/analyzer.interface";
 
 @Injectable()
 export class AnalyzerService {
@@ -14,7 +14,9 @@ export class AnalyzerService {
   async analyzeCode(code: string, source: string): Promise<AnalysisReport> {
     const scanResult = await this.scannerService.scanContent(code, source);
     const formattedViolations = this.formatViolations(scanResult.violations);
-    const storageSavings = this.calculateStorageSavingsFromViolations(scanResult.violations);
+    const storageSavings = this.calculateStorageSavingsFromViolations(
+      scanResult.violations,
+    );
 
     return {
       source,
@@ -27,7 +29,10 @@ export class AnalyzerService {
   }
 
   async calculateStorageSavings(code: string): Promise<StorageSavings> {
-    const scanResult = await this.scannerService.scanContent(code, 'storage-analysis');
+    const scanResult = await this.scannerService.scanContent(
+      code,
+      "storage-analysis",
+    );
     return this.calculateStorageSavingsFromViolations(scanResult.violations);
   }
 
@@ -41,14 +46,14 @@ export class AnalyzerService {
 
   private getSeverityIcon(severity: string): string {
     switch (severity) {
-      case 'error':
-        return '🚨';
-      case 'warning':
-        return '⚠️';
-      case 'info':
-        return 'ℹ️';
+      case "error":
+        return "🚨";
+      case "warning":
+        return "⚠️";
+      case "info":
+        return "ℹ️";
       default:
-        return '📝';
+        return "📝";
     }
   }
 
@@ -58,22 +63,24 @@ export class AnalyzerService {
 
   private generateSummary(violations: RuleViolation[]): string {
     if (violations.length === 0) {
-      return '✅ No violations found! Your contract is optimized.';
+      return "✅ No violations found! Your contract is optimized.";
     }
 
-    const errors = violations.filter((v) => v.severity === 'error').length;
-    const warnings = violations.filter((v) => v.severity === 'warning').length;
-    const info = violations.filter((v) => v.severity === 'info').length;
+    const errors = violations.filter((v) => v.severity === "error").length;
+    const warnings = violations.filter((v) => v.severity === "warning").length;
+    const info = violations.filter((v) => v.severity === "info").length;
 
     return `Scan Summary: ${violations.length} total violations (${errors} errors, ${warnings} warnings, ${info} info)`;
   }
 
-  private calculateStorageSavingsFromViolations(violations: RuleViolation[]): StorageSavings {
+  private calculateStorageSavingsFromViolations(
+    violations: RuleViolation[],
+  ): StorageSavings {
     let unusedVariables = 0;
     let estimatedSavingsKb = 0;
 
     for (const violation of violations) {
-      if (violation.ruleName === 'unused-state-variables') {
+      if (violation.ruleName === "unused-state-variables") {
         unusedVariables++;
         estimatedSavingsKb += 2.5;
       }
@@ -89,7 +96,7 @@ export class AnalyzerService {
   private generateRecommendations(violations: RuleViolation[]): string[] {
     const recommendations: string[] = [];
     const unusedVars = violations.filter(
-      (v) => v.ruleName === 'unused-state-variables',
+      (v) => v.ruleName === "unused-state-variables",
     ).length;
 
     if (unusedVars > 0) {
@@ -97,16 +104,16 @@ export class AnalyzerService {
         `Remove ${unusedVars} unused state variables to reduce storage costs`,
       );
       recommendations.push(
-        'Consider using more efficient data types where possible',
+        "Consider using more efficient data types where possible",
       );
       recommendations.push(
-        'Implement lazy loading patterns for rarely accessed data',
+        "Implement lazy loading patterns for rarely accessed data",
       );
     }
 
     if (violations.length === 0) {
       recommendations.push(
-        'Your contract looks good! Consider regular audits to maintain code quality.',
+        "Your contract looks good! Consider regular audits to maintain code quality.",
       );
     }
 

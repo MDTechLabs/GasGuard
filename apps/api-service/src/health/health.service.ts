@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { HealthCheckResponse, HealthStatus } from './interfaces/health.interface';
+import { Injectable } from "@nestjs/common";
+import {
+  HealthCheckResponse,
+  HealthStatus,
+} from "./interfaces/health.interface";
 
 @Injectable()
 export class HealthService {
@@ -12,8 +15,8 @@ export class HealthService {
   check(): HealthCheckResponse {
     return {
       status: HealthStatus.HEALTHY,
-      service: 'gasguard-api',
-      version: '0.1.0',
+      service: "gasguard-api",
+      version: "0.1.0",
       timestamp: new Date().toISOString(),
       uptime: this.getUptime(),
       checks: {
@@ -28,8 +31,8 @@ export class HealthService {
   checkReadiness(): HealthCheckResponse {
     return {
       status: HealthStatus.HEALTHY,
-      service: 'gasguard-api',
-      version: '0.1.0',
+      service: "gasguard-api",
+      version: "0.1.0",
       timestamp: new Date().toISOString(),
       uptime: this.getUptime(),
       checks: {
@@ -41,8 +44,8 @@ export class HealthService {
   checkLiveness(): HealthCheckResponse {
     return {
       status: HealthStatus.HEALTHY,
-      service: 'gasguard-api',
-      version: '0.1.0',
+      service: "gasguard-api",
+      version: "0.1.0",
       timestamp: new Date().toISOString(),
       uptime: this.getUptime(),
       checks: {

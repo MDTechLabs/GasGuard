@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 export interface EndpointHealth {
   url: string;
@@ -13,12 +13,16 @@ export class HealthCheckService {
     try {
       // Basic health check: try to get a simple response or just a TCP connection check
       // For RPCs, we might want to call a simple method like eth_blockNumber
-      await axios.post(url, {
-        jsonrpc: '2.0',
-        method: 'eth_blockNumber', // Default to EVM, but can be customized
-        params: [],
-        id: 1,
-      }, { timeout: 5000 });
+      await axios.post(
+        url,
+        {
+          jsonrpc: "2.0",
+          method: "eth_blockNumber", // Default to EVM, but can be customized
+          params: [],
+          id: 1,
+        },
+        { timeout: 5000 },
+      );
 
       return {
         url,

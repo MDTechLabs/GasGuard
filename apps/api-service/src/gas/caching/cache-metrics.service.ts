@@ -2,7 +2,7 @@
  * Cache Metrics Service
  * Tracks cache hit/miss rates and performance metrics
  */
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from "@nestjs/common";
 
 export interface CacheMetrics {
   hits: number;
@@ -23,7 +23,7 @@ export interface EndpointMetrics {
 
 @Injectable()
 export class CacheMetricsService {
-  private logger = new Logger('CacheMetricsService');
+  private logger = new Logger("CacheMetricsService");
   private globalMetrics = {
     hits: 0,
     misses: 0,
@@ -106,7 +106,8 @@ export class CacheMetricsService {
     }
     m.totalRequests++;
     m.avgResponseTime =
-      (m.avgResponseTime * (m.totalRequests - 1) + responseTime) / m.totalRequests;
+      (m.avgResponseTime * (m.totalRequests - 1) + responseTime) /
+      m.totalRequests;
   }
 
   /**
@@ -120,9 +121,7 @@ export class CacheMetricsService {
       hitRate: Math.round((this.globalMetrics.hits / total) * 100 * 100) / 100,
       totalRequests: total,
       avgResponseTime:
-        Math.round(
-          (this.globalMetrics.totalResponseTime / total) * 100,
-        ) / 100,
+        Math.round((this.globalMetrics.totalResponseTime / total) * 100) / 100,
     };
   }
 
@@ -170,6 +169,8 @@ export class CacheMetricsService {
    */
   logMetrics(): void {
     const global = this.getGlobalMetrics();
-    this.logger.log(`Cache Metrics - Hits: ${global.hits}, Misses: ${global.misses}, Hit Rate: ${global.hitRate}%`);
+    this.logger.log(
+      `Cache Metrics - Hits: ${global.hits}, Misses: ${global.misses}, Hit Rate: ${global.hitRate}%`,
+    );
   }
 }

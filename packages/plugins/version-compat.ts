@@ -3,7 +3,7 @@
  * Handles semantic versioning and compatibility checking
  */
 
-import { SemanticVersion, VersionRange } from './plugin-manifest';
+import { SemanticVersion, VersionRange } from "./plugin-manifest";
 
 /**
  * Represents a semantic version
@@ -37,7 +37,7 @@ export class Version {
       throw new Error(`Invalid semantic version: ${versionString}`);
     }
 
-    const version = new Version('0.0.0');
+    const version = new Version("0.0.0");
     version.major = parseInt(match[1], 10);
     version.minor = parseInt(match[2], 10);
     version.patch = parseInt(match[3], 10);
@@ -127,7 +127,7 @@ export class Version {
    * Increment patch version (0.0.1 -> 0.0.2)
    */
   nextPatch(): Version {
-    const v = new Version('0.0.0');
+    const v = new Version("0.0.0");
     v.major = this.major;
     v.minor = this.minor;
     v.patch = this.patch + 1;
@@ -138,7 +138,7 @@ export class Version {
    * Increment minor version (0.1.0 -> 0.2.0)
    */
   nextMinor(): Version {
-    const v = new Version('0.0.0');
+    const v = new Version("0.0.0");
     v.major = this.major;
     v.minor = this.minor + 1;
     v.patch = 0;
@@ -149,7 +149,7 @@ export class Version {
    * Increment major version (1.0.0 -> 2.0.0)
    */
   nextMajor(): Version {
-    const v = new Version('0.0.0');
+    const v = new Version("0.0.0");
     v.major = this.major + 1;
     v.minor = 0;
     v.patch = 0;
@@ -280,7 +280,7 @@ export class CompatibilityChecker {
     if (!VersionMatcher.satisfies(coreVersion, requiredRange)) {
       result.errors.push(
         `GasGuard core version ${coreVersion} does not satisfy ` +
-          `required range ${requiredRange.min}..${requiredRange.max || '*'}`,
+          `required range ${requiredRange.min}..${requiredRange.max || "*"}`,
       );
     } else {
       result.compatible = true;
@@ -305,7 +305,7 @@ export class CompatibilityChecker {
     if (!result.compatible) {
       result.errors.push(
         `Dependency version ${depVersion} does not satisfy ` +
-          `required range ${requiredRange.min}..${requiredRange.max || '*'}`,
+          `required range ${requiredRange.min}..${requiredRange.max || "*"}`,
       );
     }
 

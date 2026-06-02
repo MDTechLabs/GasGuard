@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { AuditLog, EventType, OutcomeStatus } from '../entities';
+import { Injectable } from "@nestjs/common";
+import { AuditLog, EventType, OutcomeStatus } from "../entities";
 
 interface AuditEventListener {
   (payload: AuditEventPayload): void;
@@ -25,7 +25,7 @@ export class AuditEventEmitter {
   private listeners: AuditEventListener[] = [];
 
   emitAuditEvent(payload: AuditEventPayload): void {
-    this.listeners.forEach(listener => listener(payload));
+    this.listeners.forEach((listener) => listener(payload));
   }
 
   onAuditEvent(callback: AuditEventListener): void {
@@ -33,7 +33,10 @@ export class AuditEventEmitter {
   }
 
   emitApiKeyEvent(
-    eventType: EventType.API_KEY_CREATED | EventType.API_KEY_ROTATED | EventType.API_KEY_REVOKED,
+    eventType:
+      | EventType.API_KEY_CREATED
+      | EventType.API_KEY_ROTATED
+      | EventType.API_KEY_REVOKED,
     merchantId: string,
     details: Record<string, any>,
   ): void {
@@ -87,7 +90,8 @@ export class AuditEventEmitter {
       ipAddress,
       responseDuration,
       errorMessage,
-      outcome: responseStatus >= 400 ? OutcomeStatus.FAILURE : OutcomeStatus.SUCCESS,
+      outcome:
+        responseStatus >= 400 ? OutcomeStatus.FAILURE : OutcomeStatus.SUCCESS,
       details: {},
     });
   }
@@ -119,7 +123,7 @@ export class AuditEventEmitter {
   emitRoleChangeEvent(
     adminUser: string,
     targetUser: string,
-    action: 'grant' | 'revoke' | 'update',
+    action: "grant" | "revoke" | "update",
     role: string,
     previousRole?: string,
   ): void {

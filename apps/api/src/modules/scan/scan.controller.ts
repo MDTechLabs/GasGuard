@@ -1,105 +1,123 @@
-import { Controller, Post, Body, Get, Query, HttpCode, HttpStatus, Version, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { ScanService } from './scan.service';
-import { ScanRequestDto, ScanResponseDto, ScanStatusDto } from './dto/scan.dto';
-import { Public } from '../../auth/decorators';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Version,
+  Param,
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from "@nestjs/swagger";
+import { ScanService } from "./scan.service";
+import { ScanRequestDto, ScanResponseDto, ScanStatusDto } from "./dto/scan.dto";
+import { Public } from "../../auth/decorators";
 
-@ApiTags('scan')
-@Controller('scan')
-@Version('1')
+@ApiTags("scan")
+@Controller("scan")
+@Version("1")
 @Public()
 export class ScanController {
   constructor(private readonly scanService: ScanService) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Perform real-time code scan' })
+  @ApiOperation({ summary: "Perform real-time code scan" })
   @ApiBody({ type: ScanRequestDto })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Scan completed successfully',
-    type: ScanResponseDto 
+  @ApiResponse({
+    status: 200,
+    description: "Scan completed successfully",
+    type: ScanResponseDto,
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid scan request' 
+  @ApiResponse({
+    status: 400,
+    description: "Invalid scan request",
   })
-  async scanCode(@Body() scanRequest: ScanRequestDto): Promise<ScanResponseDto> {
+  async scanCode(
+    @Body() scanRequest: ScanRequestDto,
+  ): Promise<ScanResponseDto> {
     return this.scanService.performScan(scanRequest);
   }
 
-  @Post('async')
-  @ApiOperation({ summary: 'Start asynchronous scan' })
+  @Post("async")
+  @ApiOperation({ summary: "Start asynchronous scan" })
   @ApiBody({ type: ScanRequestDto })
-  @ApiResponse({ 
-    status: 202, 
-    description: 'Scan started successfully',
-    type: ScanStatusDto 
+  @ApiResponse({
+    status: 202,
+    description: "Scan started successfully",
+    type: ScanStatusDto,
   })
-  async startAsyncScan(@Body() scanRequest: ScanRequestDto): Promise<ScanStatusDto> {
+  async startAsyncScan(
+    @Body() scanRequest: ScanRequestDto,
+  ): Promise<ScanStatusDto> {
     return this.scanService.startAsyncScan(scanRequest);
   }
 
-  @Get('status/:scanId')
-  @ApiOperation({ summary: 'Get scan status' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Scan status retrieved',
-    type: ScanStatusDto 
+  @Get("status/:scanId")
+  @ApiOperation({ summary: "Get scan status" })
+  @ApiResponse({
+    status: 200,
+    description: "Scan status retrieved",
+    type: ScanStatusDto,
   })
-  async getScanStatus(@Param('scanId') scanId: string): Promise<ScanStatusDto> {
+  async getScanStatus(@Param("scanId") scanId: string): Promise<ScanStatusDto> {
     return this.scanService.getScanStatus(scanId);
   }
 
-  @Get('results/:scanId')
-  @ApiOperation({ summary: 'Get scan results' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Scan results retrieved',
-    type: ScanResponseDto 
+  @Get("results/:scanId")
+  @ApiOperation({ summary: "Get scan results" })
+  @ApiResponse({
+    status: 200,
+    description: "Scan results retrieved",
+    type: ScanResponseDto,
   })
-  async getScanResults(@Param('scanId') scanId: string): Promise<ScanResponseDto> {
+  async getScanResults(
+    @Param("scanId") scanId: string,
+  ): Promise<ScanResponseDto> {
     return this.scanService.getScanResults(scanId);
   }
 
-  @Post('cancel/:scanId')
-  @ApiOperation({ summary: 'Cancel running scan' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Scan cancelled successfully' 
+  @Post("cancel/:scanId")
+  @ApiOperation({ summary: "Cancel running scan" })
+  @ApiResponse({
+    status: 200,
+    description: "Scan cancelled successfully",
   })
-  async cancelScan(@Param('scanId') scanId: string) {
+  async cancelScan(@Param("scanId") scanId: string) {
     return this.scanService.cancelScan(scanId);
   }
 
-  @Get('results/:scanId')
-  @ApiOperation({ summary: 'Get scan results' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Scan results retrieved',
-    type: ScanResponseDto 
+  @Get("results/:scanId")
+  @ApiOperation({ summary: "Get scan results" })
+  @ApiResponse({
+    status: 200,
+    description: "Scan results retrieved",
+    type: ScanResponseDto,
   })
-  async getScanResults(@Query('scanId') scanId: string): Promise<ScanResponseDto> {
+  async getScanResults(
+    @Query("scanId") scanId: string,
+  ): Promise<ScanResponseDto> {
     return this.scanService.getScanResults(scanId);
   }
 
-  @Get('queue')
-  @ApiOperation({ summary: 'Get scan queue status' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Queue status retrieved' 
+  @Get("queue")
+  @ApiOperation({ summary: "Get scan queue status" })
+  @ApiResponse({
+    status: 200,
+    description: "Queue status retrieved",
   })
   async getQueueStatus() {
     return this.scanService.getQueueStatus();
   }
 
-  @Post('cancel/:scanId')
-  @ApiOperation({ summary: 'Cancel running scan' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Scan cancelled successfully' 
+  @Post("cancel/:scanId")
+  @ApiOperation({ summary: "Cancel running scan" })
+  @ApiResponse({
+    status: 200,
+    description: "Scan cancelled successfully",
   })
-  async cancelScan(@Query('scanId') scanId: string) {
+  async cancelScan(@Query("scanId") scanId: string) {
     return this.scanService.cancelScan(scanId);
   }
 }

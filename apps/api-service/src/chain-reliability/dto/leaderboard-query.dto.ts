@@ -1,5 +1,5 @@
-import { IsEnum, IsOptional, IsInt, Min, Max } from 'class-validator';
-import { MetricTimeWindow } from '../entities/chain-performance-metric.entity';
+import { IsEnum, IsOptional, IsInt, Min, Max } from "class-validator";
+import { MetricTimeWindow } from "../entities/chain-performance-metric.entity";
 
 export class LeaderboardQueryDto {
   @IsEnum(MetricTimeWindow)

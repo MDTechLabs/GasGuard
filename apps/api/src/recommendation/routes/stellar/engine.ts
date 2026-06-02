@@ -4,7 +4,7 @@ import { scoreRoutes } from "./scorer";
 export class StellarRouteRecommendationEngine {
   recommend(
     routes: StellarRoute[],
-    options?: RouteRecommendationOptions
+    options?: RouteRecommendationOptions,
   ): ScoredRoute[] {
     if (!routes.length) return [];
 
@@ -15,7 +15,7 @@ export class StellarRouteRecommendationEngine {
 
   getBestRoute(
     routes: StellarRoute[],
-    options?: RouteRecommendationOptions
+    options?: RouteRecommendationOptions,
   ): ScoredRoute | null {
     const ranked = this.recommend(routes, options);
     return ranked[0] || null;

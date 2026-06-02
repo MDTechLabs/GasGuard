@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 export interface ValidationError {
   field: string;
@@ -10,14 +10,17 @@ export interface ValidationError {
 export class BaseValidator {
   protected static readonly ETHEREUM_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
   protected static readonly STELLAR_ADDRESS_REGEX = /^[GC][A-Z0-9]{55}$/;
-  protected static readonly SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  protected static readonly SOLANA_ADDRESS_REGEX =
+    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
   protected static readonly MAX_GAS_LIMIT = 30000000; // 30M gas
   protected static readonly MIN_GAS_LIMIT = 21000; // Base transaction gas
   protected static readonly MAX_GAS_PRICE = 1000000000000; // 1000 gwei in wei
   protected static readonly MIN_GAS_PRICE = 1000000000; // 1 gwei in wei
 
-  protected static readonly SUPPORTED_CHAINS = [1, 56, 137, 42161, 10, 43114, 250]; // ETH, BSC, Polygon, Arbitrum, Optimism, Avalanche, Fantom
+  protected static readonly SUPPORTED_CHAINS = [
+    1, 56, 137, 42161, 10, 43114, 250,
+  ]; // ETH, BSC, Polygon, Arbitrum, Optimism, Avalanche, Fantom
 
   /**
    * Validates an Ethereum address format
@@ -44,12 +47,13 @@ export class BaseValidator {
    * Validates a blockchain address based on chain
    */
   static isValidAddress(address: string, chainId?: number): boolean {
-    if (!address || typeof address !== 'string') {
+    if (!address || typeof address !== "string") {
       return false;
     }
 
     // For Stellar/Soroban
-    if (chainId === 0 || !chainId) { // Assuming 0 or undefined for Stellar
+    if (chainId === 0 || !chainId) {
+      // Assuming 0 or undefined for Stellar
       return this.isValidStellarAddress(address);
     }
 
@@ -66,16 +70,26 @@ export class BaseValidator {
    * Validates a gas limit value
    */
   static isValidGasLimit(gasLimit: string | number): boolean {
-    const limit = typeof gasLimit === 'string' ? parseInt(gasLimit, 10) : gasLimit;
-    return !isNaN(limit) && limit >= this.MIN_GAS_LIMIT && limit <= this.MAX_GAS_LIMIT;
+    const limit =
+      typeof gasLimit === "string" ? parseInt(gasLimit, 10) : gasLimit;
+    return (
+      !isNaN(limit) &&
+      limit >= this.MIN_GAS_LIMIT &&
+      limit <= this.MAX_GAS_LIMIT
+    );
   }
 
   /**
    * Validates a gas price value (in wei)
    */
   static isValidGasPrice(gasPrice: string | number): boolean {
-    const price = typeof gasPrice === 'string' ? parseInt(gasPrice, 10) : gasPrice;
-    return !isNaN(price) && price >= this.MIN_GAS_PRICE && price <= this.MAX_GAS_PRICE;
+    const price =
+      typeof gasPrice === "string" ? parseInt(gasPrice, 10) : gasPrice;
+    return (
+      !isNaN(price) &&
+      price >= this.MIN_GAS_PRICE &&
+      price <= this.MAX_GAS_PRICE
+    );
   }
 
   /**
@@ -89,7 +103,7 @@ export class BaseValidator {
    * Validates a transaction type
    */
   static isValidTransactionType(txType: string): boolean {
-    return ['transfer', 'contract-call', 'swap'].includes(txType);
+    return ["transfer", "contract-call", "swap"].includes(txType);
   }
 
   /**
@@ -98,7 +112,7 @@ export class BaseValidator {
   static isValidUrl(url: string): boolean {
     try {
       const parsedUrl = new URL(url);
-      return ['http:', 'https:', 'git:'].includes(parsedUrl.protocol);
+      return ["http:", "https:", "git:"].includes(parsedUrl.protocol);
     } catch {
       return false;
     }
@@ -108,7 +122,7 @@ export class BaseValidator {
    * Validates a positive number
    */
   static isValidPositiveNumber(value: string | number): boolean {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    const num = typeof value === "string" ? parseFloat(value) : value;
     return !isNaN(num) && num > 0;
   }
 
@@ -118,16 +132,16 @@ export class BaseValidator {
   protected static sendValidationError(
     res: Response,
     errors: ValidationError[],
-    requestId?: string
+    requestId?: string,
   ): void {
     res.status(400).json({
       error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Request validation failed',
+        code: "VALIDATION_ERROR",
+        message: "Request validation failed",
         timestamp: new Date().toISOString(),
-        requestId: requestId || 'unknown'
+        requestId: requestId || "unknown",
       },
-      validationErrors: errors
+      validationErrors: errors,
     });
   }
 
@@ -137,15 +151,15 @@ export class BaseValidator {
   protected static sendServerError(
     res: Response,
     error: any,
-    requestId?: string
+    requestId?: string,
   ): void {
     res.status(500).json({
       error: {
-        code: 'VALIDATION_EXCEPTION',
-        message: 'An error occurred during validation',
+        code: "VALIDATION_EXCEPTION",
+        message: "An error occurred during validation",
         timestamp: new Date().toISOString(),
-        requestId: requestId || 'unknown'
-      }
+        requestId: requestId || "unknown",
+      },
     });
   }
 }

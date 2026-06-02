@@ -1,5 +1,13 @@
-import { IsString, IsOptional, IsInt, IsEnum, Min, Max, IsUUID } from 'class-validator';
-import { ApiKeyStatus } from '../entities/api-key.entity';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  IsEnum,
+  Min,
+  Max,
+  IsUUID,
+} from "class-validator";
+import { ApiKeyStatus } from "../entities/api-key.entity";
 
 /**
  * DTO for creating a new API key
@@ -123,7 +131,7 @@ export class ApiKeyRotationResponseDto {
  * API Key Expired Error Response
  */
 export interface ApiKeyExpiredError {
-  error: 'APIKeyExpired';
+  error: "APIKeyExpired";
   message: string;
   expiredAt: string;
   keyId: string;

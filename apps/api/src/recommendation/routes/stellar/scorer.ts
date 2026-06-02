@@ -8,13 +8,13 @@ function normalize(value: number, min: number, max: number) {
 
 export function scoreRoutes(
   routes: StellarRoute[],
-  options: RouteRecommendationOptions = {}
+  options: RouteRecommendationOptions = {},
 ) {
   const weights = { ...defaultWeights, ...options };
 
-  const costs = routes.map(r => r.estimatedCost);
-  const times = routes.map(r => r.estimatedTimeMs);
-  const reliabilities = routes.map(r => r.reliability ?? 0.5);
+  const costs = routes.map((r) => r.estimatedCost);
+  const times = routes.map((r) => r.estimatedTimeMs);
+  const reliabilities = routes.map((r) => r.reliability ?? 0.5);
 
   const minCost = Math.min(...costs);
   const maxCost = Math.max(...costs);
@@ -22,7 +22,7 @@ export function scoreRoutes(
   const minTime = Math.min(...times);
   const maxTime = Math.max(...times);
 
-  return routes.map(route => {
+  return routes.map((route) => {
     const costScore = 1 - normalize(route.estimatedCost, minCost, maxCost);
     const speedScore = 1 - normalize(route.estimatedTimeMs, minTime, maxTime);
     const reliabilityScore = route.reliability ?? 0.5;

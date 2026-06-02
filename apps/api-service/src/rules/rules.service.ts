@@ -1,47 +1,50 @@
-import { Injectable } from '@nestjs/common';
-import { RuleDefinition } from './interfaces/rules.interface';
-import { RuleViolation } from '../scanner/interfaces/scanner.interface';
+import { Injectable } from "@nestjs/common";
+import { RuleDefinition } from "./interfaces/rules.interface";
+import { RuleViolation } from "../scanner/interfaces/scanner.interface";
 
 @Injectable()
 export class RulesService {
   private readonly rules: RuleDefinition[] = [
     {
-      name: 'repeated-external-calls',
-      description: 'Detects repeated external contract calls and suggests caching call results.',
-      severity: 'warning',
-      category: 'security',
-      enabled: true,
-    },
-    {
-      name: 'unsafe-delegatecall',
-      description: 'Detects risky delegatecall usage that may execute untrusted logic.',
-      severity: 'error',
-      category: 'security',
-      enabled: true,
-    },
-    {
-      name: 'large-storage-arrays',
-      description: 'Detects large or unbounded storage arrays that can increase gas usage.',
-      severity: 'warning',
-      category: 'storage-optimization',
-      enabled: true,
-    },
-    {
-      name: 'missing-access-modifiers',
-      description: 'Detects sensitive public/external functions missing access control checks.',
-      severity: 'warning',
-      category: 'security',
-      enabled: true,
-    },
-    {
-      name: 'unused-state-variables',
+      name: "repeated-external-calls",
       description:
-        'Identifies state variables in Soroban contracts that are never read or written to, helping developers minimize storage footprint and ledger rent.',
-      severity: 'warning',
-      category: 'storage-optimization',
+        "Detects repeated external contract calls and suggests caching call results.",
+      severity: "warning",
+      category: "security",
       enabled: true,
-      documentationUrl:
-        'https://gasguard.dev/rules/unused-state-variables',
+    },
+    {
+      name: "unsafe-delegatecall",
+      description:
+        "Detects risky delegatecall usage that may execute untrusted logic.",
+      severity: "error",
+      category: "security",
+      enabled: true,
+    },
+    {
+      name: "large-storage-arrays",
+      description:
+        "Detects large or unbounded storage arrays that can increase gas usage.",
+      severity: "warning",
+      category: "storage-optimization",
+      enabled: true,
+    },
+    {
+      name: "missing-access-modifiers",
+      description:
+        "Detects sensitive public/external functions missing access control checks.",
+      severity: "warning",
+      category: "security",
+      enabled: true,
+    },
+    {
+      name: "unused-state-variables",
+      description:
+        "Identifies state variables in Soroban contracts that are never read or written to, helping developers minimize storage footprint and ledger rent.",
+      severity: "warning",
+      category: "storage-optimization",
+      enabled: true,
+      documentationUrl: "https://gasguard.dev/rules/unused-state-variables",
     },
   ];
 
@@ -74,15 +77,15 @@ export class RulesService {
     code: string,
   ): Promise<RuleViolation[]> {
     switch (rule.name) {
-      case 'unused-state-variables':
+      case "unused-state-variables":
         return this.checkUnusedStateVariables(code);
-      case 'repeated-external-calls':
+      case "repeated-external-calls":
         return this.checkRepeatedExternalCalls(code);
-      case 'unsafe-delegatecall':
+      case "unsafe-delegatecall":
         return this.checkUnsafeDelegatecall(code);
-      case 'large-storage-arrays':
+      case "large-storage-arrays":
         return this.checkLargeStorageArrays(code);
-      case 'missing-access-modifiers':
+      case "missing-access-modifiers":
         return this.checkMissingAccessModifiers(code);
       default:
         return [];
@@ -96,12 +99,13 @@ export class RulesService {
     for (const call of calls) {
       if (seen.has(call)) {
         out.push({
-          ruleName: 'repeated-external-calls',
+          ruleName: "repeated-external-calls",
           description: `Repeated external call pattern detected: ${call.trim()}`,
-          severity: 'warning',
+          severity: "warning",
           lineNumber: 1,
           columnNumber: 0,
-          suggestion: 'Cache external call results in local variables when safe.',
+          suggestion:
+            "Cache external call results in local variables when safe.",
         });
         break;
       }
@@ -112,27 +116,36 @@ export class RulesService {
 
   private checkUnsafeDelegatecall(code: string): RuleViolation[] {
     if (!/delegatecall\s*\(/.test(code)) return [];
-    return [{
-      ruleName: 'unsafe-delegatecall',
-      description: 'delegatecall usage detected; validate target and calldata constraints.',
-      severity: 'error',
-      lineNumber: 1,
-      columnNumber: 0,
-      suggestion: 'Restrict delegatecall targets and avoid user-controlled delegatecall paths.',
-    }];
+    return [
+      {
+        ruleName: "unsafe-delegatecall",
+        description:
+          "delegatecall usage detected; validate target and calldata constraints.",
+        severity: "error",
+        lineNumber: 1,
+        columnNumber: 0,
+        suggestion:
+          "Restrict delegatecall targets and avoid user-controlled delegatecall paths.",
+      },
+    ];
   }
 
   private checkLargeStorageArrays(code: string): RuleViolation[] {
     const out: RuleViolation[] = [];
-    const storageArrays = code.match(/\w+\s*\[\]\s+(public|private|internal|external)?\s*\w+\s*;/g) || [];
+    const storageArrays =
+      code.match(
+        /\w+\s*\[\]\s+(public|private|internal|external)?\s*\w+\s*;/g,
+      ) || [];
     if (storageArrays.length >= 3 || /push\s*\(/.test(code)) {
       out.push({
-        ruleName: 'large-storage-arrays',
-        description: 'Potential large or unbounded storage array usage detected.',
-        severity: 'warning',
+        ruleName: "large-storage-arrays",
+        description:
+          "Potential large or unbounded storage array usage detected.",
+        severity: "warning",
         lineNumber: 1,
         columnNumber: 0,
-        suggestion: 'Consider pagination, bounded collections, or indexing strategies.',
+        suggestion:
+          "Consider pagination, bounded collections, or indexing strategies.",
       });
     }
     return out;
@@ -140,20 +153,25 @@ export class RulesService {
 
   private checkMissingAccessModifiers(code: string): RuleViolation[] {
     const out: RuleViolation[] = [];
-    const risky = /(mint|burn|pause|unpause|upgrade|setAdmin|setOwner|withdraw|clawback)/i;
+    const risky =
+      /(mint|burn|pause|unpause|upgrade|setAdmin|setOwner|withdraw|clawback)/i;
     const fnRe = /function\s+(\w+)\s*\([^)]*\)\s*(public|external)([^{};]*)\{/g;
     let m: RegExpExecArray | null;
     while ((m = fnRe.exec(code)) !== null) {
       const fnName = m[1];
-      const tail = m[3] || '';
-      if (risky.test(fnName) && !/(onlyOwner|onlyAdmin|require\s*\()/.test(tail)) {
+      const tail = m[3] || "";
+      if (
+        risky.test(fnName) &&
+        !/(onlyOwner|onlyAdmin|require\s*\()/.test(tail)
+      ) {
         out.push({
-          ruleName: 'missing-access-modifiers',
+          ruleName: "missing-access-modifiers",
           description: `Sensitive function '${fnName}' may be missing access restrictions.`,
-          severity: 'warning',
+          severity: "warning",
           lineNumber: 1,
           columnNumber: 0,
-          suggestion: 'Add explicit access control (e.g., onlyOwner/onlyAdmin) and validation checks.',
+          suggestion:
+            "Add explicit access control (e.g., onlyOwner/onlyAdmin) and validation checks.",
         });
       }
     }
@@ -163,8 +181,10 @@ export class RulesService {
   private checkUnusedStateVariables(code: string): RuleViolation[] {
     const violations: RuleViolation[] = [];
 
-    const structPattern = /#\[contract(?:type|impl)?\]\s*(?:pub\s+)?struct\s+(\w+)\s*\{([^}]*)\}/gs;
-    const implPattern = /impl\s+(\w+)\s*\{([\s\S]*?)(?=\nimpl|\nstruct|\n#\[|$)/g;
+    const structPattern =
+      /#\[contract(?:type|impl)?\]\s*(?:pub\s+)?struct\s+(\w+)\s*\{([^}]*)\}/gs;
+    const implPattern =
+      /impl\s+(\w+)\s*\{([\s\S]*?)(?=\nimpl|\nstruct|\n#\[|$)/g;
 
     const structs = new Map<string, { fields: string[]; lineNumber: number }>();
     let match: RegExpExecArray | null;
@@ -172,7 +192,7 @@ export class RulesService {
     while ((match = structPattern.exec(code)) !== null) {
       const structName = match[1];
       const fieldsBlock = match[2];
-      const lineNumber = code.substring(0, match.index).split('\n').length;
+      const lineNumber = code.substring(0, match.index).split("\n").length;
 
       const fieldPattern = /(?:pub\s+)?(\w+)\s*:/g;
       const fields: string[] = [];
@@ -201,9 +221,9 @@ export class RulesService {
       for (const field of fields) {
         if (!usedFields.has(field)) {
           violations.push({
-            ruleName: 'unused-state-variables',
+            ruleName: "unused-state-variables",
             description: `State variable '${field}' is declared but never used in contract '${structName}'. This wastes storage space and increases ledger rent costs.`,
-            severity: 'warning',
+            severity: "warning",
             lineNumber,
             columnNumber: 0,
             variableName: field,

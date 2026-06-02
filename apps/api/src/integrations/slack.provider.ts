@@ -10,8 +10,8 @@ export class SlackProvider {
       scan.severity === "critical"
         ? "#ff0000"
         : scan.severity === "warning"
-        ? "#ffa500"
-        : "#36a64f";
+          ? "#ffa500"
+          : "#36a64f";
 
     const message = {
       attachments: [

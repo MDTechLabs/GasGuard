@@ -10,8 +10,8 @@ export class DiscordProvider {
       scan.severity === "critical"
         ? 16711680
         : scan.severity === "warning"
-        ? 16753920
-        : 3447003;
+          ? 16753920
+          : 3447003;
 
     const message = {
       embeds: [

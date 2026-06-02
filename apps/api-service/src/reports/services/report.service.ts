@@ -1,12 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Report } from '../entities/report.entity';
-import { DataAggregationService } from './data-aggregation.service';
-import { ReportGenerationService } from './report-generation.service';
-import { EmailNotificationService } from './email-notification.service';
-import { Merchant } from '../../database/entities/merchant.entity';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Report } from "../entities/report.entity";
+import { DataAggregationService } from "./data-aggregation.service";
+import { ReportGenerationService } from "./report-generation.service";
+import { EmailNotificationService } from "./email-notification.service";
+import { Merchant } from "../../database/entities/merchant.entity";
+import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
 export class ReportService {
@@ -25,7 +25,10 @@ export class ReportService {
   /**
    * Generate an ad-hoc report for a specific merchant
    */
-  async generateAdhocReport(merchantId: string, period: 'weekly' | 'monthly'): Promise<string> {
+  async generateAdhocReport(
+    merchantId: string,
+    period: "weekly" | "monthly",
+  ): Promise<string> {
     try {
       // Validate merchant exists
       const merchant = await this.merchantRepository.findOne({
@@ -39,20 +42,20 @@ export class ReportService {
       // Create a new report record
       const report = new Report();
       report.id = uuidv4();
-      report.type = 'adhoc';
+      report.type = "adhoc";
       report.period = period;
       report.merchantId = merchantId;
-      report.status = 'pending';
-      
+      report.status = "pending";
+
       // Set the date range based on the period
-      if (period === 'weekly') {
+      if (period === "weekly") {
         report.startDate = this.getPreviousWeekStart();
         report.endDate = this.getPreviousWeekEnd();
       } else {
         report.startDate = this.getPreviousMonthStart();
         report.endDate = this.getPreviousMonthEnd();
       }
-      
+
       report.scheduledAt = new Date();
 
       const savedReport = await this.reportRepository.save(report);
@@ -62,7 +65,10 @@ export class ReportService {
 
       return savedReport.id;
     } catch (error) {
-      this.logger.error(`Error generating ad-hoc report for merchant ${merchantId}`, error);
+      this.logger.error(
+        `Error generating ad-hoc report for merchant ${merchantId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -77,12 +83,14 @@ export class ReportService {
       });
 
       if (!report) {
-        this.logger.error(`Report with ID ${reportId} not found for processing`);
+        this.logger.error(
+          `Report with ID ${reportId} not found for processing`,
+        );
         return;
       }
 
       // Update report status to processing
-      await this.reportRepository.update(reportId, { status: 'processing' });
+      await this.reportRepository.update(reportId, { status: "processing" });
 
       // Get merchant details
       const merchant = await this.merchantRepository.findOne({
@@ -91,84 +99,98 @@ export class ReportService {
 
       if (!merchant) {
         this.logger.error(`Merchant with ID ${report.merchantId} not found`);
-        await this.reportRepository.update(reportId, { status: 'failed' });
+        await this.reportRepository.update(reportId, { status: "failed" });
         return;
       }
 
       // Generate aggregated data for the report
       let reportData;
-      if (report.period === 'weekly') {
-        reportData = await this.dataAggregationService.getWeeklyGasUsage(report.merchantId);
+      if (report.period === "weekly") {
+        reportData = await this.dataAggregationService.getWeeklyGasUsage(
+          report.merchantId,
+        );
       } else {
-        reportData = await this.dataAggregationService.getMonthlyGasUsage(report.merchantId);
+        reportData = await this.dataAggregationService.getMonthlyGasUsage(
+          report.merchantId,
+        );
       }
 
       // Detect any anomalies in usage
       const anomalies = await this.dataAggregationService.detectAbnormalUsage(
-        report.merchantId, 
-        report.period as 'weekly' | 'monthly'
+        report.merchantId,
+        report.period as "weekly" | "monthly",
       );
       reportData.anomalies = anomalies;
 
       // Generate report file
-      const fileName = `gas-report-${report.period}-${report.merchantId}-${report.startDate.toISOString().split('T')[0]}.csv`;
-      const filePath = await this.reportGenerationService.generateCsvReport(reportData, fileName);
+      const fileName = `gas-report-${report.period}-${report.merchantId}-${report.startDate.toISOString().split("T")[0]}.csv`;
+      const filePath = await this.reportGenerationService.generateCsvReport(
+        reportData,
+        fileName,
+      );
 
       // Update report with file path and data
-      await this.reportRepository.update(reportId, { 
-        status: 'processing',
+      await this.reportRepository.update(reportId, {
+        status: "processing",
         reportUrl: filePath,
         reportData: reportData,
       });
 
       // Send email notification if merchant has an email
       if (merchant.email) {
-        const emailSent = await this.emailNotificationService.sendGasReportEmail(
-          merchant.email,
-          merchant.name,
-          report.period as 'weekly' | 'monthly',
-          filePath,
-          reportData
-        );
+        const emailSent =
+          await this.emailNotificationService.sendGasReportEmail(
+            merchant.email,
+            merchant.name,
+            report.period as "weekly" | "monthly",
+            filePath,
+            reportData,
+          );
 
         if (emailSent) {
           // Update report status to completed
-          await this.reportRepository.update(reportId, { 
-            status: 'completed',
+          await this.reportRepository.update(reportId, {
+            status: "completed",
             sentAt: new Date(),
           });
-          
-          this.logger.log(`Ad-hoc report sent successfully to ${merchant.email} for merchant ${merchant.name}`);
+
+          this.logger.log(
+            `Ad-hoc report sent successfully to ${merchant.email} for merchant ${merchant.name}`,
+          );
         } else {
           // Update report status to failed
-          await this.reportRepository.update(reportId, { 
-            status: 'failed',
+          await this.reportRepository.update(reportId, {
+            status: "failed",
           });
-          
-          this.logger.error(`Failed to send ad-hoc report to ${merchant.email} for merchant ${merchant.name}`);
+
+          this.logger.error(
+            `Failed to send ad-hoc report to ${merchant.email} for merchant ${merchant.name}`,
+          );
 
           // Send failure notification
           await this.emailNotificationService.sendFailureNotification(
             merchant.email,
             merchant.name,
-            'Email delivery failed'
+            "Email delivery failed",
           );
         }
       } else {
         // Update report status to completed without sending email
-        await this.reportRepository.update(reportId, { 
-          status: 'completed',
+        await this.reportRepository.update(reportId, {
+          status: "completed",
           sentAt: new Date(),
         });
-        
-        this.logger.log(`Ad-hoc report generated successfully for merchant ${merchant.name} but no email sent (no email configured)`);
+
+        this.logger.log(
+          `Ad-hoc report generated successfully for merchant ${merchant.name} but no email sent (no email configured)`,
+        );
       }
     } catch (error) {
       this.logger.error(`Error processing report ${reportId}`, error);
 
       // Update report status to failed
-      await this.reportRepository.update(reportId, { 
-        status: 'failed',
+      await this.reportRepository.update(reportId, {
+        status: "failed",
       });
 
       // Try to get merchant to send failure notification
@@ -186,12 +208,15 @@ export class ReportService {
             await this.emailNotificationService.sendFailureNotification(
               merchant.email,
               merchant.name,
-              error.message
+              error.message,
             );
           }
         }
       } catch (notificationError) {
-        this.logger.error(`Error sending failure notification`, notificationError);
+        this.logger.error(
+          `Error sending failure notification`,
+          notificationError,
+        );
       }
     }
   }
@@ -209,17 +234,18 @@ export class ReportService {
    * Get report history for a merchant
    */
   async getReportHistory(
-    merchantId: string, 
-    period?: 'weekly' | 'monthly', 
-    limit: number = 10
+    merchantId: string,
+    period?: "weekly" | "monthly",
+    limit: number = 10,
   ): Promise<Report[]> {
-    const query = this.reportRepository.createQueryBuilder('report')
-      .where('report.merchantId = :merchantId', { merchantId })
-      .orderBy('report.createdAt', 'DESC')
+    const query = this.reportRepository
+      .createQueryBuilder("report")
+      .where("report.merchantId = :merchantId", { merchantId })
+      .orderBy("report.createdAt", "DESC")
       .limit(limit);
 
     if (period) {
-      query.andWhere('report.period = :period', { period });
+      query.andWhere("report.period = :period", { period });
     }
 
     return query.getMany();
@@ -229,24 +255,24 @@ export class ReportService {
    * Get all pending reports
    */
   async getPendingReports(): Promise<Report[]> {
-    return this.reportRepository.findByStatus('pending');
+    return this.reportRepository.findByStatus("pending");
   }
 
   /**
    * Retry failed reports
    */
   async retryFailedReports(): Promise<number> {
-    const failedReports = await this.reportRepository.findByStatus('failed');
+    const failedReports = await this.reportRepository.findByStatus("failed");
     let processedCount = 0;
 
     for (const report of failedReports) {
       try {
         // Reset status to pending and reprocess
-        await this.reportRepository.update(report.id, { 
-          status: 'pending',
+        await this.reportRepository.update(report.id, {
+          status: "pending",
           scheduledAt: new Date(),
         });
-        
+
         // Process the report asynchronously
         this.processReportAsync(report.id);
         processedCount++;
@@ -265,11 +291,11 @@ export class ReportService {
     const now = new Date();
     const dayOfWeek = now.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
     const diff = now.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) - 7; // Previous Monday
-    
+
     const monday = new Date(now);
     monday.setUTCDate(diff);
     monday.setUTCHours(0, 0, 0, 0);
-    
+
     return monday;
   }
 
@@ -281,7 +307,7 @@ export class ReportService {
     const endDate = new Date(startDate);
     endDate.setUTCDate(endDate.getUTCDate() + 6); // Add 6 days to get to Sunday
     endDate.setUTCHours(23, 59, 59, 999);
-    
+
     return endDate;
   }
 
@@ -292,10 +318,10 @@ export class ReportService {
     const now = new Date();
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth() - 1; // Previous month
-    
+
     const startDate = new Date(Date.UTC(year, month, 1));
     startDate.setUTCHours(0, 0, 0, 0);
-    
+
     return startDate;
   }
 
@@ -306,10 +332,10 @@ export class ReportService {
     const now = new Date();
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth(); // Current month (since we want end of previous month)
-    
+
     const endDate = new Date(Date.UTC(year, month, 0)); // Day 0 is last day of previous month
     endDate.setUTCHours(23, 59, 59, 999);
-    
+
     return endDate;
   }
 }

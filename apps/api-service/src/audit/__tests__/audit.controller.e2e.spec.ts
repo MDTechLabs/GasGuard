@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { AuditLog, EventType, OutcomeStatus } from '../entities';
-import { AuditLogService } from '../services/audit-log.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { getRepositoryToken } from "@nestjs/typeorm";
+import { AuditLog, EventType, OutcomeStatus } from "../entities";
+import { AuditLogService } from "../services/audit-log.service";
 
-describe('AuditController (e2e)', () => {
+describe("AuditController (e2e)", () => {
   let auditLogService: AuditLogService;
 
   beforeEach(async () => {
@@ -25,17 +25,22 @@ describe('AuditController (e2e)', () => {
     auditLogService = moduleFixture.get<AuditLogService>(AuditLogService);
   });
 
-  it('should be able to instantiate service', () => {
-    if (!auditLogService) throw new Error('Service not defined');
+  it("should be able to instantiate service", () => {
+    if (!auditLogService) throw new Error("Service not defined");
   });
 
-  it('should have queryLogs method', () => {
-    if (typeof auditLogService.queryLogs !== 'function') throw new Error('No queryLogs');
+  it("should have queryLogs method", () => {
+    if (typeof auditLogService.queryLogs !== "function")
+      throw new Error("No queryLogs");
   });
 
-  it('should support event types', () => {
-    if (!EventType.API_REQUEST || !EventType.API_KEY_CREATED || !OutcomeStatus.SUCCESS) {
-      throw new Error('Missing types');
+  it("should support event types", () => {
+    if (
+      !EventType.API_REQUEST ||
+      !EventType.API_KEY_CREATED ||
+      !OutcomeStatus.SUCCESS
+    ) {
+      throw new Error("Missing types");
     }
   });
 });

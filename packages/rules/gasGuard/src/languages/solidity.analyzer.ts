@@ -1,4 +1,4 @@
-import { SolidityAnalyzer } from '../../../../libs/engine/analyzers/solidity-analyzer';
+import { SolidityAnalyzer } from "../../../../libs/engine/analyzers/solidity-analyzer";
 
 export class SolidityAnalyzerWrapper {
   private analyzer: SolidityAnalyzer;
@@ -8,9 +8,9 @@ export class SolidityAnalyzerWrapper {
   }
 
   async analyze(source: string) {
-    const result = await this.analyzer.analyze(source, 'contract.sol');
+    const result = await this.analyzer.analyze(source, "contract.sol");
 
-    const issues = result.findings.map(finding => ({
+    const issues = result.findings.map((finding) => ({
       ruleId: finding.ruleId,
       severity: finding.severity,
       message: finding.message,

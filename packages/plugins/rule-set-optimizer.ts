@@ -3,12 +3,12 @@
  * Used to detect duplicate and overlapping rule definitions.
  */
 
-import { PluginRuleDefinition } from './plugin-manifest';
+import { PluginRuleDefinition } from "./plugin-manifest";
 
 export interface PluginRuleDuplicate {
   keptRuleId: string;
   removedRuleId: string;
-  reason: 'duplicate-id' | 'overlapping-intent';
+  reason: "duplicate-id" | "overlapping-intent";
 }
 
 export interface PluginRuleOptimizationResult {
@@ -19,7 +19,7 @@ export interface PluginRuleOptimizationResult {
 function normalize(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((t) => t.length > 2);
 }
@@ -37,7 +37,10 @@ function intentSignature(rule: PluginRuleDefinition): Set<string> {
   return new Set(normalize(`${rule.id} ${rule.name} ${rule.description}`));
 }
 
-function chooseCanonical(a: PluginRuleDefinition, b: PluginRuleDefinition): PluginRuleDefinition {
+function chooseCanonical(
+  a: PluginRuleDefinition,
+  b: PluginRuleDefinition,
+): PluginRuleDefinition {
   if (a.description.length !== b.description.length) {
     return a.description.length > b.description.length ? a : b;
   }
@@ -63,7 +66,7 @@ export function optimizePluginRules(
     removedRules.push({
       keptRuleId: keep.id,
       removedRuleId: drop.id,
-      reason: 'duplicate-id',
+      reason: "duplicate-id",
     });
   }
 
@@ -82,7 +85,7 @@ export function optimizePluginRules(
         removedRules.push({
           keptRuleId: keep.id,
           removedRuleId: drop.id,
-          reason: 'overlapping-intent',
+          reason: "overlapping-intent",
         });
         merged = true;
         break;

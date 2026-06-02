@@ -6,10 +6,12 @@
 pub mod soroban_rules;
 pub mod stellar_sdk_rules;
 pub mod gas_optimization_rules;
+pub mod networking;
 
 pub use soroban_rules::*;
 pub use stellar_sdk_rules::*;
 pub use gas_optimization_rules::*;
+pub use networking::*;
 
 use crate::{RuleViolation, ViolationSeverity};
 
@@ -32,6 +34,7 @@ impl SorobanLinter {
         rules.push(Box::new(gas_optimization_rules::StorageReadRule));
         rules.push(Box::new(gas_optimization_rules::MapIterationRule));
         rules.push(Box::new(gas_optimization_rules::EventEmissionRule));
+        rules.push(Box::new(networking::NetworkValidationRule));
         
         Self { rules }
     }

@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
 import {
   GasSubsidyCap,
   GasSubsidyUsageLog,
   GasSubsidyAlert,
   SuspiciousUsageFlag,
-} from './entities/gas-subsidy.entity';
-import { GasSubsidyService } from './services/gas-subsidy.service';
-import { GasSubsidyController } from './controllers/gas-subsidy.controller';
+} from "./entities/gas-subsidy.entity";
+import { GasSubsidyService } from "./services/gas-subsidy.service";
+import { GasSubsidyController } from "./controllers/gas-subsidy.controller";
 
 @Module({
   imports: [

@@ -1,8 +1,8 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import { createTransport, Transporter } from 'nodemailer';
-import { SentMessageInfo } from 'nodemailer';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as nodemailer from "nodemailer";
+import { createTransport, Transporter } from "nodemailer";
+import { SentMessageInfo } from "nodemailer";
 
 @Injectable()
 export class EmailNotificationService {
@@ -11,14 +11,18 @@ export class EmailNotificationService {
 
   constructor(private configService: ConfigService) {
     // Initialize nodemailer transporter with SMTP configuration
-    const smtpHost = this.configService.get<string>('SMTP_HOST');
-    const smtpPort = parseInt(this.configService.get<string>('SMTP_PORT') || '587');
-    const smtpUser = this.configService.get<string>('SMTP_USER');
-    const smtpPassword = this.configService.get<string>('SMTP_PASSWORD');
-    const smtpSecure = this.configService.get<boolean>('SMTP_SECURE') || false;
+    const smtpHost = this.configService.get<string>("SMTP_HOST");
+    const smtpPort = parseInt(
+      this.configService.get<string>("SMTP_PORT") || "587",
+    );
+    const smtpUser = this.configService.get<string>("SMTP_USER");
+    const smtpPassword = this.configService.get<string>("SMTP_PASSWORD");
+    const smtpSecure = this.configService.get<boolean>("SMTP_SECURE") || false;
 
     if (!smtpHost || !smtpUser || !smtpPassword) {
-      this.logger.warn('Email service not configured. Missing SMTP configuration.');
+      this.logger.warn(
+        "Email service not configured. Missing SMTP configuration.",
+      );
       return;
     }
 
@@ -39,44 +43,61 @@ export class EmailNotificationService {
   async sendGasReportEmail(
     recipientEmail: string,
     merchantName: string,
-    reportType: 'weekly' | 'monthly' | 'adhoc',
+    reportType: "weekly" | "monthly" | "adhoc",
     reportFilePath?: string,
     reportData?: any,
   ): Promise<boolean> {
     if (!this.transporter) {
-      this.logger.error('Email transporter not initialized. Check SMTP configuration.');
+      this.logger.error(
+        "Email transporter not initialized. Check SMTP configuration.",
+      );
       return false;
     }
 
     try {
       // Define email subject based on report type
-      const reportLabel = reportType.charAt(0).toUpperCase() + reportType.slice(1);
+      const reportLabel =
+        reportType.charAt(0).toUpperCase() + reportType.slice(1);
       const subject = `GasGuard ${reportLabel} Gas Usage Report for ${merchantName}`;
 
       // Generate email content
-      const htmlContent = this.generateEmailContent(merchantName, reportType, reportData);
+      const htmlContent = this.generateEmailContent(
+        merchantName,
+        reportType,
+        reportData,
+      );
 
       // Prepare mail options
       const mailOptions = {
-        from: this.configService.get<string>('SMTP_FROM_EMAIL') || 'noreply@gasguard.com',
+        from:
+          this.configService.get<string>("SMTP_FROM_EMAIL") ||
+          "noreply@gasguard.com",
         to: recipientEmail,
         subject: subject,
         html: htmlContent,
-        attachments: reportFilePath ? [
-          {
-            filename: `gas-report-${reportType}-${new Date().toISOString().split('T')[0]}.csv`,
-            path: reportFilePath,
-          }
-        ] : [],
+        attachments: reportFilePath
+          ? [
+              {
+                filename: `gas-report-${reportType}-${new Date().toISOString().split("T")[0]}.csv`,
+                path: reportFilePath,
+              },
+            ]
+          : [],
       };
 
       // Send email
-      const info: SentMessageInfo = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`Gas report email sent successfully to ${recipientEmail}. Message ID: ${info.messageId}`);
-      
+      const info: SentMessageInfo =
+        await this.transporter.sendMail(mailOptions);
+      this.logger.log(
+        `Gas report email sent successfully to ${recipientEmail}. Message ID: ${info.messageId}`,
+      );
+
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send gas report email to ${recipientEmail}`, error);
+      this.logger.error(
+        `Failed to send gas report email to ${recipientEmail}`,
+        error,
+      );
       return false;
     }
   }
@@ -84,9 +105,14 @@ export class EmailNotificationService {
   /**
    * Generate HTML content for the email
    */
-  private generateEmailContent(merchantName: string, reportType: string, reportData?: any): string {
-    const reportLabel = reportType.charAt(0).toUpperCase() + reportType.slice(1);
-    
+  private generateEmailContent(
+    merchantName: string,
+    reportType: string,
+    reportData?: any,
+  ): string {
+    const reportLabel =
+      reportType.charAt(0).toUpperCase() + reportType.slice(1);
+
     let content = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">GasGuard ${reportLabel} Gas Usage Report</h2>
@@ -99,10 +125,10 @@ export class EmailNotificationService {
         <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
           <h3>Report Summary</h3>
           <ul>
-            <li><strong>Total Gas Consumed:</strong> ${reportData.totalGasConsumed?.toLocaleString() || 'N/A'}</li>
-            <li><strong>Total Cost (USD):</strong> $${reportData.totalGasCostUsd?.toFixed(2) || 'N/A'}</li>
-            <li><strong>Transaction Count:</strong> ${reportData.transactionCount || 'N/A'}</li>
-            <li><strong>Success Rate:</strong> ${(reportData.successMetrics?.successRate)?.toFixed(2) || 'N/A'}%</li>
+            <li><strong>Total Gas Consumed:</strong> ${reportData.totalGasConsumed?.toLocaleString() || "N/A"}</li>
+            <li><strong>Total Cost (USD):</strong> $${reportData.totalGasCostUsd?.toFixed(2) || "N/A"}</li>
+            <li><strong>Transaction Count:</strong> ${reportData.transactionCount || "N/A"}</li>
+            <li><strong>Success Rate:</strong> ${reportData.successMetrics?.successRate?.toFixed(2) || "N/A"}%</li>
           </ul>
         </div>
       `;
@@ -122,9 +148,15 @@ export class EmailNotificationService {
   /**
    * Send notification about report generation failure
    */
-  async sendFailureNotification(recipientEmail: string, merchantName: string, error: string): Promise<boolean> {
+  async sendFailureNotification(
+    recipientEmail: string,
+    merchantName: string,
+    error: string,
+  ): Promise<boolean> {
     if (!this.transporter) {
-      this.logger.error('Email transporter not initialized. Check SMTP configuration.');
+      this.logger.error(
+        "Email transporter not initialized. Check SMTP configuration.",
+      );
       return false;
     }
 
@@ -144,18 +176,26 @@ export class EmailNotificationService {
       `;
 
       const mailOptions = {
-        from: this.configService.get<string>('SMTP_FROM_EMAIL') || 'noreply@gasguard.com',
+        from:
+          this.configService.get<string>("SMTP_FROM_EMAIL") ||
+          "noreply@gasguard.com",
         to: recipientEmail,
         subject: subject,
         html: htmlContent,
       };
 
-      const info: SentMessageInfo = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`Failure notification email sent to ${recipientEmail}. Message ID: ${info.messageId}`);
-      
+      const info: SentMessageInfo =
+        await this.transporter.sendMail(mailOptions);
+      this.logger.log(
+        `Failure notification email sent to ${recipientEmail}. Message ID: ${info.messageId}`,
+      );
+
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send failure notification email to ${recipientEmail}`, error);
+      this.logger.error(
+        `Failed to send failure notification email to ${recipientEmail}`,
+        error,
+      );
       return false;
     }
   }
@@ -170,10 +210,10 @@ export class EmailNotificationService {
 
     try {
       await this.transporter.verify();
-      this.logger.log('Email transporter verified successfully');
+      this.logger.log("Email transporter verified successfully");
       return true;
     } catch (error) {
-      this.logger.error('Email transporter verification failed', error);
+      this.logger.error("Email transporter verification failed", error);
       return false;
     }
   }

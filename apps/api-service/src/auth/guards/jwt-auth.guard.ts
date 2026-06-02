@@ -1,11 +1,15 @@
-import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { Observable } from 'rxjs';
+import {
+  Injectable,
+  ExecutionContext,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
+import { Observable } from "rxjs";
 
 /**
  * JWT Authentication Guard
  * Protects routes by requiring a valid JWT token
- * 
+ *
  * Usage:
  * ```typescript
  * @UseGuards(JwtAuthGuard)
@@ -14,7 +18,7 @@ import { Observable } from 'rxjs';
  * ```
  */
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
+export class JwtAuthGuard extends AuthGuard("jwt") {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
@@ -26,7 +30,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err: Error, user: any, info: any) {
     // You can throw an exception based on either "info" or "err" arguments
     if (err || !user) {
-      throw err || new UnauthorizedException('Authentication required');
+      throw err || new UnauthorizedException("Authentication required");
     }
     return user;
   }
@@ -35,7 +39,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 /**
  * Optional JWT Authentication Guard
  * Attaches user to request if token is present, but doesn't require it
- * 
+ *
  * Usage:
  * ```typescript
  * @UseGuards(OptionalJwtAuthGuard)
@@ -44,7 +48,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
  * ```
  */
 @Injectable()
-export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
+export class OptionalJwtAuthGuard extends AuthGuard("jwt") {
   handleRequest(err: Error, user: any) {
     // Return user if authenticated, null otherwise (no error)
     return user || null;

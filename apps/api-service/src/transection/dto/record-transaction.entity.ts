@@ -1,9 +1,6 @@
-import {
-  IsString, IsNumber, IsEnum, IsOptional,
-  Min,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { TxStatus, TxType } from '../transaction.entity';
+import { IsString, IsNumber, IsEnum, IsOptional, Min } from "class-validator";
+import { Type } from "class-transformer";
+import { TxStatus, TxType } from "../transaction.entity";
 
 export class RecordTransactionDto {
   @IsString()

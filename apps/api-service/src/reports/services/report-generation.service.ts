@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as csv from 'fast-csv';
+import { Injectable, Logger } from "@nestjs/common";
+import * as fs from "fs";
+import * as path from "path";
+import * as csv from "fast-csv";
 
 @Injectable()
 export class ReportGenerationService {
@@ -13,7 +13,7 @@ export class ReportGenerationService {
   async generateCsvReport(data: any, filename: string): Promise<string> {
     try {
       // Create reports directory if it doesn't exist
-      const reportsDir = path.join(process.cwd(), 'reports');
+      const reportsDir = path.join(process.cwd(), "reports");
       if (!fs.existsSync(reportsDir)) {
         fs.mkdirSync(reportsDir, { recursive: true });
       }
@@ -22,19 +22,19 @@ export class ReportGenerationService {
 
       // Prepare CSV data
       const csvData = [];
-      
+
       // Add header row
       csvData.push([
-        'Merchant ID', 
-        'Merchant Name', 
-        'Chain ID', 
-        'Chain Name', 
-        'Total Gas Used', 
-        'Total Cost (USD)', 
-        'Transaction Count', 
-        'Success Rate (%)',
-        'Start Date',
-        'End Date'
+        "Merchant ID",
+        "Merchant Name",
+        "Chain ID",
+        "Chain Name",
+        "Total Gas Used",
+        "Total Cost (USD)",
+        "Transaction Count",
+        "Success Rate (%)",
+        "Start Date",
+        "End Date",
       ]);
 
       // Add data rows
@@ -50,7 +50,7 @@ export class ReportGenerationService {
             chain.transactionCount,
             chain.successRate.toFixed(2),
             data.startDate,
-            data.endDate
+            data.endDate,
           ]);
         }
       }
@@ -58,16 +58,17 @@ export class ReportGenerationService {
       // Write CSV to file
       const ws = fs.createWriteStream(filePath);
       return new Promise((resolve, reject) => {
-        csv.write(csvData, { headers: false })
+        csv
+          .write(csvData, { headers: false })
           .pipe(ws)
-          .on('finish', () => {
+          .on("finish", () => {
             this.logger.log(`CSV report generated: ${filePath}`);
             resolve(filePath);
           })
-          .on('error', reject);
+          .on("error", reject);
       });
     } catch (error) {
-      this.logger.error('Failed to generate CSV report', error);
+      this.logger.error("Failed to generate CSV report", error);
       throw error;
     }
   }
@@ -78,7 +79,7 @@ export class ReportGenerationService {
   async generateHtmlReport(data: any, filename: string): Promise<string> {
     try {
       // Create reports directory if it doesn't exist
-      const reportsDir = path.join(process.cwd(), 'reports');
+      const reportsDir = path.join(process.cwd(), "reports");
       if (!fs.existsSync(reportsDir)) {
         fs.mkdirSync(reportsDir, { recursive: true });
       }
@@ -128,7 +129,9 @@ export class ReportGenerationService {
             </tr>
         </thead>
         <tbody>
-            ${data.chainBreakdown.map((chain: any) => `
+            ${data.chainBreakdown
+              .map(
+                (chain: any) => `
             <tr>
                 <td>${chain.chainId}</td>
                 <td>${chain.chainName}</td>
@@ -137,18 +140,28 @@ export class ReportGenerationService {
                 <td>${chain.transactionCount}</td>
                 <td>${chain.successRate.toFixed(2)}%</td>
             </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </tbody>
     </table>
 
-    ${data.anomalies && data.anomalies.length > 0 ? `
+    ${
+      data.anomalies && data.anomalies.length > 0
+        ? `
     <h3>Anomalies Detected</h3>
-    ${data.anomalies.map((anomaly: any) => `
+    ${data.anomalies
+      .map(
+        (anomaly: any) => `
         <div class="anomaly">
             <strong>${anomaly.type}:</strong> ${anomaly.message}
         </div>
-    `).join('')}
-    ` : ''}
+    `,
+      )
+      .join("")}
+    `
+        : ""
+    }
 </body>
 </html>`;
 
@@ -157,7 +170,7 @@ export class ReportGenerationService {
       this.logger.log(`HTML report generated: ${filePath}`);
       return filePath;
     } catch (error) {
-      this.logger.error('Failed to generate HTML report', error);
+      this.logger.error("Failed to generate HTML report", error);
       throw error;
     }
   }
@@ -168,7 +181,7 @@ export class ReportGenerationService {
   async generateTextReport(data: any, filename: string): Promise<string> {
     try {
       // Create reports directory if it doesn't exist
-      const reportsDir = path.join(process.cwd(), 'reports');
+      const reportsDir = path.join(process.cwd(), "reports");
       if (!fs.existsSync(reportsDir)) {
         fs.mkdirSync(reportsDir, { recursive: true });
       }
@@ -208,7 +221,7 @@ export class ReportGenerationService {
       this.logger.log(`Text report generated: ${filePath}`);
       return filePath;
     } catch (error) {
-      this.logger.error('Failed to generate text report', error);
+      this.logger.error("Failed to generate text report", error);
       throw error;
     }
   }

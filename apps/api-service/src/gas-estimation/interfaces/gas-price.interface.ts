@@ -30,7 +30,7 @@ export interface DynamicGasEstimate {
   totalEstimatedCostXLM: number;
   priceValidityDurationMs: number; // how long this price is valid
   expiresAt: Date;
-  recommendedPriority: 'low' | 'normal' | 'high' | 'critical';
+  recommendedPriority: "low" | "normal" | "high" | "critical";
   alternativePrices?: {
     low: number;
     medium: number;

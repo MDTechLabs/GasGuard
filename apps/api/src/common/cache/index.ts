@@ -1,3 +1,3 @@
-import { CacheService } from '@cache/index';
+import { CacheService } from "@cache/index";
 
 export const cacheService = new CacheService();

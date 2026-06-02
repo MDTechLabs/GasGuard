@@ -2,13 +2,17 @@
  * RuleTester - Core testing engine for GasGuard rules
  */
 
-import { Analyzer, AnalysisResult, Finding } from '../../../engine/core/analyzer-interface';
+import {
+  Analyzer,
+  AnalysisResult,
+  Finding,
+} from "../../../engine/core/analyzer-interface";
 import {
   RuleTestFixture,
   TestResult,
   ExpectedFinding,
   RuleTesterConfig,
-} from './types';
+} from "./types";
 
 const DEFAULT_CONFIG: RuleTesterConfig = {
   snapshotEnabled: false,
@@ -30,27 +34,34 @@ export class RuleTester {
    */
   async runFixture(fixture: RuleTestFixture): Promise<TestResult> {
     const startTime = Date.now();
-    
+
     try {
       // Run the analyzer
       const result = await this.analyzer.analyze(
         fixture.input,
-        `test-${fixture.id}.sol`
+        `test-${fixture.id}.sol`,
       );
 
       const actualFindings = result.findings;
-      
+
       // Match expected findings
       const { matched, missed, unexpected } = this.matchFindings(
         fixture.expectedFindings,
-        actualFindings
+        actualFindings,
       );
 
       const executionTimeMs = Date.now() - startTime;
       const passed = missed.length === 0 && unexpected.length === 0;
 
       if (this.config.verbose) {
-        this.logTestResult(fixture, passed, matched, missed, unexpected, executionTimeMs);
+        this.logTestResult(
+          fixture,
+          passed,
+          matched,
+          missed,
+          unexpected,
+          executionTimeMs,
+        );
       }
 
       return {
@@ -64,8 +75,9 @@ export class RuleTester {
       };
     } catch (error) {
       const executionTimeMs = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
       return {
         fixture,
         passed: false,
@@ -84,12 +96,12 @@ export class RuleTester {
    */
   async runFixtures(fixtures: RuleTestFixture[]): Promise<TestResult[]> {
     const results: TestResult[] = [];
-    
+
     for (const fixture of fixtures) {
       const result = await this.runFixture(fixture);
       results.push(result);
     }
-    
+
     return results;
   }
 
@@ -103,11 +115,14 @@ export class RuleTester {
     totalExecutionTime: number;
   }> {
     const results = await this.runFixtures(fixtures);
-    
-    const passed = results.filter(r => r.passed).length;
-    const failed = results.filter(r => !r.passed).length;
-    const totalExecutionTime = results.reduce((sum, r) => sum + r.executionTimeMs, 0);
-    
+
+    const passed = results.filter((r) => r.passed).length;
+    const failed = results.filter((r) => !r.passed).length;
+    const totalExecutionTime = results.reduce(
+      (sum, r) => sum + r.executionTimeMs,
+      0,
+    );
+
     return {
       results,
       passed,
@@ -121,19 +136,19 @@ export class RuleTester {
    */
   generateReport(results: TestResult[]): string {
     const total = results.length;
-    const passed = results.filter(r => r.passed).length;
+    const passed = results.filter((r) => r.passed).length;
     const failed = total - passed;
-    
-    let report = '\n' + '='.repeat(60) + '\n';
-    report += 'RULE TEST REPORT\n';
-    report += '='.repeat(60) + '\n\n';
-    
+
+    let report = "\n" + "=".repeat(60) + "\n";
+    report += "RULE TEST REPORT\n";
+    report += "=".repeat(60) + "\n\n";
+
     report += `Total: ${total} | Passed: ${passed} | Failed: ${failed}\n\n`;
-    
+
     for (const result of results) {
-      const status = result.passed ? '✓ PASS' : '✗ FAIL';
+      const status = result.passed ? "✓ PASS" : "✗ FAIL";
       report += `${status} ${result.fixture.name} (${result.executionTimeMs}ms)\n`;
-      
+
       if (!result.passed) {
         if (result.missedExpected.length > 0) {
           report += `  Missed ${result.missedExpected.length} expected finding(s)\n`;
@@ -146,9 +161,9 @@ export class RuleTester {
         }
       }
     }
-    
-    report += '\n' + '='.repeat(60) + '\n';
-    
+
+    report += "\n" + "=".repeat(60) + "\n";
+
     return report;
   }
 
@@ -157,7 +172,7 @@ export class RuleTester {
    */
   private matchFindings(
     expected: ExpectedFinding[],
-    actual: Finding[]
+    actual: Finding[],
   ): {
     matched: ExpectedFinding[];
     missed: ExpectedFinding[];
@@ -170,12 +185,12 @@ export class RuleTester {
     // Try to match each expected finding
     for (const exp of expected) {
       let found = false;
-      
+
       for (let i = 0; i < actual.length; i++) {
         if (matchedActualIndices.has(i)) continue;
-        
+
         const act = actual[i];
-        
+
         if (this.matchesExpected(act, exp)) {
           matched.push(exp);
           matchedActualIndices.add(i);
@@ -183,7 +198,7 @@ export class RuleTester {
           break;
         }
       }
-      
+
       if (!found) {
         missed.push(exp);
       }
@@ -242,22 +257,22 @@ export class RuleTester {
     matched: ExpectedFinding[],
     missed: ExpectedFinding[],
     unexpected: Finding[],
-    executionTimeMs: number
+    executionTimeMs: number,
   ): void {
-    const status = passed ? '✓ PASS' : '✗ FAIL';
+    const status = passed ? "✓ PASS" : "✗ FAIL";
     console.log(`\n${status} ${fixture.name} (${executionTimeMs}ms)`);
-    
+
     if (matched.length > 0) {
       console.log(`  ✓ Matched ${matched.length} expected finding(s)`);
     }
-    
+
     if (missed.length > 0) {
       console.log(`  ✗ Missed ${missed.length} expected finding(s):`);
       for (const m of missed) {
         console.log(`    - Rule: ${m.ruleId}, Severity: ${m.severity}`);
       }
     }
-    
+
     if (unexpected.length > 0) {
       console.log(`  ✗ Found ${unexpected.length} unexpected finding(s):`);
       for (const u of unexpected) {

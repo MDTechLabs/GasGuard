@@ -1,76 +1,76 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 import {
   GeneratorOptions,
   GenerateResult,
   TemplateKind,
   TemplateMetadata,
-} from './types';
+} from "./types";
 
 // ── Template metadata registry ────────────────────────────────────────────────
 
 /** Catalogue of all available Soroban contract templates. */
 export const TEMPLATE_REGISTRY: Record<TemplateKind, TemplateMetadata> = {
   token: {
-    kind: 'token',
-    title: 'Fungible Token (SEP-41)',
+    kind: "token",
+    title: "Fungible Token (SEP-41)",
     description:
-      'A production-ready fungible token contract with minting, burning, transfers, and allowances.',
+      "A production-ready fungible token contract with minting, burning, transfers, and allowances.",
     secureDefaults: [
-      'Admin-gated minting and role transfer',
-      'require_auth on every state-mutating call',
-      'Overflow-safe arithmetic with checked_add / checked_sub',
-      'Re-initialisation guard (panics if already initialised)',
-      'Self-transfer guard on transfer / transfer_from',
-      'Event emission for mint, burn, transfer, and approve',
-      'Allowance stored in temporary storage (auto-expiring)',
+      "Admin-gated minting and role transfer",
+      "require_auth on every state-mutating call",
+      "Overflow-safe arithmetic with checked_add / checked_sub",
+      "Re-initialisation guard (panics if already initialised)",
+      "Self-transfer guard on transfer / transfer_from",
+      "Event emission for mint, burn, transfer, and approve",
+      "Allowance stored in temporary storage (auto-expiring)",
     ],
-    fileName: 'token.rs',
+    fileName: "token.rs",
   },
   counter: {
-    kind: 'counter',
-    title: 'Counter',
+    kind: "counter",
+    title: "Counter",
     description:
-      'A minimal admin-gated counter demonstrating instance storage, overflow protection, and step configuration.',
+      "A minimal admin-gated counter demonstrating instance storage, overflow protection, and step configuration.",
     secureDefaults: [
-      'Admin-gated increment, decrement, and reset',
-      'Overflow / underflow protection via checked arithmetic',
-      'Configurable step size with minimum bound enforcement',
-      'Re-initialisation guard',
-      'Event emission on every mutation',
+      "Admin-gated increment, decrement, and reset",
+      "Overflow / underflow protection via checked arithmetic",
+      "Configurable step size with minimum bound enforcement",
+      "Re-initialisation guard",
+      "Event emission on every mutation",
     ],
-    fileName: 'counter.rs',
+    fileName: "counter.rs",
   },
   nft: {
-    kind: 'nft',
-    title: 'Non-Fungible Token (NFT)',
+    kind: "nft",
+    title: "Non-Fungible Token (NFT)",
     description:
-      'An NFT contract with mint, transfer, per-token approval, and operator approval.',
+      "An NFT contract with mint, transfer, per-token approval, and operator approval.",
     secureDefaults: [
-      'Admin-gated minting',
-      'Owner-only transfer and approval',
-      'Per-token approval cleared on transfer',
-      'Overflow-safe sequential token ID generation',
-      'Existence checks on all token operations',
-      'Event emission for mint, transfer, approve, and operator approval',
+      "Admin-gated minting",
+      "Owner-only transfer and approval",
+      "Per-token approval cleared on transfer",
+      "Overflow-safe sequential token ID generation",
+      "Existence checks on all token operations",
+      "Event emission for mint, transfer, approve, and operator approval",
     ],
-    fileName: 'nft.rs',
+    fileName: "nft.rs",
   },
   multisig: {
-    kind: 'multisig',
-    title: 'Multi-Signature Wallet',
+    kind: "multisig",
+    title: "Multi-Signature Wallet",
     description:
-      'An M-of-N multisig wallet with proposal lifecycle: create, approve, revoke, and execute.',
+      "An M-of-N multisig wallet with proposal lifecycle: create, approve, revoke, and execute.",
     secureDefaults: [
-      'Signer uniqueness enforced at initialisation',
-      'Threshold bounds checked (1 ≤ threshold ≤ signers count)',
-      'Proposal expiry via ledger sequence comparison',
-      'Executed flag set before external invocation (re-entrancy guard)',
-      'Duplicate-approval prevention',
-      'require_auth on every state-mutating call',
-      'Event emission for propose, approve, revoke, and execute',
+      "Signer uniqueness enforced at initialisation",
+      "Threshold bounds checked (1 ≤ threshold ≤ signers count)",
+      "Proposal expiry via ledger sequence comparison",
+      "Executed flag set before external invocation (re-entrancy guard)",
+      "Duplicate-approval prevention",
+      "require_auth on every state-mutating call",
+      "Event emission for propose, approve, revoke, and execute",
     ],
-    fileName: 'multisig.rs',
+    fileName: "multisig.rs",
   },
 };
 
@@ -88,7 +88,7 @@ export class SorobanTemplateGenerator {
 
   constructor(templatesDir?: string) {
     this.templatesDir =
-      templatesDir ?? path.resolve(__dirname, '..', 'templates');
+      templatesDir ?? path.resolve(__dirname, "..", "templates");
   }
 
   // ─── Public API ─────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ export class SorobanTemplateGenerator {
     const metadata = TEMPLATE_REGISTRY[kind];
     if (!metadata) {
       throw new Error(
-        `Unknown template kind "${kind}". Available: ${Object.keys(TEMPLATE_REGISTRY).join(', ')}.`,
+        `Unknown template kind "${kind}". Available: ${Object.keys(TEMPLATE_REGISTRY).join(", ")}.`,
       );
     }
 
@@ -134,7 +134,7 @@ export class SorobanTemplateGenerator {
       );
     }
 
-    fs.writeFileSync(filePath, rendered, 'utf-8');
+    fs.writeFileSync(filePath, rendered, "utf-8");
 
     return { filePath, kind, contractName };
   }
@@ -180,11 +180,11 @@ export class SorobanTemplateGenerator {
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Template file not found: ${templatePath}`);
     }
-    return fs.readFileSync(templatePath, 'utf-8');
+    return fs.readFileSync(templatePath, "utf-8");
   }
 
   private renderTemplate(template: string, contractName: string): string {
-    return template.split('{{CONTRACT_NAME}}').join(contractName);
+    return template.split("{{CONTRACT_NAME}}").join(contractName);
   }
 
   /**
@@ -193,7 +193,7 @@ export class SorobanTemplateGenerator {
    */
   private validateContractName(name: string): void {
     if (!name || name.trim().length === 0) {
-      throw new Error('Contract name must not be empty.');
+      throw new Error("Contract name must not be empty.");
     }
     if (!/^[A-Z][A-Za-z0-9]*$/.test(name)) {
       throw new Error(
@@ -201,7 +201,7 @@ export class SorobanTemplateGenerator {
       );
     }
     if (name.length > 64) {
-      throw new Error('Contract name must be 64 characters or fewer.');
+      throw new Error("Contract name must be 64 characters or fewer.");
     }
   }
 
@@ -211,6 +211,6 @@ export class SorobanTemplateGenerator {
       .replace(/([A-Z])/g, (match, letter, offset) =>
         offset === 0 ? letter.toLowerCase() : `_${letter.toLowerCase()}`,
       )
-      .replace(/__+/g, '_');
+      .replace(/__+/g, "_");
   }
 }

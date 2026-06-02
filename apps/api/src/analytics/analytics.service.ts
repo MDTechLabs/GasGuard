@@ -1,8 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, SelectQueryBuilder } from 'typeorm';
-import { GasSavings } from './entities/gas-savings.entity';
-import { GasSavingsDto, ProjectSavingsDto, RuleSavingsDto, TimeSeriesSavingsDto } from './dto/gas-savings.dto';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, Between, SelectQueryBuilder } from "typeorm";
+import { GasSavings } from "./entities/gas-savings.entity";
+import {
+  GasSavingsDto,
+  ProjectSavingsDto,
+  RuleSavingsDto,
+  TimeSeriesSavingsDto,
+} from "./dto/gas-savings.dto";
 
 @Injectable()
 export class AnalyticsService {
@@ -16,10 +21,10 @@ export class AnalyticsService {
    */
   async getTotalSavings(): Promise<number> {
     const result = await this.gasSavingsRepository
-      .createQueryBuilder('gas_savings')
-      .select('SUM(gas_savings.gasSaved)', 'total')
+      .createQueryBuilder("gas_savings")
+      .select("SUM(gas_savings.gasSaved)", "total")
       .getRawOne();
-    
+
     return result?.total ? parseInt(result.total) : 0;
   }
 
@@ -28,13 +33,13 @@ export class AnalyticsService {
    */
   async getSavingsByProject(): Promise<ProjectSavingsDto[]> {
     return this.gasSavingsRepository
-      .createQueryBuilder('gas_savings')
-      .select('gas_savings.projectId', 'projectId')
-      .addSelect('COUNT(DISTINCT gas_savings.scanId)', 'scanCount')
-      .addSelect('COUNT(*)', 'issueCount')
-      .addSelect('SUM(gas_savings.gasSaved)', 'totalGasSaved')
-      .groupBy('gas_savings.projectId')
-      .orderBy('totalGasSaved', 'DESC')
+      .createQueryBuilder("gas_savings")
+      .select("gas_savings.projectId", "projectId")
+      .addSelect("COUNT(DISTINCT gas_savings.scanId)", "scanCount")
+      .addSelect("COUNT(*)", "issueCount")
+      .addSelect("SUM(gas_savings.gasSaved)", "totalGasSaved")
+      .groupBy("gas_savings.projectId")
+      .orderBy("totalGasSaved", "DESC")
       .getRawMany();
   }
 
@@ -43,14 +48,14 @@ export class AnalyticsService {
    */
   async getSavingsByFile(projectId: string): Promise<any[]> {
     return this.gasSavingsRepository
-      .createQueryBuilder('gas_savings')
-      .select('gas_savings.fileName', 'fileName')
-      .addSelect('COUNT(*)', 'issueCount')
-      .addSelect('SUM(gas_savings.gasSaved)', 'totalGasSaved')
-      .addSelect('AVG(gas_savings.severity)', 'averageSeverity')
-      .where('gas_savings.projectId = :projectId', { projectId })
-      .groupBy('gas_savings.fileName')
-      .orderBy('totalGasSaved', 'DESC')
+      .createQueryBuilder("gas_savings")
+      .select("gas_savings.fileName", "fileName")
+      .addSelect("COUNT(*)", "issueCount")
+      .addSelect("SUM(gas_savings.gasSaved)", "totalGasSaved")
+      .addSelect("AVG(gas_savings.severity)", "averageSeverity")
+      .where("gas_savings.projectId = :projectId", { projectId })
+      .groupBy("gas_savings.fileName")
+      .orderBy("totalGasSaved", "DESC")
       .getRawMany();
   }
 
@@ -59,17 +64,17 @@ export class AnalyticsService {
    */
   async getSavingsByRule(projectId?: string): Promise<RuleSavingsDto[]> {
     const query = this.gasSavingsRepository
-      .createQueryBuilder('gas_savings')
-      .select('gas_savings.ruleId', 'ruleId')
-      .addSelect('gas_savings.ruleName', 'ruleName')
-      .addSelect('COUNT(*)', 'applicationCount')
-      .addSelect('SUM(gas_savings.gasSaved)', 'totalGasSaved')
-      .addSelect('AVG(gas_savings.gasSaved)', 'averageGasSaved')
-      .groupBy('gas_savings.ruleId, gas_savings.ruleName')
-      .orderBy('totalGasSaved', 'DESC');
+      .createQueryBuilder("gas_savings")
+      .select("gas_savings.ruleId", "ruleId")
+      .addSelect("gas_savings.ruleName", "ruleName")
+      .addSelect("COUNT(*)", "applicationCount")
+      .addSelect("SUM(gas_savings.gasSaved)", "totalGasSaved")
+      .addSelect("AVG(gas_savings.gasSaved)", "averageGasSaved")
+      .groupBy("gas_savings.ruleId, gas_savings.ruleName")
+      .orderBy("totalGasSaved", "DESC");
 
     if (projectId) {
-      query.where('gas_savings.projectId = :projectId', { projectId });
+      query.where("gas_savings.projectId = :projectId", { projectId });
     }
 
     return query.getRawMany();
@@ -82,31 +87,36 @@ export class AnalyticsService {
     projectId?: string,
     startDate?: Date,
     endDate?: Date,
-    granularity: 'hour' | 'day' | 'week' | 'month' = 'day'
+    granularity: "hour" | "day" | "week" | "month" = "day",
   ): Promise<TimeSeriesSavingsDto[]> {
-    let query = this.gasSavingsRepository
-      .createQueryBuilder('gas_savings');
+    let query = this.gasSavingsRepository.createQueryBuilder("gas_savings");
 
     if (projectId) {
-      query = query.where('gas_savings.projectId = :projectId', { projectId });
+      query = query.where("gas_savings.projectId = :projectId", { projectId });
     }
 
     if (startDate && endDate) {
-      query = query.andWhere('gas_savings.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      query = query.andWhere(
+        "gas_savings.createdAt BETWEEN :startDate AND :endDate",
+        {
+          startDate,
+          endDate,
+        },
+      );
     }
 
     const dateFormat = this.getDateFormat(granularity);
 
     return query
-      .select(`DATE_FORMAT(gas_savings.createdAt, '${dateFormat}')`, 'timeBucket')
-      .addSelect('COUNT(*)', 'issueCount')
-      .addSelect('SUM(gas_savings.gasSaved)', 'totalGasSaved')
-      .addSelect('COUNT(DISTINCT gas_savings.scanId)', 'scanCount')
+      .select(
+        `DATE_FORMAT(gas_savings.createdAt, '${dateFormat}')`,
+        "timeBucket",
+      )
+      .addSelect("COUNT(*)", "issueCount")
+      .addSelect("SUM(gas_savings.gasSaved)", "totalGasSaved")
+      .addSelect("COUNT(DISTINCT gas_savings.scanId)", "scanCount")
       .groupBy(`DATE_FORMAT(gas_savings.createdAt, '${dateFormat}')`)
-      .orderBy('timeBucket', 'ASC')
+      .orderBy("timeBucket", "ASC")
       .getRawMany();
   }
 
@@ -115,15 +125,15 @@ export class AnalyticsService {
    */
   async getSavingsBySeverity(projectId?: string): Promise<any[]> {
     const query = this.gasSavingsRepository
-      .createQueryBuilder('gas_savings')
-      .select('gas_savings.severity', 'severity')
-      .addSelect('COUNT(*)', 'issueCount')
-      .addSelect('SUM(gas_savings.gasSaved)', 'totalGasSaved')
-      .groupBy('gas_savings.severity')
-      .orderBy('severity', 'DESC');
+      .createQueryBuilder("gas_savings")
+      .select("gas_savings.severity", "severity")
+      .addSelect("COUNT(*)", "issueCount")
+      .addSelect("SUM(gas_savings.gasSaved)", "totalGasSaved")
+      .groupBy("gas_savings.severity")
+      .orderBy("severity", "DESC");
 
     if (projectId) {
-      query.where('gas_savings.projectId = :projectId', { projectId });
+      query.where("gas_savings.projectId = :projectId", { projectId });
     }
 
     return query.getRawMany();
@@ -132,19 +142,22 @@ export class AnalyticsService {
   /**
    * Get top optimization opportunities
    */
-  async getTopOptimizations(projectId?: string, limit: number = 10): Promise<any[]> {
+  async getTopOptimizations(
+    projectId?: string,
+    limit: number = 10,
+  ): Promise<any[]> {
     const query = this.gasSavingsRepository
-      .createQueryBuilder('gas_savings')
-      .select('gas_savings.fileName', 'fileName')
-      .addSelect('gas_savings.ruleName', 'ruleName')
-      .addSelect('gas_savings.description', 'description')
-      .addSelect('gas_savings.gasSaved', 'gasSaved')
-      .addSelect('gas_savings.lineNumber', 'lineNumber')
-      .addSelect('gas_savings.severity', 'severity')
-      .orderBy('gas_savings.gasSaved', 'DESC');
+      .createQueryBuilder("gas_savings")
+      .select("gas_savings.fileName", "fileName")
+      .addSelect("gas_savings.ruleName", "ruleName")
+      .addSelect("gas_savings.description", "description")
+      .addSelect("gas_savings.gasSaved", "gasSaved")
+      .addSelect("gas_savings.lineNumber", "lineNumber")
+      .addSelect("gas_savings.severity", "severity")
+      .orderBy("gas_savings.gasSaved", "DESC");
 
     if (projectId) {
-      query.where('gas_savings.projectId = :projectId', { projectId });
+      query.where("gas_savings.projectId = :projectId", { projectId });
     }
 
     return query.limit(limit).getRawMany();
@@ -160,14 +173,19 @@ export class AnalyticsService {
       ruleSavings,
       severityBreakdown,
       topOptimizations,
-      recentActivity
+      recentActivity,
     ] = await Promise.all([
       this.getTotalSavings(),
       this.getSavingsByProject(),
       this.getSavingsByRule(projectId),
       this.getSavingsBySeverity(projectId),
       this.getTopOptimizations(projectId, 5),
-      this.getSavingsTimeSeries(projectId, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), new Date(), 'day')
+      this.getSavingsTimeSeries(
+        projectId,
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        new Date(),
+        "day",
+      ),
     ]);
 
     return {
@@ -176,7 +194,9 @@ export class AnalyticsService {
         totalProjects: projectSavings.length,
         totalRules: ruleSavings.length,
       },
-      projectSavings: projectId ? projectSavings.filter(p => p.projectId === projectId) : projectSavings,
+      projectSavings: projectId
+        ? projectSavings.filter((p) => p.projectId === projectId)
+        : projectSavings,
       ruleSavings,
       severityBreakdown: this.formatSeverityData(severityBreakdown),
       topOptimizations,
@@ -188,7 +208,7 @@ export class AnalyticsService {
    * Record gas savings from a scan
    */
   async recordGasSavings(savings: GasSavingsDto[]): Promise<GasSavings[]> {
-    const entities = savings.map(saving => {
+    const entities = savings.map((saving) => {
       const entity = new GasSavings();
       entity.projectId = saving.projectId;
       entity.scanId = saving.scanId;
@@ -208,24 +228,24 @@ export class AnalyticsService {
 
   private getDateFormat(granularity: string): string {
     switch (granularity) {
-      case 'hour':
-        return '%Y-%m-%d %H:00:00';
-      case 'day':
-        return '%Y-%m-%d';
-      case 'week':
-        return '%Y-%u';
-      case 'month':
-        return '%Y-%m';
+      case "hour":
+        return "%Y-%m-%d %H:00:00";
+      case "day":
+        return "%Y-%m-%d";
+      case "week":
+        return "%Y-%u";
+      case "month":
+        return "%Y-%m";
       default:
-        return '%Y-%m-%d';
+        return "%Y-%m-%d";
     }
   }
 
   private formatSeverityData(severityData: any[]): any[] {
-    const severityNames = ['Info', 'Warning', 'Error', 'Critical'];
-    return severityData.map(item => ({
+    const severityNames = ["Info", "Warning", "Error", "Critical"];
+    return severityData.map((item) => ({
       ...item,
-      severityName: severityNames[item.severity - 1] || 'Unknown',
+      severityName: severityNames[item.severity - 1] || "Unknown",
     }));
   }
 }

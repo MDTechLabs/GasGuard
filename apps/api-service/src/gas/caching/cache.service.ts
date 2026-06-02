@@ -2,14 +2,14 @@
  * Cache Service
  * Core caching logic with RPC fallback
  */
-import { Injectable, Logger } from '@nestjs/common';
-import { RedisClient } from './redis.client';
-import { CacheMetricsService } from './cache-metrics.service';
-import { CacheConfig, getTTL, defaultCacheConfig } from './cache-config';
+import { Injectable, Logger } from "@nestjs/common";
+import { RedisClient } from "./redis.client";
+import { CacheMetricsService } from "./cache-metrics.service";
+import { CacheConfig, getTTL, defaultCacheConfig } from "./cache-config";
 
 @Injectable()
 export class CacheService {
-  private logger = new Logger('CacheService');
+  private logger = new Logger("CacheService");
   private redis: RedisClient;
   private config: CacheConfig;
 
@@ -23,7 +23,7 @@ export class CacheService {
    */
   async initialize(): Promise<void> {
     await this.redis.connect();
-    this.logger.log('Cache service initialized');
+    this.logger.log("Cache service initialized");
   }
 
   /**
@@ -120,7 +120,9 @@ export class CacheService {
       this.logger.debug(`Invalidated ${count} cache keys matching ${pattern}`);
       return count;
     } catch (error) {
-      this.logger.error(`Failed to invalidate pattern ${pattern}: ${error.message}`);
+      this.logger.error(
+        `Failed to invalidate pattern ${pattern}: ${error.message}`,
+      );
       return 0;
     }
   }
@@ -159,7 +161,7 @@ export class CacheService {
    */
   async clearAll(): Promise<void> {
     await this.redis.flush();
-    this.logger.log('All cache cleared');
+    this.logger.log("All cache cleared");
   }
 
   /**

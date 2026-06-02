@@ -1,6 +1,6 @@
 /**
  * Rate Limit Admin Controller
- * 
+ *
  * Admin endpoints for managing API key quotas and viewing usage statistics.
  * All endpoints are prefixed with /admin/api-keys
  */
@@ -16,10 +16,15 @@ import {
   HttpStatus,
   Logger,
   Version,
-} from '@nestjs/common';
-import { RateLimitService } from '../services/rate-limit.service';
-import { RedisService } from '../services/redis.service';
-import { QuotaConfig, TierPlan, UsageStats, MAX_TRANSACTION_LIMITS } from '../schemas/rate-limit.schema';
+} from "@nestjs/common";
+import { RateLimitService } from "../services/rate-limit.service";
+import { RedisService } from "../services/redis.service";
+import {
+  QuotaConfig,
+  TierPlan,
+  UsageStats,
+  MAX_TRANSACTION_LIMITS,
+} from "../schemas/rate-limit.schema";
 
 interface UpdateQuotaDto {
   requestsPerMinute?: number;
@@ -41,7 +46,7 @@ interface ResetResponse {
   resetAt: string;
 }
 
-@Controller('admin/api-keys')
+@Controller("admin/api-keys")
 export class RateLimitAdminController {
   private readonly logger = new Logger(RateLimitAdminController.name);
 
@@ -54,17 +59,17 @@ export class RateLimitAdminController {
    * Get usage statistics for an API key
    * GET /admin/api-keys/:key/usage
    */
-  @Version('1')
-  @Get(':key/usage')
-  async getUsage(@Param('key') apiKey: string): Promise<UsageStats> {
+  @Version("1")
+  @Get(":key/usage")
+  async getUsage(@Param("key") apiKey: string): Promise<UsageStats> {
     this.logger.log(`Getting usage for API key: ${apiKey}`);
 
     // Check Redis availability
     if (!this.redisService.isReady()) {
       throw new HttpException(
         {
-          error: 'Service Unavailable',
-          message: 'Rate limiting service temporarily unavailable',
+          error: "Service Unavailable",
+          message: "Rate limiting service temporarily unavailable",
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );
@@ -90,10 +95,10 @@ export class RateLimitAdminController {
    * Update quota for an API key
    * POST /admin/api-keys/:key/quota
    */
-  @Version('1')
-  @Post(':key/quota')
+  @Version("1")
+  @Post(":key/quota")
   async updateQuota(
-    @Param('key') apiKey: string,
+    @Param("key") apiKey: string,
     @Body() dto: UpdateQuotaDto,
   ): Promise<QuotaResponse> {
     this.logger.log(`Updating quota for API key: ${apiKey}`);
@@ -102,19 +107,25 @@ export class RateLimitAdminController {
     if (!this.redisService.isReady()) {
       throw new HttpException(
         {
-          error: 'Service Unavailable',
-          message: 'Rate limiting service temporarily unavailable',
+          error: "Service Unavailable",
+          message: "Rate limiting service temporarily unavailable",
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 
     // Validate input
-    if (!dto || (!dto.requestsPerMinute && !dto.requestsPerHour && !dto.requestsPerDay && !dto.tier)) {
+    if (
+      !dto ||
+      (!dto.requestsPerMinute &&
+        !dto.requestsPerHour &&
+        !dto.requestsPerDay &&
+        !dto.tier)
+    ) {
       throw new HttpException(
         {
-          error: 'Invalid Request',
-          message: 'At least one quota field or tier must be provided',
+          error: "Invalid Request",
+          message: "At least one quota field or tier must be provided",
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -122,12 +133,15 @@ export class RateLimitAdminController {
 
     // Validate quota values
     const quota: Partial<QuotaConfig> = {};
-    
+
     if (dto.requestsPerMinute !== undefined) {
-      if (dto.requestsPerMinute < 1 || dto.requestsPerMinute > MAX_TRANSACTION_LIMITS.requestsPerMinute) {
+      if (
+        dto.requestsPerMinute < 1 ||
+        dto.requestsPerMinute > MAX_TRANSACTION_LIMITS.requestsPerMinute
+      ) {
         throw new HttpException(
           {
-            error: 'Invalid Request',
+            error: "Invalid Request",
             message: `requestsPerMinute must be between 1 and ${MAX_TRANSACTION_LIMITS.requestsPerMinute}`,
           },
           HttpStatus.BAD_REQUEST,
@@ -137,10 +151,13 @@ export class RateLimitAdminController {
     }
 
     if (dto.requestsPerHour !== undefined) {
-      if (dto.requestsPerHour < 1 || dto.requestsPerHour > MAX_TRANSACTION_LIMITS.requestsPerHour) {
+      if (
+        dto.requestsPerHour < 1 ||
+        dto.requestsPerHour > MAX_TRANSACTION_LIMITS.requestsPerHour
+      ) {
         throw new HttpException(
           {
-            error: 'Invalid Request',
+            error: "Invalid Request",
             message: `requestsPerHour must be between 1 and ${MAX_TRANSACTION_LIMITS.requestsPerHour}`,
           },
           HttpStatus.BAD_REQUEST,
@@ -150,10 +167,13 @@ export class RateLimitAdminController {
     }
 
     if (dto.requestsPerDay !== undefined) {
-      if (dto.requestsPerDay < 1 || dto.requestsPerDay > MAX_TRANSACTION_LIMITS.requestsPerDay) {
+      if (
+        dto.requestsPerDay < 1 ||
+        dto.requestsPerDay > MAX_TRANSACTION_LIMITS.requestsPerDay
+      ) {
         throw new HttpException(
           {
-            error: 'Invalid Request',
+            error: "Invalid Request",
             message: `requestsPerDay must be between 1 and ${MAX_TRANSACTION_LIMITS.requestsPerDay}`,
           },
           HttpStatus.BAD_REQUEST,
@@ -168,8 +188,8 @@ export class RateLimitAdminController {
       if (!validTiers.includes(dto.tier)) {
         throw new HttpException(
           {
-            error: 'Invalid Request',
-            message: `tier must be one of: ${validTiers.join(', ')}`,
+            error: "Invalid Request",
+            message: `tier must be one of: ${validTiers.join(", ")}`,
           },
           HttpStatus.BAD_REQUEST,
         );
@@ -184,7 +204,7 @@ export class RateLimitAdminController {
 
     // Get updated usage to return current quota
     const usage = await this.rateLimitService.getUsage(apiKey);
-    
+
     return {
       apiKey,
       quota: {
@@ -201,17 +221,17 @@ export class RateLimitAdminController {
    * Reset counters for an API key
    * DELETE /admin/api-keys/:key/reset
    */
-  @Version('1')
-  @Delete(':key/reset')
-  async resetCounter(@Param('key') apiKey: string): Promise<ResetResponse> {
+  @Version("1")
+  @Delete(":key/reset")
+  async resetCounter(@Param("key") apiKey: string): Promise<ResetResponse> {
     this.logger.log(`Resetting counters for API key: ${apiKey}`);
 
     // Check Redis availability
     if (!this.redisService.isReady()) {
       throw new HttpException(
         {
-          error: 'Service Unavailable',
-          message: 'Rate limiting service temporarily unavailable',
+          error: "Service Unavailable",
+          message: "Rate limiting service temporarily unavailable",
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );
@@ -221,7 +241,7 @@ export class RateLimitAdminController {
 
     return {
       apiKey,
-      message: 'Rate limit counters have been reset successfully',
+      message: "Rate limit counters have been reset successfully",
       resetAt: new Date().toISOString(),
     };
   }

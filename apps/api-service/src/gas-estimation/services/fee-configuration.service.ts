@@ -220,9 +220,8 @@ export class FeeConfigurationService {
       );
     }
 
-    const isRequesterSigner = this.adminSettings.multisigSigners.includes(
-      adminUserId,
-    );
+    const isRequesterSigner =
+      this.adminSettings.multisigSigners.includes(adminUserId);
 
     const effectiveDate = this.getEffectiveDateWithDelay(updateRequest);
 
@@ -262,16 +261,16 @@ export class FeeConfigurationService {
     return { ...approvalRequest };
   }
 
-  async getApprovalRequests(
-    configId?: string,
-  ): Promise<ApprovalRequest[]> {
+  async getApprovalRequests(configId?: string): Promise<ApprovalRequest[]> {
     const requests = Array.from(this.pendingApprovals.values());
     return configId
       ? requests.filter((request) => request.configurationId === configId)
       : requests;
   }
 
-  async getApprovalRequest(approvalRequestId: string): Promise<ApprovalRequest> {
+  async getApprovalRequest(
+    approvalRequestId: string,
+  ): Promise<ApprovalRequest> {
     const approvalRequest = this.pendingApprovals.get(approvalRequestId);
     if (!approvalRequest) {
       throw new NotFoundException(
@@ -399,9 +398,7 @@ export class FeeConfigurationService {
     );
   }
 
-  async getScheduledUpdates(
-    configId?: string,
-  ): Promise<ScheduledUpdate[]> {
+  async getScheduledUpdates(configId?: string): Promise<ScheduledUpdate[]> {
     const updates = Array.from(this.scheduledUpdates.values());
     return configId
       ? updates.filter((update) => update.configurationId === configId)
@@ -474,9 +471,7 @@ export class FeeConfigurationService {
     return { ...scheduledUpdate };
   }
 
-  private getEffectiveDateWithDelay(
-    updateRequest: FeeUpdateRequest,
-  ): Date {
+  private getEffectiveDateWithDelay(updateRequest: FeeUpdateRequest): Date {
     const now = new Date();
     const delayMs = this.adminSettings.timelockDelayMinutes * 60 * 1000;
     const minimumEffectiveDate = new Date(now.getTime() + delayMs);

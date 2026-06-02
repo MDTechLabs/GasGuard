@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { DataAnalysisService } from './data-analysis.service';
-import { OptimizationSuggestion } from '../entities/optimization-suggestion.entity';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { DataAnalysisService } from "./data-analysis.service";
+import { OptimizationSuggestion } from "../entities/optimization-suggestion.entity";
+import { v4 as uuidv4 } from "uuid";
 
 export interface OptimizationSuggestionDto {
   type: string;
@@ -28,15 +28,23 @@ export class OptimizationEngineService {
   /**
    * Generate optimization suggestions for a merchant
    */
-  async generateOptimizationSuggestions(merchantId: string, daysBack: number = 30): Promise<OptimizationSuggestionDto[]> {
+  async generateOptimizationSuggestions(
+    merchantId: string,
+    daysBack: number = 30,
+  ): Promise<OptimizationSuggestionDto[]> {
     try {
       // Get transaction analysis
-      const analysis = await this.dataAnalysisService.getTransactionAnalysis(merchantId, daysBack);
+      const analysis = await this.dataAnalysisService.getTransactionAnalysis(
+        merchantId,
+        daysBack,
+      );
 
       const suggestions: OptimizationSuggestionDto[] = [];
 
       // 1. Chain Switch Recommendations
-      suggestions.push(...await this.generateChainSwitchSuggestions(analysis));
+      suggestions.push(
+        ...(await this.generateChainSwitchSuggestions(analysis)),
+      );
 
       // 2. Timing Adjustment Recommendations
       suggestions.push(...this.generateTimingAdjustmentSuggestions(analysis));
@@ -45,14 +53,21 @@ export class OptimizationEngineService {
       suggestions.push(...this.generateBatchOptimizationSuggestions(analysis));
 
       // 4. Failed Transaction Reduction Recommendations
-      suggestions.push(...this.generateFailedTransactionReductionSuggestions(analysis));
+      suggestions.push(
+        ...this.generateFailedTransactionReductionSuggestions(analysis),
+      );
 
       // 5. Gas Price Optimization Recommendations
-      suggestions.push(...this.generateGasPriceOptimizationSuggestions(analysis));
+      suggestions.push(
+        ...this.generateGasPriceOptimizationSuggestions(analysis),
+      );
 
       return suggestions;
     } catch (error) {
-      this.logger.error(`Failed to generate optimization suggestions for merchant ${merchantId}`, error);
+      this.logger.error(
+        `Failed to generate optimization suggestions for merchant ${merchantId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -60,38 +75,52 @@ export class OptimizationEngineService {
   /**
    * Generate chain switch suggestions based on cost comparison
    */
-  private async generateChainSwitchSuggestions(analysis: any): Promise<OptimizationSuggestionDto[]> {
+  private async generateChainSwitchSuggestions(
+    analysis: any,
+  ): Promise<OptimizationSuggestionDto[]> {
     const suggestions: OptimizationSuggestionDto[] = [];
-    
+
     // Find the most expensive chain and suggest switching to a cheaper alternative
     const expensiveChains = analysis.chainBreakdown
       .filter((chain: any) => chain.avgCostPerTransaction > 0)
-      .sort((a: any, b: any) => b.avgCostPerTransaction - a.avgCostPerTransaction);
+      .sort(
+        (a: any, b: any) => b.avgCostPerTransaction - a.avgCostPerTransaction,
+      );
 
     if (expensiveChains.length > 1) {
       const mostExpensive = expensiveChains[0];
       const cheapest = expensiveChains[expensiveChains.length - 1];
 
-      if (mostExpensive.avgCostPerTransaction > cheapest.avgCostPerTransaction * 1.5) {
+      if (
+        mostExpensive.avgCostPerTransaction >
+        cheapest.avgCostPerTransaction * 1.5
+      ) {
         // Calculate potential savings
         const transactionCount = mostExpensive.transactionCount;
-        const costDifference = mostExpensive.avgCostPerTransaction - cheapest.avgCostPerTransaction;
+        const costDifference =
+          mostExpensive.avgCostPerTransaction - cheapest.avgCostPerTransaction;
         const estimatedSavings = transactionCount * costDifference;
 
         suggestions.push({
-          type: 'ChainSwitch',
+          type: "ChainSwitch",
           description: `Switch ${Math.round((transactionCount / analysis.transactionStats.totalTransactions) * 100)}% of transfers from ${mostExpensive.chainName} to ${cheapest.chainName} to reduce gas costs`,
           estimatedSavingsUSD: parseFloat(estimatedSavings.toFixed(2)),
           priority: 4, // High priority
-          category: 'gas',
+          category: "gas",
           metadata: {
             fromChain: mostExpensive.chainId,
             toChain: cheapest.chainId,
             fromChainCost: mostExpensive.avgCostPerTransaction,
             toChainCost: cheapest.avgCostPerTransaction,
             transactionCount: transactionCount,
-            percentageOfTotal: parseFloat(((transactionCount / analysis.transactionStats.totalTransactions) * 100).toFixed(2))
-          }
+            percentageOfTotal: parseFloat(
+              (
+                (transactionCount /
+                  analysis.transactionStats.totalTransactions) *
+                100
+              ).toFixed(2),
+            ),
+          },
         });
       }
     }
@@ -102,36 +131,45 @@ export class OptimizationEngineService {
   /**
    * Generate timing adjustment suggestions based on gas price patterns
    */
-  private generateTimingAdjustmentSuggestions(analysis: any): OptimizationSuggestionDto[] {
+  private generateTimingAdjustmentSuggestions(
+    analysis: any,
+  ): OptimizationSuggestionDto[] {
     const suggestions: OptimizationSuggestionDto[] = [];
 
     // Find hours with lowest gas prices
-    const sortedHours = [...analysis.timeBasedPatterns].sort((a, b) => a.avgGasPrice - b.avgGasPrice);
+    const sortedHours = [...analysis.timeBasedPatterns].sort(
+      (a, b) => a.avgGasPrice - b.avgGasPrice,
+    );
     const lowestCostHour = sortedHours[0];
     const highestCostHour = sortedHours[sortedHours.length - 1];
 
-    if (highestCostHour && lowestCostHour && highestCostHour.avgGasPrice > lowestCostHour.avgGasPrice * 1.5) {
+    if (
+      highestCostHour &&
+      lowestCostHour &&
+      highestCostHour.avgGasPrice > lowestCostHour.avgGasPrice * 1.5
+    ) {
       // Calculate potential savings if transactions were moved to low-cost hours
       const highCostTransactions = analysis.timeBasedPatterns
         .filter((hour: any) => hour.hour === highestCostHour.hour)
         .reduce((sum: number, hour: any) => sum + hour.transactionCount, 0);
 
-      const costDifference = highestCostHour.avgGasPrice - lowestCostHour.avgGasPrice;
+      const costDifference =
+        highestCostHour.avgGasPrice - lowestCostHour.avgGasPrice;
       const estimatedSavings = highCostTransactions * costDifference;
 
       suggestions.push({
-        type: 'TimingAdjustment',
+        type: "TimingAdjustment",
         description: `Schedule contract interactions during low gas periods (UTC ${lowestCostHour.hour}:00–${lowestCostHour.hour + 1}:00)`,
         estimatedSavingsUSD: parseFloat(estimatedSavings.toFixed(2)),
         priority: 3, // Medium-high priority
-        category: 'gas',
+        category: "gas",
         metadata: {
           optimalHour: lowestCostHour.hour,
           worstHour: highestCostHour.hour,
           avgGasPriceLow: lowestCostHour.avgGasPrice,
           avgGasPriceHigh: highestCostHour.avgGasPrice,
-          highCostTransactionCount: highCostTransactions
-        }
+          highCostTransactionCount: highCostTransactions,
+        },
       });
     }
 
@@ -141,7 +179,9 @@ export class OptimizationEngineService {
   /**
    * Generate batch optimization suggestions
    */
-  private generateBatchOptimizationSuggestions(analysis: any): OptimizationSuggestionDto[] {
+  private generateBatchOptimizationSuggestions(
+    analysis: any,
+  ): OptimizationSuggestionDto[] {
     const suggestions: OptimizationSuggestionDto[] = [];
 
     // Look for opportunities to batch multiple transactions
@@ -151,16 +191,16 @@ export class OptimizationEngineService {
       const estimatedSavings = analysis.transactionStats.totalCostUSD * 0.2; // 20% savings estimate
 
       suggestions.push({
-        type: 'BatchOptimization',
+        type: "BatchOptimization",
         description: `Consider batching multiple transactions to reduce overall gas costs`,
         estimatedSavingsUSD: parseFloat(estimatedSavings.toFixed(2)),
         priority: 2, // Medium priority
-        category: 'gas',
+        category: "gas",
         metadata: {
           totalTransactions: analysis.transactionStats.totalTransactions,
-          transactionDensity: 'high',
-          estimatedSavingsPercentage: 20
-        }
+          transactionDensity: "high",
+          estimatedSavingsPercentage: 20,
+        },
       });
     }
 
@@ -170,31 +210,38 @@ export class OptimizationEngineService {
   /**
    * Generate failed transaction reduction suggestions
    */
-  private generateFailedTransactionReductionSuggestions(analysis: any): OptimizationSuggestionDto[] {
+  private generateFailedTransactionReductionSuggestions(
+    analysis: any,
+  ): OptimizationSuggestionDto[] {
     const suggestions: OptimizationSuggestionDto[] = [];
 
     // Check for high failure rate
     if (analysis.transactionStats.failedTransactions > 0) {
-      const failureRate = analysis.transactionStats.failedTransactions / analysis.transactionStats.totalTransactions;
-      
-      if (failureRate > 0.05) { // More than 5% failure rate
+      const failureRate =
+        analysis.transactionStats.failedTransactions /
+        analysis.transactionStats.totalTransactions;
+
+      if (failureRate > 0.05) {
+        // More than 5% failure rate
         // Estimate cost of failed transactions
         const avgGasUsed = analysis.transactionStats.avgGasUsed;
-        const failedGasWasted = analysis.transactionStats.failedTransactions * avgGasUsed;
+        const failedGasWasted =
+          analysis.transactionStats.failedTransactions * avgGasUsed;
         const estimatedSavings = failedGasWasted * 0.00000001; // Convert gas to USD approximation
 
         suggestions.push({
-          type: 'FailedTransactionReduction',
+          type: "FailedTransactionReduction",
           description: `Reduce failed transactions which currently account for ${(failureRate * 100).toFixed(2)}% of all transactions`,
           estimatedSavingsUSD: parseFloat(estimatedSavings.toFixed(2)),
           priority: 5, // Highest priority
-          category: 'gas',
+          category: "gas",
           metadata: {
             failureRate: failureRate,
-            failedTransactionCount: analysis.transactionStats.failedTransactions,
+            failedTransactionCount:
+              analysis.transactionStats.failedTransactions,
             totalTransactionCount: analysis.transactionStats.totalTransactions,
-            estimatedGasWasted: failedGasWasted
-          }
+            estimatedGasWasted: failedGasWasted,
+          },
         });
       }
     }
@@ -205,27 +252,30 @@ export class OptimizationEngineService {
   /**
    * Generate gas price optimization suggestions
    */
-  private generateGasPriceOptimizationSuggestions(analysis: any): OptimizationSuggestionDto[] {
+  private generateGasPriceOptimizationSuggestions(
+    analysis: any,
+  ): OptimizationSuggestionDto[] {
     const suggestions: OptimizationSuggestionDto[] = [];
 
     // Check for high gas price volatility
-    if (analysis.gasPriceVolatility.volatilityIndex > 0.5) { // High volatility
+    if (analysis.gasPriceVolatility.volatilityIndex > 0.5) {
+      // High volatility
       const avgGasPrice = analysis.gasPriceVolatility.avgGasPrice;
       const minGasPrice = analysis.gasPriceVolatility.minGasPrice;
       const potentialSavings = (avgGasPrice - minGasPrice) * 0.1; // Estimate 10% of transactions could save
 
       suggestions.push({
-        type: 'GasPriceOptimization',
+        type: "GasPriceOptimization",
         description: `Monitor gas prices more closely and submit transactions during low price periods`,
         estimatedSavingsUSD: parseFloat(potentialSavings.toFixed(2)),
         priority: 3, // Medium priority
-        category: 'gas',
+        category: "gas",
         metadata: {
           volatilityIndex: analysis.gasPriceVolatility.volatilityIndex,
           avgGasPrice: avgGasPrice,
           minGasPrice: minGasPrice,
-          maxGasPrice: analysis.gasPriceVolatility.maxGasPrice
-        }
+          maxGasPrice: analysis.gasPriceVolatility.maxGasPrice,
+        },
       });
     }
 
@@ -235,7 +285,10 @@ export class OptimizationEngineService {
   /**
    * Save optimization suggestions to the database
    */
-  async saveOptimizationSuggestions(merchantId: string, suggestions: OptimizationSuggestionDto[]): Promise<string[]> {
+  async saveOptimizationSuggestions(
+    merchantId: string,
+    suggestions: OptimizationSuggestionDto[],
+  ): Promise<string[]> {
     const savedSuggestionIds: string[] = [];
 
     for (const suggestion of suggestions) {
@@ -249,14 +302,15 @@ export class OptimizationEngineService {
       newSuggestion.estimatedSavingsGas = suggestion.estimatedSavingsGas;
       newSuggestion.priority = suggestion.priority;
       newSuggestion.metadata = suggestion.metadata;
-      newSuggestion.status = 'pending';
+      newSuggestion.status = "pending";
 
       // Set expiration date to 30 days from now
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
       newSuggestion.expiresAt = expiresAt;
 
-      const savedSuggestion = await this.optimizationSuggestionRepository.save(newSuggestion);
+      const savedSuggestion =
+        await this.optimizationSuggestionRepository.save(newSuggestion);
       savedSuggestionIds.push(savedSuggestion.id);
     }
 
@@ -266,16 +320,23 @@ export class OptimizationEngineService {
   /**
    * Get all optimization suggestions for a merchant
    */
-  async getOptimizationSuggestions(merchantId: string, status?: string): Promise<OptimizationSuggestion[]> {
-    const query = this.optimizationSuggestionRepository.createQueryBuilder('suggestion')
-      .where('suggestion.merchantId = :merchantId', { merchantId });
+  async getOptimizationSuggestions(
+    merchantId: string,
+    status?: string,
+  ): Promise<OptimizationSuggestion[]> {
+    const query = this.optimizationSuggestionRepository
+      .createQueryBuilder("suggestion")
+      .where("suggestion.merchantId = :merchantId", { merchantId });
 
     if (status) {
-      query.andWhere('suggestion.status = :status', { status });
+      query.andWhere("suggestion.status = :status", { status });
     }
 
     // Order by priority (descending) and then by creation date (descending)
-    return query.orderBy('suggestion.priority', 'DESC').addOrderBy('suggestion.createdAt', 'DESC').getMany();
+    return query
+      .orderBy("suggestion.priority", "DESC")
+      .addOrderBy("suggestion.createdAt", "DESC")
+      .getMany();
   }
 
   /**
@@ -283,7 +344,7 @@ export class OptimizationEngineService {
    */
   async markSuggestionAsApplied(suggestionId: string): Promise<void> {
     await this.optimizationSuggestionRepository.update(suggestionId, {
-      status: 'applied',
+      status: "applied",
       appliedAt: new Date(),
     });
   }
@@ -298,13 +359,17 @@ export class OptimizationEngineService {
     appliedSuggestions: number;
   }> {
     const allSuggestions = await this.getOptimizationSuggestions(merchantId);
-    
+
     const totalPotentialSavingsUSD = allSuggestions
-      .filter(s => s.status === 'pending')
+      .filter((s) => s.status === "pending")
       .reduce((sum, s) => sum + (s.estimatedSavingsUSD || 0), 0);
-    
-    const highPrioritySuggestions = allSuggestions.filter(s => s.priority >= 4 && s.status === 'pending').length;
-    const appliedSuggestions = allSuggestions.filter(s => s.status === 'applied').length;
+
+    const highPrioritySuggestions = allSuggestions.filter(
+      (s) => s.priority >= 4 && s.status === "pending",
+    ).length;
+    const appliedSuggestions = allSuggestions.filter(
+      (s) => s.status === "applied",
+    ).length;
 
     return {
       totalPotentialSavingsUSD: parseFloat(totalPotentialSavingsUSD.toFixed(2)),

@@ -1,7 +1,7 @@
-import * as crypto from 'crypto';
-import { promises as fs } from 'fs';
-import * as path from 'path';
-import { CacheService } from './cache.service';
+import * as crypto from "crypto";
+import { promises as fs } from "fs";
+import * as path from "path";
+import { CacheService } from "./cache.service";
 
 export interface FileHashInfo {
   filePath: string;
@@ -26,9 +26,12 @@ export class FileHashService {
   async generateFileHash(filePath: string): Promise<FileHashInfo> {
     try {
       const stats = await fs.stat(filePath);
-      const content = await fs.readFile(filePath, 'utf-8');
-      const contentHash = crypto.createHash('sha256').update(content).digest('hex');
-      
+      const content = await fs.readFile(filePath, "utf-8");
+      const contentHash = crypto
+        .createHash("sha256")
+        .update(content)
+        .digest("hex");
+
       return {
         filePath: path.normalize(filePath),
         contentHash,
@@ -36,15 +39,21 @@ export class FileHashService {
         fileSize: stats.size,
       };
     } catch (error) {
-      throw new Error(`Failed to generate hash for ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to generate hash for ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
   /**
    * Generate hashes for multiple files in parallel
    */
-  async generateMultipleFileHashes(filePaths: string[]): Promise<FileHashInfo[]> {
-    const hashPromises = filePaths.map(filePath => this.generateFileHash(filePath));
+  async generateMultipleFileHashes(
+    filePaths: string[],
+  ): Promise<FileHashInfo[]> {
+    const hashPromises = filePaths.map((filePath) =>
+      this.generateFileHash(filePath),
+    );
     return Promise.all(hashPromises);
   }
 
@@ -53,19 +62,23 @@ export class FileHashService {
    */
   async getCachedHashes(repoPath: string): Promise<Map<string, FileHashInfo>> {
     const cacheKey = `file-hashes:${this.normalizeRepoPath(repoPath)}`;
-    const cached = await this.cacheService.get<Record<string, FileHashInfo>>(cacheKey);
-    
+    const cached =
+      await this.cacheService.get<Record<string, FileHashInfo>>(cacheKey);
+
     if (!cached) {
       return new Map();
     }
-    
+
     return new Map(Object.entries(cached));
   }
 
   /**
    * Cache hash information for a repository
    */
-  async cacheHashes(repoPath: string, hashes: Map<string, FileHashInfo>): Promise<void> {
+  async cacheHashes(
+    repoPath: string,
+    hashes: Map<string, FileHashInfo>,
+  ): Promise<void> {
     const cacheKey = `file-hashes:${this.normalizeRepoPath(repoPath)}`;
     const hashObject = Object.fromEntries(hashes);
     await this.cacheService.set(cacheKey, hashObject, 86400); // 24 hours TTL
@@ -76,11 +89,14 @@ export class FileHashService {
    */
   async compareWithCache(
     repoPath: string,
-    currentFiles: string[]
+    currentFiles: string[],
   ): Promise<HashComparisonResult> {
     const cachedHashes = await this.getCachedHashes(repoPath);
     const currentHashes = new Map(
-      (await this.generateMultipleFileHashes(currentFiles)).map(info => [info.filePath, info])
+      (await this.generateMultipleFileHashes(currentFiles)).map((info) => [
+        info.filePath,
+        info,
+      ]),
     );
 
     const unchanged: FileHashInfo[] = [];
@@ -91,7 +107,7 @@ export class FileHashService {
     // Check for modified and unchanged files
     for (const [filePath, currentInfo] of currentHashes) {
       const cachedInfo = cachedHashes.get(filePath);
-      
+
       if (!cachedInfo) {
         added.push(currentInfo);
       } else if (cachedInfo.contentHash === currentInfo.contentHash) {
@@ -121,16 +137,19 @@ export class FileHashService {
    */
   async findDependentFiles(
     modifiedFiles: string[],
-    allFiles: string[]
+    allFiles: string[],
   ): Promise<string[]> {
     const dependentFiles: Set<string> = new Set();
-    
+
     for (const modifiedFile of modifiedFiles) {
       // Simple dependency detection based on file extensions and common patterns
-      const dependencies = await this.detectDependencies(modifiedFile, allFiles);
-      dependencies.forEach(dep => dependentFiles.add(dep));
+      const dependencies = await this.detectDependencies(
+        modifiedFile,
+        allFiles,
+      );
+      dependencies.forEach((dep) => dependentFiles.add(dep));
     }
-    
+
     return Array.from(dependentFiles);
   }
 
@@ -139,42 +158,49 @@ export class FileHashService {
    */
   private async detectDependencies(
     sourceFile: string,
-    allFiles: string[]
+    allFiles: string[],
   ): Promise<string[]> {
     const dependencies: string[] = [];
     const sourceExt = path.extname(sourceFile);
-    
+
     try {
-      const content = await fs.readFile(sourceFile, 'utf-8');
+      const content = await fs.readFile(sourceFile, "utf-8");
       const sourceDir = path.dirname(sourceFile);
-      
+
       // Rust dependencies
-      if (sourceExt === '.rs') {
+      if (sourceExt === ".rs") {
         const importMatches = content.match(/use\s+([^;]+);/g) || [];
         for (const importStmt of importMatches) {
-          const modulePath = importStmt.replace(/use\s+([^;]+);/, '$1').trim();
-          const possibleFiles = this.resolveRustImport(modulePath, sourceDir, allFiles);
+          const modulePath = importStmt.replace(/use\s+([^;]+);/, "$1").trim();
+          const possibleFiles = this.resolveRustImport(
+            modulePath,
+            sourceDir,
+            allFiles,
+          );
           dependencies.push(...possibleFiles);
         }
       }
-      
+
       // Solidity/Vyper dependencies
-      if (sourceExt === '.sol' || sourceExt === '.vy') {
+      if (sourceExt === ".sol" || sourceExt === ".vy") {
         const importMatches = content.match(/import\s+["']([^"']+)["']/g) || [];
         for (const importStmt of importMatches) {
           const importPath = importStmt.match(/import\s+["']([^"']+)["']/)?.[1];
           if (importPath) {
-            const possibleFiles = this.resolveSolidityImport(importPath, sourceDir, allFiles);
+            const possibleFiles = this.resolveSolidityImport(
+              importPath,
+              sourceDir,
+              allFiles,
+            );
             dependencies.push(...possibleFiles);
           }
         }
       }
-      
     } catch (error) {
       // If we can't read the file, skip dependency detection
     }
-    
-    return dependencies.filter(dep => allFiles.includes(dep));
+
+    return dependencies.filter((dep) => allFiles.includes(dep));
   }
 
   /**
@@ -183,17 +209,30 @@ export class FileHashService {
   private resolveRustImport(
     modulePath: string,
     sourceDir: string,
-    allFiles: string[]
+    allFiles: string[],
   ): string[] {
     const possibleFiles: string[] = [];
-    
+
     // Handle different Rust import patterns
-    if (modulePath.startsWith('crate::')) {
+    if (modulePath.startsWith("crate::")) {
       // Local crate imports
-      const relativePath = modulePath.replace('crate::', '').replace(/::/g, '/');
-      const possibleFile = path.join(sourceDir, '..', 'src', `${relativePath}.rs`);
-      const possibleModDir = path.join(sourceDir, '..', 'src', relativePath, 'mod.rs');
-      
+      const relativePath = modulePath
+        .replace("crate::", "")
+        .replace(/::/g, "/");
+      const possibleFile = path.join(
+        sourceDir,
+        "..",
+        "src",
+        `${relativePath}.rs`,
+      );
+      const possibleModDir = path.join(
+        sourceDir,
+        "..",
+        "src",
+        relativePath,
+        "mod.rs",
+      );
+
       if (allFiles.includes(possibleFile)) {
         possibleFiles.push(possibleFile);
       }
@@ -201,7 +240,7 @@ export class FileHashService {
         possibleFiles.push(possibleModDir);
       }
     }
-    
+
     return possibleFiles;
   }
 
@@ -211,27 +250,27 @@ export class FileHashService {
   private resolveSolidityImport(
     importPath: string,
     sourceDir: string,
-    allFiles: string[]
+    allFiles: string[],
   ): string[] {
     const possibleFiles: string[] = [];
-    
+
     // Relative imports
-    if (importPath.startsWith('./') || importPath.startsWith('../')) {
+    if (importPath.startsWith("./") || importPath.startsWith("../")) {
       const absolutePath = path.resolve(sourceDir, importPath);
-      const withExt = allFiles.find(f => f.startsWith(absolutePath));
+      const withExt = allFiles.find((f) => f.startsWith(absolutePath));
       if (withExt) {
         possibleFiles.push(withExt);
       }
     }
-    
+
     // Try adding .sol extension if not present
-    if (!importPath.endsWith('.sol')) {
+    if (!importPath.endsWith(".sol")) {
       const withSolExt = path.resolve(sourceDir, `${importPath}.sol`);
       if (allFiles.includes(withSolExt)) {
         possibleFiles.push(withSolExt);
       }
     }
-    
+
     return possibleFiles;
   }
 
@@ -239,14 +278,14 @@ export class FileHashService {
    * Normalize repository path for consistent caching
    */
   private normalizeRepoPath(repoPath: string): string {
-    return path.normalize(repoPath).replace(/\\/g, ':').replace(/\//g, ':');
+    return path.normalize(repoPath).replace(/\\/g, ":").replace(/\//g, ":");
   }
 
   /**
    * Get supported file extensions for analysis
    */
   getSupportedExtensions(): string[] {
-    return ['.rs', '.sol', '.vy'];
+    return [".rs", ".sol", ".vy"];
   }
 
   /**
@@ -254,7 +293,7 @@ export class FileHashService {
    */
   filterSupportedFiles(filePaths: string[]): string[] {
     const supportedExts = this.getSupportedExtensions();
-    return filePaths.filter(filePath => {
+    return filePaths.filter((filePath) => {
       const ext = path.extname(filePath);
       return supportedExts.includes(ext);
     });

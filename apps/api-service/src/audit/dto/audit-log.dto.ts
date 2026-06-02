@@ -1,5 +1,5 @@
-import { IsOptional, IsEnum, IsString } from 'class-validator';
-import { EventType, OutcomeStatus } from '../entities';
+import { IsOptional, IsEnum, IsString } from "class-validator";
+import { EventType, OutcomeStatus } from "../entities";
 
 export class AuditLogFilterDto {
   @IsOptional()
@@ -37,11 +37,11 @@ export class AuditLogFilterDto {
 
   @IsOptional()
   @IsString()
-  sortBy?: string = 'timestamp';
+  sortBy?: string = "timestamp";
 
   @IsOptional()
   @IsString()
-  sortOrder?: 'ASC' | 'DESC' = 'DESC';
+  sortOrder?: "ASC" | "DESC" = "DESC";
 }
 
 export class CreateAuditLogDto {
@@ -85,7 +85,7 @@ export class AuditLogsPageDto {
 }
 
 export class ExportAuditLogsDto {
-  format: 'csv' | 'json';
+  format: "csv" | "json";
   eventType?: string;
   user?: string;
   from?: string;

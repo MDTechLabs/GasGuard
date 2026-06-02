@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
-import { Transaction } from '../../database/entities/transaction.entity';
-import { Merchant } from '../../database/entities/merchant.entity';
-import { Chain } from '../../database/entities/chain.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from "typeorm";
+import { Transaction } from "../../database/entities/transaction.entity";
+import { Merchant } from "../../database/entities/merchant.entity";
+import { Chain } from "../../database/entities/chain.entity";
 
 @Injectable()
 export class DataAggregationService {
@@ -65,18 +65,21 @@ export class DataAggregationService {
       let failedTransactions = 0;
 
       // Group transactions by chain
-      const chainMap = new Map<string, {
-        totalGas: number;
-        totalCostUsd: number;
-        transactionCount: number;
-        successfulTransactions: number;
-      }>();
+      const chainMap = new Map<
+        string,
+        {
+          totalGas: number;
+          totalCostUsd: number;
+          transactionCount: number;
+          successfulTransactions: number;
+        }
+      >();
 
       for (const transaction of transactions) {
         totalGasConsumed += Number(transaction.gasUsed || 0);
         totalGasCostUsd += Number(transaction.transactionFee || 0);
 
-        if (transaction.status === 'success') {
+        if (transaction.status === "success") {
           successfulTransactions++;
         } else {
           failedTransactions++;
@@ -96,7 +99,7 @@ export class DataAggregationService {
         chainData.totalGas += Number(transaction.gasUsed || 0);
         chainData.totalCostUsd += Number(transaction.transactionFee || 0);
         chainData.transactionCount++;
-        if (transaction.status === 'success') {
+        if (transaction.status === "success") {
           chainData.successfulTransactions++;
         }
       }
@@ -104,18 +107,23 @@ export class DataAggregationService {
       // Get chain names for the breakdown
       const chainIds = Array.from(chainMap.keys());
       const chains = await this.chainRepository.findByIds(chainIds);
-      const chainNameMap = new Map(chains.map(chain => [chain.id, chain.name]));
+      const chainNameMap = new Map(
+        chains.map((chain) => [chain.id, chain.name]),
+      );
 
-      const chainBreakdown = Array.from(chainMap.entries()).map(([chainId, data]) => ({
-        chainId,
-        chainName: chainNameMap.get(chainId) || chainId,
-        totalGas: data.totalGas,
-        totalCostUsd: data.totalCostUsd,
-        transactionCount: data.transactionCount,
-        successRate: data.transactionCount > 0 
-          ? (data.successfulTransactions / data.transactionCount) * 100 
-          : 0,
-      }));
+      const chainBreakdown = Array.from(chainMap.entries()).map(
+        ([chainId, data]) => ({
+          chainId,
+          chainName: chainNameMap.get(chainId) || chainId,
+          totalGas: data.totalGas,
+          totalCostUsd: data.totalCostUsd,
+          transactionCount: data.transactionCount,
+          successRate:
+            data.transactionCount > 0
+              ? (data.successfulTransactions / data.transactionCount) * 100
+              : 0,
+        }),
+      );
 
       return {
         merchantDetails: {
@@ -130,13 +138,17 @@ export class DataAggregationService {
         successMetrics: {
           successfulTransactions,
           failedTransactions,
-          successRate: transactions.length > 0
-            ? (successfulTransactions / transactions.length) * 100
-            : 0,
+          successRate:
+            transactions.length > 0
+              ? (successfulTransactions / transactions.length) * 100
+              : 0,
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to aggregate gas usage data for merchant ${merchantId}`, error);
+      this.logger.error(
+        `Failed to aggregate gas usage data for merchant ${merchantId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -164,18 +176,22 @@ export class DataAggregationService {
   /**
    * Identify abnormal usage patterns
    */
-  async detectAbnormalUsage(merchantId: string, period: 'weekly' | 'monthly'): Promise<any[]> {
+  async detectAbnormalUsage(
+    merchantId: string,
+    period: "weekly" | "monthly",
+  ): Promise<any[]> {
     // Get current period data
-    const currentData = period === 'weekly' 
-      ? await this.getWeeklyGasUsage(merchantId)
-      : await this.getMonthlyGasUsage(merchantId);
+    const currentData =
+      period === "weekly"
+        ? await this.getWeeklyGasUsage(merchantId)
+        : await this.getMonthlyGasUsage(merchantId);
 
     // Compare with previous period data to detect anomalies
     // This is a simplified version - in practice, you'd want more sophisticated anomaly detection
     const previousStartDate = new Date(currentData.startDate);
     const previousEndDate = new Date(currentData.endDate);
 
-    if (period === 'weekly') {
+    if (period === "weekly") {
       previousStartDate.setDate(previousStartDate.getDate() - 7);
       previousEndDate.setDate(previousEndDate.getDate() - 7);
     } else {
@@ -187,7 +203,7 @@ export class DataAggregationService {
     const previousData = await this.aggregateGasUsageData(
       merchantId,
       previousStartDate,
-      previousEndDate
+      previousEndDate,
     );
 
     const anomalies = [];
@@ -195,8 +211,8 @@ export class DataAggregationService {
     // Check for significant increases in gas consumption
     if (currentData.totalGasConsumed > previousData.totalGasConsumed * 1.5) {
       anomalies.push({
-        type: 'HIGH_GAS_CONSUMPTION',
-        message: `Gas consumption increased by ${(currentData.totalGasConsumed / previousData.totalGasConsumed * 100 - 100).toFixed(2)}% compared to previous ${period}`,
+        type: "HIGH_GAS_CONSUMPTION",
+        message: `Gas consumption increased by ${((currentData.totalGasConsumed / previousData.totalGasConsumed) * 100 - 100).toFixed(2)}% compared to previous ${period}`,
         currentValue: currentData.totalGasConsumed,
         previousValue: previousData.totalGasConsumed,
       });
@@ -206,10 +222,11 @@ export class DataAggregationService {
     const currentSuccessRate = currentData.successMetrics.successRate;
     const previousSuccessRate = previousData.successMetrics.successRate;
     const rateDifference = Math.abs(currentSuccessRate - previousSuccessRate);
-    
-    if (rateDifference > 10) { // More than 10% difference
+
+    if (rateDifference > 10) {
+      // More than 10% difference
       anomalies.push({
-        type: 'SUCCESS_RATE_CHANGE',
+        type: "SUCCESS_RATE_CHANGE",
         message: `Transaction success rate changed by ${rateDifference.toFixed(2)}% compared to previous ${period}`,
         currentValue: currentSuccessRate,
         previousValue: previousSuccessRate,
