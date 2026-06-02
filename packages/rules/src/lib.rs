@@ -20,7 +20,9 @@ pub use optimization::storage::{
     VariableInfo,
 };
 pub use optimization::deployment::{estimate_bytecode_size, ExcessiveContractSizeRule};
+pub use optimization::functions::MissingCalldataUsageRule;
 pub use security::HardcodedAddressesRule;
+pub use security::MissingDomainSeparationRule;
 
 // Export Soroban types specifically
 pub use soroban::{

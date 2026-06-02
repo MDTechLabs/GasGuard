@@ -1,5 +1,6 @@
 pub mod storage;
 pub mod deployment;
+pub mod functions;
 
 pub use storage::{
     detect_packing_opportunities,
@@ -11,3 +12,4 @@ pub use storage::{
 };
 
 pub use deployment::{estimate_bytecode_size, ExcessiveContractSizeRule};
+pub use functions::MissingCalldataUsageRule;
