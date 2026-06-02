@@ -30,6 +30,7 @@ impl SorobanLinter {
         rules.push(Box::new(stellar_sdk_rules::SdkUsageRule));
         rules.push(Box::new(stellar_sdk_rules::AddressValidationRule));
         rules.push(Box::new(gas_optimization_rules::StorageReadRule));
+        rules.push(Box::new(gas_optimization_rules::MapIterationRule));
         rules.push(Box::new(gas_optimization_rules::EventEmissionRule));
         
         Self { rules }

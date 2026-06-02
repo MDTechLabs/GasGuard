@@ -59,6 +59,56 @@ impl SorobanLintRule for StorageReadRule {
     }
 }
 
+/// Rule to detect gas-heavy Soroban Map iteration
+pub struct MapIterationRule;
+
+impl SorobanLintRule for MapIterationRule {
+    fn id(&self) -> &'static str {
+        "soroban-map-iteration"
+    }
+
+    fn name(&self) -> &'static str {
+        "Soroban Map Iteration"
+    }
+
+    fn description(&self) -> &'static str {
+        "Detects heavy iteration over Soroban Map collections that can be expensive for large datasets"
+    }
+
+    fn severity(&self) -> ViolationSeverity {
+        ViolationSeverity::High
+    }
+
+    fn check(&self, source: &str, file_path: &str) -> Option<Vec<RuleViolation>> {
+        let mut violations = Vec::new();
+        let lines: Vec<&str> = source.lines().collect();
+
+        for (i, line) in lines.iter().enumerate() {
+            if (line.contains("for ") || line.contains("while ")) &&
+               (line.contains(".iter()") || line.contains(".keys(") || line.contains(".values(") || line.contains(".entries(") || line.contains(".range(")) {
+                let window = lines.iter().skip(i.saturating_sub(8)).take(20).collect::<Vec<_>>().join("\n");
+                if window.contains("Map<") || window.contains("Map::") || window.contains(".iter()") {
+                    violations.push(RuleViolation {
+                        rule_name: self.id().to_string(),
+                        description: "Detected potentially expensive iteration over a Soroban Map".to_string(),
+                        suggestion: "Use pagination or chunked iteration rather than iterating over the entire Map in one call".to_string(),
+                        line_number: i + 1,
+                        column_number: 0,
+                        variable_name: file_path.to_string(),
+                        severity: self.severity(),
+                    });
+                }
+            }
+        }
+
+        if violations.is_empty() {
+            None
+        } else {
+            Some(violations)
+        }
+    }
+}
+
 /// Rule to check for efficient event emission patterns
 pub struct EventEmissionRule;
 
