@@ -5,7 +5,6 @@
 
 use crate::soroban::memory::InefficientBytesAllocationRule;
 use crate::soroban::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
-use super::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -49,7 +48,7 @@ impl SorobanRuleEngine {
             .add_rule(AdminPatternRule::default())
             .add_rule(InefficientIntegerTypesRule::default())
             .add_rule(MissingErrorHandlingRule::default())
-            .add_rule(InefficientBytesAllocationRule::default());
+            .add_rule(InefficientBytesAllocationRule::default())
             .add_rule(EmergencyWithdrawalRule::default())
             .add_rule(GovernanceVotingRule::default())
             .add_rule(ClaimExpirationRule::default())    // #117

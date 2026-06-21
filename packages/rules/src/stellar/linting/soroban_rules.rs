@@ -65,7 +65,7 @@ impl SorobanLintRule for ContractMacroRule {
                     line_number: i + 1,
                     column_number: 0,
                     variable_name: file_path.to_string(),
-                    severity: ViolationSeverity::Error,
+                    severity: ViolationSeverity::Critical,
                 });
             }
         }

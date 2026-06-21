@@ -207,7 +207,8 @@ impl MyContract {
 }
 "#;
 
-        let violations = MapIterationRule.check(&MapIterationRule, source, "test.rs");
+        let rule = MapIterationRule;
+        let violations = rule.check(source, "test.rs");
         assert!(violations.is_some());
         let violations = violations.unwrap();
         assert!(violations.iter().any(|v| v.rule_name == "soroban-map-iteration"));
@@ -228,7 +229,8 @@ impl MyContract {
 }
 "#;
 
-        let violations = MapIterationRule.check(&MapIterationRule, source, "test.rs");
+        let rule = MapIterationRule;
+        let violations = rule.check(source, "test.rs");
         assert!(violations.is_none());
     }
 }
