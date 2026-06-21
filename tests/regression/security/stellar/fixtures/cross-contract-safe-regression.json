@@ -1,0 +1,16 @@
+{
+  "id": "stellar-regression-cross-contract-safe",
+  "name": "Safe Cross-Contract Invocation Regression Suite",
+  "description": "Validates that detect-unsafe-cross-contract-invocation does NOT false-positive on guarded cross-contract calls",
+  "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Bytes, Symbol, Vec, Val};\n\n#[contractimpl]\nimpl SafeBridgeContract {\n    // SAFE: invoke_contract with require_auth and .expect\n    pub fn safe_transfer(env: Env, admin: Address, target: Address, amount: i128) {\n        admin.require_auth();\n        let client = Client::new(&env, &target);\n        let result = client.transfer(&amount);\n        result.unwrap_or_else(|e| panic!(\"transfer failed\"));\n    }\n\n    // SAFE: env.invoke_contract with match on result\n    pub fn safe_relay(env: Env, contract: Address, func: Bytes, args: Bytes) -> Bytes {\n        let result = env.invoke_contract(&contract, &func, &args);\n        match result {\n            Ok(data) => data,\n            Err(_) => panic!(\"invocation failed\"),\n        }\n    }\n\n    // SAFE: invoke_contract with .expect handling\n    pub fn safe_call_external(env: Env, target: Address, method: Symbol, args: Vec<Val>) -> Val {\n        env.invoke_contract(&target, &method, &args).expect(\"external call failed\")\n    }\n\n    pub fn get_balance(env: Env, address: Address) -> i128 {\n        env.storage().instance().get(&address).unwrap_or(0)\n    }\n}",
+  "expectedFindings": [],
+  "metadata": {
+    "language": "soroban",
+    "category": "cross-contract",
+    "tags": ["regression", "cross-contract", "safe-patterns"],
+    "regressionType": "cross-version",
+    "expectedTotalViolations": 0,
+    "safePatternsPresent": ["safe_transfer", "safe_relay", "safe_call_external", "get_balance"],
+    "targetRule": "detect-unsafe-cross-contract-invocation"
+  }
+}

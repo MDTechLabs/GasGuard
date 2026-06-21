@@ -1,0 +1,47 @@
+{
+  "id": "stellar-regression-weak-role-hierarchy",
+  "name": "Weak Role Hierarchy Regression Suite",
+  "description": "Validates that detect-weak-role-hierarchies correctly flags role-assignment functions lacking superior-authority checks while not flagging properly guarded functions",
+  "input": "use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};\n\n#[contracttype]\npub enum Role { Admin, Moderator, User }\n\n#[contractimpl]\nimpl RoleContract {\n    // WEAK: grant_role with only basic require_auth (no hierarchy check)\n    pub fn grant_role(env: Env, caller: Address, target: Address, role: Role) {\n        caller.require_auth();\n        env.storage().instance().set(&target, &role);\n    }\n\n    // WEAK: assign_role with no auth at all\n    pub fn assign_role(env: Env, target: Address, role: Role) {\n        env.storage().instance().set(&target, &role);\n    }\n\n    // SAFE: promote with admin.require_auth + assert_admin (proper hierarchy)\n    pub fn safe_promote(env: Env, admin: Address, target: Address, role: Role) {\n        admin.require_auth();\n        assert_admin(&env, &admin);\n        env.storage().instance().set(&target, &role);\n    }\n\n    // WEAK: set_role with only require_auth\n    pub fn set_role(env: Env, caller: Address, target: Address, role: Role) {\n        caller.require_auth();\n        env.storage().instance().set(&target, &role);\n    }\n\n    // SAFE: add_admin with only_admin guard\n    pub fn add_admin(env: Env, caller: Address, new_admin: Address) {\n        only_admin(&env, &caller);\n        env.storage().instance().set(&new_admin, &Role::Admin);\n    }\n\n    // SAFE: make_admin with admin.require_auth\n    pub fn make_admin(env: Env, admin: Address, target: Address) {\n        admin.require_auth();\n        require_role(&env, &admin, Role::Admin);\n        env.storage().instance().set(&target, &Role::Admin);\n    }\n\n    // WEAK: add_role with no auth at all\n    pub fn add_role(env: Env, target: Address, role: Role) {\n        env.storage().instance().set(&target, &role);\n    }\n\n    // WEAK: escalate_role with basic require_auth\n    pub fn escalate_role(env: Env, caller: Address, target: Address, role: Role) {\n        caller.require_auth();\n        env.storage().instance().set(&target, &role);\n    }\n\n    // SAFE: set_admin with require_auth and is_admin check\n    pub fn set_admin(env: Env, admin: Address, new_admin: Address) {\n        admin.require_auth();\n        if !is_admin(&env, &admin) { panic!(\"not admin\") };\n        env.storage().instance().set(&Symbol::new(&env, \"admin\"), &new_admin);\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "stellar-access-control/weak-role-hierarchy",
+      "severity": "high",
+      "messagePattern": "grant_role",
+      "line": 10
+    },
+    {
+      "ruleId": "stellar-access-control/weak-role-hierarchy",
+      "severity": "high",
+      "messagePattern": "assign_role",
+      "line": 15
+    },
+    {
+      "ruleId": "stellar-access-control/weak-role-hierarchy",
+      "severity": "high",
+      "messagePattern": "set_role",
+      "line": 26
+    },
+    {
+      "ruleId": "stellar-access-control/weak-role-hierarchy",
+      "severity": "high",
+      "messagePattern": "add_role",
+      "line": 40
+    },
+    {
+      "ruleId": "stellar-access-control/weak-role-hierarchy",
+      "severity": "high",
+      "messagePattern": "escalate_role",
+      "line": 45
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "access-control",
+    "tags": ["regression", "role-hierarchy", "privilege-escalation"],
+    "regressionType": "cross-version",
+    "expectedTotalViolations": 5,
+    "safePatternsPresent": ["safe_promote", "add_admin", "make_admin", "set_admin"],
+    "targetRule": "detect-weak-role-hierarchies"
+  }
+}

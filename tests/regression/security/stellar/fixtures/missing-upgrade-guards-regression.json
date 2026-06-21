@@ -1,0 +1,23 @@
+{
+  "id": "stellar-regression-missing-upgrade-guards",
+  "name": "Missing Upgrade Guards Regression Suite",
+  "description": "Validates that detect-missing-upgrade-guards correctly flags upgrade functions lacking admin authorization",
+  "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Bytes};\n\n#[contractimpl]\nimpl UpgradableContract {\n    // VULNERABLE: upgrade without auth guard\n    pub fn upgrade(env: Env, new_wasm: Bytes) {\n        env.deployer().upload_contract_wasm(&new_wasm);\n    }\n\n    // VULNERABLE: update_contract without auth guard\n    pub fn update_contract(env: Env, new_wasm: Bytes) {\n        env.deployer().upload_contract_wasm(&new_wasm);\n    }\n\n    // VULNERABLE: set_wasm without auth guard\n    pub fn set_wasm(env: Env, code: Bytes) {\n        env.deployer().upload_contract_wasm(&code);\n    }\n\n    // SAFE: regular function (no upgrade patterns, not flagged)\n    pub fn get_version(env: Env) -> u32 {\n        1\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "stellar-upgradeability/missing-guard",
+      "severity": "high",
+      "messagePattern": "Upgrade method detected without admin authorization guard",
+      "line": 6
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "upgradeability",
+    "tags": ["regression", "upgrade-guards", "admin-auth"],
+    "regressionType": "cross-version",
+    "expectedTotalViolations": 3,
+    "safePatternsPresent": ["get_version"],
+    "targetRule": "detect-missing-upgrade-guards"
+  }
+}

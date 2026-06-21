@@ -1,0 +1,16 @@
+{
+  "id": "stellar-regression-upgrade-guards-safe",
+  "name": "Safe Upgrade Guards Regression Suite",
+  "description": "Validates that detect-missing-upgrade-guards does NOT false-positive on guarded upgrade functions",
+  "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Bytes};\n\n#[contractimpl]\nimpl SafeUpgradableContract {\n    // SAFE: upgrade with admin.require_auth\n    pub fn safe_upgrade(env: Env, admin: Address, new_wasm: Bytes) {\n        admin.require_auth();\n        env.deployer().upload_contract_wasm(&new_wasm);\n    }\n\n    // SAFE: update_contract with only_admin\n    pub fn safe_update(env: Env, caller: Address, new_wasm: Bytes) {\n        only_admin(&env, &caller);\n        env.deployer().upload_contract_wasm(&new_wasm);\n    }\n\n    // SAFE: set_wasm with assert_admin\n    pub fn safe_set_wasm(env: Env, admin: Address, code: Bytes) {\n        assert_admin(&env, &admin);\n        env.deployer().upload_contract_wasm(&code);\n    }\n\n    pub fn get_version(env: Env) -> u32 {\n        1\n    }\n}",
+  "expectedFindings": [],
+  "metadata": {
+    "language": "soroban",
+    "category": "upgradeability",
+    "tags": ["regression", "upgrade-guards", "safe-patterns"],
+    "regressionType": "cross-version",
+    "expectedTotalViolations": 0,
+    "safePatternsPresent": ["safe_upgrade", "safe_update", "safe_set_wasm", "get_version"],
+    "targetRule": "detect-missing-upgrade-guards"
+  }
+}

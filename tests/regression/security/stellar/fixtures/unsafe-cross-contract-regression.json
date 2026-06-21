@@ -1,0 +1,23 @@
+{
+  "id": "stellar-regression-unsafe-cross-contract",
+  "name": "Unsafe Cross-Contract Invocation Regression Suite",
+  "description": "Validates that detect-unsafe-cross-contract-invocation correctly flags cross-contract calls lacking caller validation or return-value checks",
+  "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Bytes, Symbol, Vec, Val};\n\n#[contractimpl]\nimpl BridgeContract {\n    // UNSAFE: invoke_contract without validation\n    pub fn transfer(env: Env, target: Address, amount: i128) {\n        let client = Client::new(&env, &target);\n        client.transfer(&amount);\n    }\n\n    // UNSAFE: direct env.invoke_contract without result check\n    pub fn relay(env: Env, contract: Address, func: Bytes, args: Bytes) {\n        env.invoke_contract(&contract, &func, &args);\n    }\n\n    // UNSAFE: call_contract without validation\n    pub fn call_external(env: Env, target: Address, method: Symbol, args: Vec<Val>) {\n        env.invoke_contract(&target, &method, &args);\n    }\n\n    // NO INVOCATION (not flagged)\n    pub fn get_balance(env: Env, address: Address) -> i128 {\n        env.storage().instance().get(&address).unwrap_or(0)\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "stellar-cross-contract/unsafe-invocation",
+      "severity": "high",
+      "messagePattern": "Cross-contract invocation detected without caller validation or result verification",
+      "line": 7
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "cross-contract",
+    "tags": ["regression", "cross-contract", "invocation-safety"],
+    "regressionType": "cross-version",
+    "expectedTotalViolations": 3,
+    "safePatternsPresent": ["get_balance"],
+    "targetRule": "detect-unsafe-cross-contract-invocation"
+  }
+}
