@@ -76,7 +76,7 @@ describe('detectExcessiveEventTopics', () => {
         './tests/rules/fixtures/stellar-excessive-event-topics.json'
       );
       expect(fixture.id).toBe('stellar-excessive-event-topics-1');
-      expect(fixture.expectedViolations).toHaveLength(2);
+      expect(fixture.expectedFindings).toHaveLength(2);
       expect(fixture.metadata?.category).toBe('events');
     });
 

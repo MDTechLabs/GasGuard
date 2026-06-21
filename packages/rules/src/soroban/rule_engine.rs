@@ -23,7 +23,7 @@ impl SorobanRuleEngine {
         engine.add_default_rules();
         engine
     }
-    
+
     /// Create a new empty Soroban rule engine
     pub fn new() -> Self {
         Self {
@@ -31,13 +31,13 @@ impl SorobanRuleEngine {
             enable_all_by_default: true,
         }
     }
-    
+
     /// Add a rule to the engine
     pub fn add_rule<R: SorobanRule + 'static>(&mut self, rule: R) -> &mut Self {
         self.rules.insert(rule.id().to_string(), Box::new(rule));
         self
     }
-    
+
     /// Add all default Soroban rules
     fn add_default_rules(&mut self) {
         self.add_rule(UnusedStateVariablesRule::default())
@@ -51,20 +51,20 @@ impl SorobanRuleEngine {
             .add_rule(InefficientBytesAllocationRule::default())
             .add_rule(EmergencyWithdrawalRule::default())
             .add_rule(GovernanceVotingRule::default())
-            .add_rule(ClaimExpirationRule::default())    // #117
-            .add_rule(AntiFrontRunningRule::default())   // #118
-            .add_rule(SecureRandomnessRule::default())   // #119
+            .add_rule(ClaimExpirationRule::default()) // #117
+            .add_rule(AntiFrontRunningRule::default()) // #118
+            .add_rule(SecureRandomnessRule::default()) // #119
             .add_rule(UpgradeVersionTrackingRule::default()); // #123
     }
-    
+
     /// Analyze Soroban contract source code
     pub fn analyze(&self, source: &str, file_path: &str) -> SorobanResult<Vec<RuleViolation>> {
         // Parse the contract
         let contract = SorobanParser::parse_contract(source, file_path)?;
-        
+
         // Run analysis
         let violations = SorobanAnalyzer::analyze_contract(&contract);
-        
+
         // Apply active rules
         let mut all_violations = violations;
         for rule in self.rules.values() {
@@ -72,15 +72,15 @@ impl SorobanRuleEngine {
                 all_violations.extend(rule.apply(&contract));
             }
         }
-        
+
         Ok(all_violations)
     }
-    
+
     /// Get all registered rules
     pub fn get_rules(&self) -> Vec<&dyn SorobanRule> {
         self.rules.values().map(|r| r.as_ref()).collect()
     }
-    
+
     /// Enable or disable a specific rule
     pub fn set_rule_enabled(&mut self, rule_id: &str, enabled: bool) {
         if let Some(rule) = self.rules.get_mut(rule_id) {
@@ -93,22 +93,22 @@ impl SorobanRuleEngine {
 pub trait SorobanRule: Send + Sync {
     /// Unique identifier for the rule
     fn id(&self) -> &str;
-    
+
     /// Human-readable name of the rule
     fn name(&self) -> &str;
-    
+
     /// Description of what the rule checks for
     fn description(&self) -> &str;
-    
+
     /// Severity level of violations from this rule
     fn severity(&self) -> ViolationSeverity;
-    
+
     /// Whether this rule is currently enabled
     fn is_enabled(&self) -> bool;
-    
+
     /// Enable or disable the rule
     fn set_enabled(&mut self, enabled: bool);
-    
+
     /// Apply the rule to a parsed Soroban contract
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation>;
 }
@@ -128,30 +128,30 @@ impl SorobanRule for UnusedStateVariablesRule {
     fn id(&self) -> &str {
         "soroban-unused-state-variables"
     }
-    
+
     fn name(&self) -> &str {
         "Unused State Variables"
     }
-    
+
     fn description(&self) -> &str {
         "Detects state variables that are declared but never used"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Warning
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for contract_type in &contract.contract_types {
             for field in &contract_type.fields {
                 // Simple heuristic: Definition + Initialization = 2 occurrences.
@@ -159,8 +159,14 @@ impl SorobanRule for UnusedStateVariablesRule {
                 if occurrences <= 2 {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
-                        description: format!("State variable '{}' appears to be unused", field.name),
-                        suggestion: format!("Remove unused state variable '{}' to save ledger storage costs", field.name),
+                        description: format!(
+                            "State variable '{}' appears to be unused",
+                            field.name
+                        ),
+                        suggestion: format!(
+                            "Remove unused state variable '{}' to save ledger storage costs",
+                            field.name
+                        ),
                         line_number: field.line_number,
                         column_number: 0,
                         variable_name: field.name.clone(),
@@ -169,7 +175,7 @@ impl SorobanRule for UnusedStateVariablesRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -189,42 +195,42 @@ impl SorobanRule for InefficientStorageAccessRule {
     fn id(&self) -> &str {
         "soroban-inefficient-storage"
     }
-    
+
     fn name(&self) -> &str {
         "Inefficient Storage Access"
     }
-    
+
     fn description(&self) -> &str {
         "Detects multiple reads/writes to the same storage key without caching"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Medium
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 let func_source = &function.raw_definition;
-                
+
                 // Count storage operations
                 let get_count = func_source.matches(".get(").count();
                 let set_count = func_source.matches(".set(").count();
                 let load_count = func_source.matches(".load(").count();
                 let store_count = func_source.matches(".store(").count();
-                
+
                 let total_ops = get_count + set_count + load_count + store_count;
-                
+
                 // If there are many storage operations, flag for review
                 if total_ops > 3 {
                     violations.push(RuleViolation {
@@ -239,7 +245,7 @@ impl SorobanRule for InefficientStorageAccessRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -259,42 +265,42 @@ impl SorobanRule for UnboundedLoopRule {
     fn id(&self) -> &str {
         "soroban-unbounded-loop"
     }
-    
+
     fn name(&self) -> &str {
         "Unbounded Loop Detection"
     }
-    
+
     fn description(&self) -> &str {
         "Detects loops without clear termination conditions that could exhaust CPU limits"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::High
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 let func_source = &function.raw_definition;
-                
+
                 // Look for potentially unbounded loops
-                if (func_source.contains("loop {") || 
-                    func_source.contains("while ") || 
-                    func_source.contains("for ")) &&
-                   !(func_source.contains(".len()") || 
-                     func_source.contains("range(") || 
-                     func_source.contains("..")) {
-                    
+                if (func_source.contains("loop {")
+                    || func_source.contains("while ")
+                    || func_source.contains("for "))
+                    && !(func_source.contains(".len()")
+                        || func_source.contains("range(")
+                        || func_source.contains(".."))
+                {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description: format!("Function '{}' contains potentially unbounded loop", function.name),
@@ -307,7 +313,7 @@ impl SorobanRule for UnboundedLoopRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -327,38 +333,38 @@ impl SorobanRule for ExpensiveStringOperationsRule {
     fn id(&self) -> &str {
         "soroban-expensive-strings"
     }
-    
+
     fn name(&self) -> &str {
         "Expensive String Operations"
     }
-    
+
     fn description(&self) -> &str {
         "Detects expensive string operations that increase gas/storage costs"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Medium
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 let func_source = &function.raw_definition;
-                
-                if func_source.contains(".to_string()") || 
-                   func_source.contains("String::from(") ||
-                   func_source.contains("format!(") {
-                    
+
+                if func_source.contains(".to_string()")
+                    || func_source.contains("String::from(")
+                    || func_source.contains("format!(")
+                {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description: format!("Function '{}' uses expensive string operations", function.name),
@@ -371,7 +377,7 @@ impl SorobanRule for ExpensiveStringOperationsRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -391,37 +397,39 @@ impl SorobanRule for MissingConstructorRule {
     fn id(&self) -> &str {
         "soroban-missing-constructor"
     }
-    
+
     fn name(&self) -> &str {
         "Missing Constructor"
     }
-    
+
     fn description(&self) -> &str {
         "Detects contracts without constructor functions for initialization"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Warning
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
-        let has_constructor = contract.implementations.iter().any(|imp| {
-            imp.functions.iter().any(|f| f.is_constructor)
-        });
-        
+        let has_constructor = contract
+            .implementations
+            .iter()
+            .any(|imp| imp.functions.iter().any(|f| f.is_constructor));
+
         if !has_constructor {
             vec![RuleViolation {
                 rule_name: self.id().to_string(),
                 description: "Contract lacks a constructor function for initialization".to_string(),
-                suggestion: "Add a 'new' function that initializes the contract state properly".to_string(),
+                suggestion: "Add a 'new' function that initializes the contract state properly"
+                    .to_string(),
                 line_number: 1,
                 column_number: 0,
                 variable_name: contract.name.clone(),
@@ -448,36 +456,36 @@ impl SorobanRule for AdminPatternRule {
     fn id(&self) -> &str {
         "soroban-admin-pattern"
     }
-    
+
     fn name(&self) -> &str {
         "Admin Pattern Suggestion"
     }
-    
+
     fn description(&self) -> &str {
         "Suggests adding admin/owner pattern for access control"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Info
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let has_admin = contract.contract_types.iter().any(|ct| {
-            ct.fields.iter().any(|f| 
-                f.name.contains("admin") || 
-                f.name.contains("owner") ||
-                f.type_name.contains("Address")
-            )
+            ct.fields.iter().any(|f| {
+                f.name.contains("admin")
+                    || f.name.contains("owner")
+                    || f.type_name.contains("Address")
+            })
         });
-        
+
         if !has_admin {
             vec![RuleViolation {
                 rule_name: self.id().to_string(),
@@ -509,30 +517,30 @@ impl SorobanRule for InefficientIntegerTypesRule {
     fn id(&self) -> &str {
         "soroban-inefficient-integers"
     }
-    
+
     fn name(&self) -> &str {
         "Inefficient Integer Types"
     }
-    
+
     fn description(&self) -> &str {
         "Detects use of unnecessarily large integer types"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Info
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for contract_type in &contract.contract_types {
             for field in &contract_type.fields {
                 if field.type_name == "u128" || field.type_name == "i128" {
@@ -548,7 +556,7 @@ impl SorobanRule for InefficientIntegerTypesRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -568,40 +576,40 @@ impl SorobanRule for MissingErrorHandlingRule {
     fn id(&self) -> &str {
         "soroban-missing-error-handling"
     }
-    
+
     fn name(&self) -> &str {
         "Missing Error Handling"
     }
-    
+
     fn description(&self) -> &str {
         "Detects functions that should return Result but don't"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Medium
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 // Functions that modify state should return Result
-                if (function.name.contains("transfer") || 
-                    function.name.contains("mint") || 
-                    function.name.contains("burn") ||
-                    function.name.contains("set")) &&
-                   (function.return_type.is_none() || 
-                    !function.return_type.as_ref().unwrap().contains("Result")) {
-                    
+                if (function.name.contains("transfer")
+                    || function.name.contains("mint")
+                    || function.name.contains("burn")
+                    || function.name.contains("set"))
+                    && (function.return_type.is_none()
+                        || !function.return_type.as_ref().unwrap().contains("Result"))
+                {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description: format!("Function '{}' should return Result for proper error handling", function.name),
@@ -614,7 +622,7 @@ impl SorobanRule for MissingErrorHandlingRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -634,39 +642,45 @@ impl SorobanRule for EmergencyWithdrawalRule {
     fn id(&self) -> &str {
         "soroban-emergency-withdrawal"
     }
-    
+
     fn name(&self) -> &str {
         "Emergency Withdrawal Check"
     }
-    
+
     fn description(&self) -> &str {
         "Detects emergency withdrawal functions lacking proper authorization or whitelist checks"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::High
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 let func_name = function.name.to_lowercase();
-                
+
                 // Identify emergency withdrawal functions
-                if func_name.contains("emergency") || func_name.contains("withdraw_all") || func_name.contains("rescue") {
+                if func_name.contains("emergency")
+                    || func_name.contains("withdraw_all")
+                    || func_name.contains("rescue")
+                {
                     let source = &function.raw_definition;
-                    
-                    if !source.contains("require_auth") && !source.contains("authorize") && !source.contains("panic!") {
+
+                    if !source.contains("require_auth")
+                        && !source.contains("authorize")
+                        && !source.contains("panic!")
+                    {
                         violations.push(RuleViolation {
                             rule_name: self.id().to_string(),
                             description: format!("Emergency function '{}' lacks authorization check", function.name),
@@ -680,7 +694,7 @@ impl SorobanRule for EmergencyWithdrawalRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -700,48 +714,54 @@ impl SorobanRule for GovernanceVotingRule {
     fn id(&self) -> &str {
         "soroban-governance-voting"
     }
-    
+
     fn name(&self) -> &str {
         "Governance Voting Check"
     }
-    
+
     fn description(&self) -> &str {
         "Detects voting functions that may be missing authorization checks or are structurally insecure"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::High
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 let func_name = function.name.to_lowercase();
-                
+
                 // Identify voting functions
-                if func_name.contains("vote") || func_name.contains("propose") || func_name.contains("ballot") {
+                if func_name.contains("vote")
+                    || func_name.contains("propose")
+                    || func_name.contains("ballot")
+                {
                     let source = &function.raw_definition;
-                    
+
                     // Check for authorization: require_auth() or authorize()
                     // Strip comment lines before checking to avoid false negatives
-                    let non_comment_source: String = source.lines()
+                    let non_comment_source: String = source
+                        .lines()
                         .filter(|l| {
                             let t = l.trim();
                             !t.starts_with("//") && !t.starts_with("/*") && !t.starts_with("*")
                         })
                         .collect::<Vec<_>>()
                         .join("\n");
-                    if !non_comment_source.contains("require_auth") && !non_comment_source.contains("authorize") {
+                    if !non_comment_source.contains("require_auth")
+                        && !non_comment_source.contains("authorize")
+                    {
                         violations.push(RuleViolation {
                             rule_name: self.id().to_string(),
                             description: format!("Governance function '{}' lacks explicit authorization check", function.name),
@@ -752,9 +772,12 @@ impl SorobanRule for GovernanceVotingRule {
                             severity: self.severity(),
                         });
                     }
-                    
+
                     // Check for timestamp/expiration usage in proposals (heuristic)
-                    if func_name.contains("propose") && !source.contains("timestamp") && !source.contains("expiration") {
+                    if func_name.contains("propose")
+                        && !source.contains("timestamp")
+                        && !source.contains("expiration")
+                    {
                         violations.push(RuleViolation {
                             rule_name: self.id().to_string(),
                             description: format!("Governance function '{}' may be missing proposal expiration logic", function.name),
@@ -768,7 +791,7 @@ impl SorobanRule for GovernanceVotingRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -776,19 +799,19 @@ impl SorobanRule for GovernanceVotingRule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_soroban_rule_engine_creation() {
         let engine = SorobanRuleEngine::with_default_rules();
         assert!(!engine.get_rules().is_empty());
-        
+
         let rule_ids: Vec<_> = engine.get_rules().iter().map(|r| r.id()).collect();
         assert!(rule_ids.contains(&"soroban-unused-state-variables"));
         assert!(rule_ids.contains(&"soroban-inefficient-storage"));
         assert!(rule_ids.contains(&"soroban-governance-voting"));
         assert!(rule_ids.contains(&"soroban-emergency-withdrawal"));
     }
-    
+
     #[test]
     fn test_unused_state_variables_rule() {
         let source = r#"
@@ -811,16 +834,15 @@ impl TestContract {
     }
 }
 "#;
-        
+
         let mut engine = SorobanRuleEngine::new();
         engine.add_rule(UnusedStateVariablesRule::default());
-        
+
         let violations = engine.analyze(source, "test.rs").unwrap();
-        
-        let unused_found = violations.iter().any(|v| 
-            v.rule_name == "soroban-unused-state-variables" && 
-            v.variable_name == "unused_counter"
-        );
+
+        let unused_found = violations.iter().any(|v| {
+            v.rule_name == "soroban-unused-state-variables" && v.variable_name == "unused_counter"
+        });
         assert!(unused_found);
     }
 
@@ -845,16 +867,15 @@ impl GovernanceContract {
     }
 }
 "#;
-        
+
         let rule = GovernanceVotingRule::default();
         let contract = SorobanParser::parse_contract(source, "governance.rs").unwrap();
-        
+
         let violations = rule.apply(&contract);
-        
-        let vote_issue_found = violations.iter().any(|v| 
-            v.rule_name == "soroban-governance-voting" && 
-            v.description.contains("vote")
-        );
+
+        let vote_issue_found = violations
+            .iter()
+            .any(|v| v.rule_name == "soroban-governance-voting" && v.description.contains("vote"));
         assert!(vote_issue_found);
     }
 }
@@ -874,38 +895,42 @@ impl SorobanRule for ClaimExpirationRule {
     fn id(&self) -> &str {
         "soroban-claim-expiration"
     }
-    
+
     fn name(&self) -> &str {
         "Claim Expiration Check"
     }
-    
+
     fn description(&self) -> &str {
         "Detects claim-related functions that lack expiration/timeout logic"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Medium
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 let func_name = function.name.to_lowercase();
-                
-                if func_name.contains("claim") || func_name.contains("settle") || func_name.contains("redeem") {
+
+                if func_name.contains("claim")
+                    || func_name.contains("settle")
+                    || func_name.contains("redeem")
+                {
                     let source = &function.raw_definition;
                     // Strip comment lines to avoid false negatives from comments mentioning keywords
-                    let non_comment_source: String = source.lines()
+                    let non_comment_source: String = source
+                        .lines()
                         .filter(|l| {
                             let t = l.trim();
                             !t.starts_with("//") && !t.starts_with("/*") && !t.starts_with("*")
@@ -913,7 +938,10 @@ impl SorobanRule for ClaimExpirationRule {
                         .collect::<Vec<_>>()
                         .join("\n");
 
-                    if !non_comment_source.contains("timestamp") && !non_comment_source.contains("expiration") && !non_comment_source.contains("expiry") {
+                    if !non_comment_source.contains("timestamp")
+                        && !non_comment_source.contains("expiration")
+                        && !non_comment_source.contains("expiry")
+                    {
                         violations.push(RuleViolation {
                             rule_name: self.id().to_string(),
                             description: format!("Claim function '{}' may be missing expiration logic", function.name),
@@ -927,7 +955,7 @@ impl SorobanRule for ClaimExpirationRule {
                 }
             }
         }
-        
+
         eprintln!("DEBUG apply returning {} violations", violations.len());
         violations
     }
@@ -948,39 +976,45 @@ impl SorobanRule for AntiFrontRunningRule {
     fn id(&self) -> &str {
         "soroban-anti-front-running"
     }
-    
+
     fn name(&self) -> &str {
         "Anti-Front-Running Protection"
     }
-    
+
     fn description(&self) -> &str {
         "Detects transaction patterns vulnerable to front-running (e.g., missing nonces or slippage checks)"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::High
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 let func_name = function.name.to_lowercase();
-                
+
                 // Sensitive operations: transfer, swap, liquidate
-                if func_name.contains("transfer") || func_name.contains("swap") || func_name.contains("liquidate") {
+                if func_name.contains("transfer")
+                    || func_name.contains("swap")
+                    || func_name.contains("liquidate")
+                {
                     let source = &function.raw_definition;
-                    
-                    if !source.contains("nonce") && !source.contains("deadline") && !source.contains("min_amount") {
+
+                    if !source.contains("nonce")
+                        && !source.contains("deadline")
+                        && !source.contains("min_amount")
+                    {
                         violations.push(RuleViolation {
                             rule_name: self.id().to_string(),
                             description: format!("Function '{}' may be vulnerable to front-running", function.name),
@@ -994,7 +1028,7 @@ impl SorobanRule for AntiFrontRunningRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -1014,40 +1048,45 @@ impl SorobanRule for SecureRandomnessRule {
     fn id(&self) -> &str {
         "soroban-secure-randomness"
     }
-    
+
     fn name(&self) -> &str {
         "Secure Randomness Check"
     }
-    
+
     fn description(&self) -> &str {
         "Detects the use of predictable values for randomness instead of 'env.pseudo_random()'"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::High
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
-        let insecure_patterns = ["env.ledger().timestamp()", "env.ledger().sequence()", "timestamp()", "sequence()"];
-        
+
+        let insecure_patterns = [
+            "env.ledger().timestamp()",
+            "env.ledger().sequence()",
+            "timestamp()",
+            "sequence()",
+        ];
+
         for implementation in &contract.implementations {
             for function in &implementation.functions {
                 let source = &function.raw_definition;
-                
-                if (source.contains("random") || source.contains("seed")) && 
-                   insecure_patterns.iter().any(|p| source.contains(p)) &&
-                   !source.contains("pseudo_random") {
-                    
+
+                if (source.contains("random") || source.contains("seed"))
+                    && insecure_patterns.iter().any(|p| source.contains(p))
+                    && !source.contains("pseudo_random")
+                {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description: format!("Function '{}' uses predictable values for randomness", function.name),
@@ -1060,7 +1099,7 @@ impl SorobanRule for SecureRandomnessRule {
                 }
             }
         }
-        
+
         violations
     }
 }
@@ -1080,45 +1119,49 @@ impl SorobanRule for UpgradeVersionTrackingRule {
     fn id(&self) -> &str {
         "soroban-upgrade-version-tracking"
     }
-    
+
     fn name(&self) -> &str {
         "Upgrade Version Tracking"
     }
-    
+
     fn description(&self) -> &str {
         "Detects contracts missing version information or upgrade tracking"
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::Info
     }
-    
+
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
-    
+
     fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut has_version_field = false;
         let mut has_version_query = false;
-        
+
         for ct in &contract.contract_types {
             if ct.fields.iter().any(|f| f.name.contains("version")) {
                 has_version_field = true;
                 break;
             }
         }
-        
+
         for imp in &contract.implementations {
-            if imp.functions.iter().any(|f| f.name == "version" || f.name == "get_version") {
+            if imp
+                .functions
+                .iter()
+                .any(|f| f.name == "version" || f.name == "get_version")
+            {
                 has_version_query = true;
                 break;
             }
         }
-        
+
         if !has_version_field && !has_version_query {
             return vec![RuleViolation {
                 rule_name: self.id().to_string(),
@@ -1130,7 +1173,7 @@ impl SorobanRule for UpgradeVersionTrackingRule {
                 severity: self.severity(),
             }];
         }
-        
+
         Vec::new()
     }
 }
@@ -1138,7 +1181,7 @@ impl SorobanRule for UpgradeVersionTrackingRule {
 #[cfg(test)]
 mod issue_tests {
     use super::*;
-    
+
     #[test]
     fn test_claim_expiration_rule() {
         let source = r#"
@@ -1175,8 +1218,14 @@ impl MyContract {
                 eprintln!("    fn {} (line {})", f.name, f.line_number);
             }
         }
-        eprintln!("Violations: {:?}", violations.iter().map(|v| &v.variable_name).collect::<Vec<_>>());
-        
+        eprintln!(
+            "Violations: {:?}",
+            violations
+                .iter()
+                .map(|v| &v.variable_name)
+                .collect::<Vec<_>>()
+        );
+
         // Should find one violation for claim_reward
         assert!(violations.iter().any(|v| v.variable_name == "claim_reward"));
         // Should NOT find violation for secure_claim
@@ -1222,8 +1271,10 @@ impl MyContract {
         let rule = UpgradeVersionTrackingRule::default();
         let contract = SorobanParser::parse_contract(source, "test.rs").unwrap();
         let violations = rule.apply(&contract);
-        
+
         // Should find a violation because version is missing
-        assert!(violations.iter().any(|v| v.rule_name == "soroban-upgrade-version-tracking"));
+        assert!(violations
+            .iter()
+            .any(|v| v.rule_name == "soroban-upgrade-version-tracking"));
     }
 }

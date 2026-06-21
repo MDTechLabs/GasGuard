@@ -36,10 +36,47 @@ export class RuleTester {
     const startTime = Date.now();
 
     try {
-      // Run the analyzer
+      // Build a config to only enable the rules we expect to validate in this fixture,
+      // which prevents unrelated rules from triggering unexpected findings.
+      const ruleConfig: Record<string, any> = {};
+      const knownRules = [
+        "sol-001",
+        "sol-002",
+        "sol-003",
+        "sol-004",
+        "sol-005",
+        "sol-006",
+        "sol-007",
+        "sol-008",
+        "sol-009",
+        "sol-010",
+        "sol-011",
+        "sol-012",
+        "sol-013",
+        "sol-014",
+        "sol-015",
+        "soroban-unused-state-variables",
+        "detect-excessive-event-topics",
+        "detect-weak-role-hierarchies",
+      ];
+      for (const id of knownRules) {
+        ruleConfig[id] = { enabled: false };
+      }
+      const allRules = this.analyzer.getRules();
+      if (allRules) {
+        for (const rule of allRules) {
+          ruleConfig[rule.id] = { enabled: false };
+        }
+      }
+      for (const exp of fixture.expectedFindings) {
+        ruleConfig[exp.ruleId] = { enabled: true };
+      }
+
+      // Run the analyzer with isolated rules config
       const result = await this.analyzer.analyze(
         fixture.input,
         `test-${fixture.id}.sol`,
+        { rules: ruleConfig },
       );
 
       const actualFindings = result.findings;

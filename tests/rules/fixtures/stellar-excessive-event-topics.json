@@ -3,18 +3,18 @@
   "name": "Excessive Soroban Event Topics Detection",
   "description": "Flags event publish calls whose topic tuple exceeds 4 entries or embeds large payload types (Bytes, String, Vec, Map)",
   "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, Bytes, symbol_short};\n\n#[contractimpl]\nimpl EventContract {\n    pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {\n        // Excessive topic count (5)\n        env.events().publish((symbol_short!(\"transfer\"), from.clone(), to.clone(), amount, amount), ());\n\n        // Large payload type in topics\n        env.events().publish((symbol_short!(\"log\"), Bytes::from_slice(&env, &[1, 2, 3])), ());\n\n        // Safe: 2 plain topics\n        env.events().publish((symbol_short!(\"ok\"), from), ());\n    }\n}",
-  "expectedViolations": [
+  "expectedFindings": [
     {
-      "rule_name": "detect-excessive-event-topics",
+      "ruleId": "detect-excessive-event-topics",
       "severity": "Warning",
-      "message_pattern": "topic count exceeds 4",
-      "line_number": 7
+      "messagePattern": "topic count exceeds 4",
+      "line": 7
     },
     {
-      "rule_name": "detect-excessive-event-topics",
+      "ruleId": "detect-excessive-event-topics",
       "severity": "Warning",
-      "message_pattern": "large payload types",
-      "line_number": 10
+      "messagePattern": "large payload types",
+      "line": 10
     }
   ],
   "metadata": {

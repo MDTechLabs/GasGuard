@@ -1,17 +1,15 @@
+pub mod auditability;
+pub mod optimization;
 pub mod rule_engine;
-pub mod unused_state_variables;
-pub mod vyper;
+pub mod security;
+pub mod solidity;
 pub mod soroban;
 pub mod stellar;
-pub mod optimization;
-pub mod solidity;
-pub mod security;
-pub mod auditability;
+pub mod unused_state_variables;
+pub mod vyper;
 
 // Explicitly export core types to avoid ambiguity
-pub use rule_engine::{Rule, RuleEngine, RuleViolation, ViolationSeverity, extract_struct_fields, find_variable_usage};
-pub use unused_state_variables::UnusedStateVariablesRule;
-pub use solidity::StateVariablePackingRule;
+pub use optimization::deployment::{estimate_bytecode_size, ExcessiveContractSizeRule};
 pub use optimization::storage::{
     detect_packing_opportunities,
     find_consecutive_packable_groups,
@@ -19,22 +17,16 @@ pub use optimization::storage::{
     PackingOpportunity,
     VariableInfo,
 };
-pub use optimization::deployment::{estimate_bytecode_size, ExcessiveContractSizeRule};
 pub use security::{HardcodedAddressesRule, MissingDomainSeparationRule};
+pub use solidity::{StateVariablePackingRule, MappingIterationRule};
+pub use optimization::storage::detect_mapping_iteration;
+pub use unused_state_variables::UnusedStateVariablesRule;
 
 // Export Soroban types specifically
 pub use soroban::{
-    SorobanAnalyzer, 
-    SorobanContract, 
-    SorobanParser, 
-    SorobanResult, 
-    SorobanRuleEngine,
+    InefficientBytesAllocationRule, SorobanAnalyzer, SorobanContract, SorobanField,
+    SorobanFunction, SorobanImpl, SorobanParam, SorobanParser, SorobanResult, SorobanRuleEngine,
     SorobanStruct,
-    SorobanImpl,
-    SorobanFunction,
-    SorobanField,
-    SorobanParam,
-    InefficientBytesAllocationRule,
 };
 
 // Export Vyper types (keeping glob here is fine if Vyper module is clean, but let's be safe)

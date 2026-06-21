@@ -59,7 +59,11 @@ pub struct AnalysisOutput {
 }
 
 impl AnalysisOutput {
-    pub fn ok(rule_id: impl Into<String>, file_path: impl Into<String>, findings: Vec<Finding>) -> Self {
+    pub fn ok(
+        rule_id: impl Into<String>,
+        file_path: impl Into<String>,
+        findings: Vec<Finding>,
+    ) -> Self {
         Self {
             rule_id: rule_id.into(),
             file_path: file_path.into(),
@@ -69,7 +73,11 @@ impl AnalysisOutput {
         }
     }
 
-    pub fn err(rule_id: impl Into<String>, file_path: impl Into<String>, msg: impl Into<String>) -> Self {
+    pub fn err(
+        rule_id: impl Into<String>,
+        file_path: impl Into<String>,
+        msg: impl Into<String>,
+    ) -> Self {
         Self {
             rule_id: rule_id.into(),
             file_path: file_path.into(),

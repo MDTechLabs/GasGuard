@@ -3,7 +3,7 @@ import {
   SorobanFunctionInterface,
   SorobanStructInterface,
   SorobanEventInterface,
-} from './types';
+} from "./types";
 
 export class SorobanInterfaceRegistry {
   private contracts: Map<string, SorobanContractInterface> = new Map();
@@ -13,7 +13,10 @@ export class SorobanInterfaceRegistry {
     this.contracts.set(contractInterface.id, contractInterface);
 
     if (contractInterface.contractId) {
-      this.contractIdMap.set(contractInterface.contractId, contractInterface.id);
+      this.contractIdMap.set(
+        contractInterface.contractId,
+        contractInterface.id,
+      );
     }
   }
 
@@ -40,7 +43,7 @@ export class SorobanInterfaceRegistry {
 
   findByName(name: string): SorobanContractInterface[] {
     return this.getAll().filter(
-      (c) => c.name.toLowerCase() === name.toLowerCase()
+      (c) => c.name.toLowerCase() === name.toLowerCase(),
     );
   }
 
@@ -53,13 +56,13 @@ export class SorobanInterfaceRegistry {
     return this.getAll().filter(
       (c) =>
         c.name.toLowerCase().includes(lowerQuery) ||
-        c.metadata.description?.toLowerCase().includes(lowerQuery)
+        c.metadata.description?.toLowerCase().includes(lowerQuery),
     );
   }
 
   getFunction(
     contractId: string,
-    functionName: string
+    functionName: string,
   ): SorobanFunctionInterface | undefined {
     const contract = this.getByContractId(contractId);
     if (!contract) return undefined;

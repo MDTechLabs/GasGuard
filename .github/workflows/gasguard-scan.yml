@@ -45,8 +45,7 @@ jobs:
       - name: Find Solidity files
         id: find-files
         run: |
-          echo "Finding Solidity files to scan..."
-          files=$(find . -name "*.sol" -type f | tr '\n' ' ')
+          files=$(find . -path "*/node_modules" -prune -o -name "*.sol" -type f -print | tr '\n' ' ')
           echo "files=$files" >> $GITHUB_OUTPUT
           echo "Found files: $files"
 

@@ -40,7 +40,7 @@ impl Rule for ExcessiveContractSizeRule {
 
         let total_tokens: usize = ast
             .iter()
-            .map(|item| item.to_token_stream().into_iter().count())
+            .map(|item| count_tokens(item.to_token_stream()))
             .sum();
 
         let estimated_bytes = total_tokens * ESTIMATED_BYTES_PER_TOKEN;
@@ -89,6 +89,16 @@ impl Rule for ExcessiveContractSizeRule {
     }
 }
 
+/// Helper function to recursively count tokens including nested groups
+fn count_tokens(ts: proc_macro2::TokenStream) -> usize {
+    ts.into_iter()
+        .map(|tt| match tt {
+            proc_macro2::TokenTree::Group(g) => 1 + count_tokens(g.stream()),
+            _ => 1,
+        })
+        .sum()
+}
+
 /// Returns an estimated bytecode size in bytes for the given AST items.
 ///
 /// This is exposed for use by callers that need a size estimate without
@@ -96,7 +106,7 @@ impl Rule for ExcessiveContractSizeRule {
 pub fn estimate_bytecode_size(ast: &[Item]) -> usize {
     let total_tokens: usize = ast
         .iter()
-        .map(|item| item.to_token_stream().into_iter().count())
+        .map(|item| count_tokens(item.to_token_stream()))
         .sum();
     total_tokens * ESTIMATED_BYTES_PER_TOKEN
 }
@@ -139,8 +149,7 @@ mod tests {
         let large_ast = parse_file(large).unwrap();
 
         assert!(
-            estimate_bytecode_size(&large_ast.items)
-                > estimate_bytecode_size(&small_ast.items)
+            estimate_bytecode_size(&large_ast.items) > estimate_bytecode_size(&small_ast.items)
         );
     }
 

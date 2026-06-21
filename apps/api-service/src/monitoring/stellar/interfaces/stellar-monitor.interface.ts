@@ -1,13 +1,13 @@
 export enum StellarNetworkStatus {
-  HEALTHY = 'healthy',
-  DEGRADED = 'degraded',
-  UNHEALTHY = 'unhealthy',
+  HEALTHY = "healthy",
+  DEGRADED = "degraded",
+  UNHEALTHY = "unhealthy",
 }
 
 export enum StellarRpcEndpointStatus {
-  UP = 'up',
-  DOWN = 'down',
-  TIMEOUT = 'timeout',
+  UP = "up",
+  DOWN = "down",
+  TIMEOUT = "timeout",
 }
 
 export interface StellarRpcEndpointHealth {

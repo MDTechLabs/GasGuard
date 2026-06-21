@@ -206,9 +206,7 @@ impl InefficientBytesAllocationRule {
 
             // Flag any Bytes construction found while inside a loop
             if inside_loop {
-                let has_ctor = BYTES_CTOR_PATTERNS
-                    .iter()
-                    .any(|pat| trimmed.contains(pat));
+                let has_ctor = BYTES_CTOR_PATTERNS.iter().any(|pat| trimmed.contains(pat));
                 if has_ctor {
                     return true;
                 }
@@ -235,15 +233,13 @@ mod tests {
     // ── helpers ──────────────────────────────────────────────────────────────
 
     fn violations_for(source: &str) -> Vec<RuleViolation> {
-        let contract = SorobanParser::parse_contract(source, "test.rs")
-            .expect("parse failed");
+        let contract = SorobanParser::parse_contract(source, "test.rs").expect("parse failed");
         rule().apply(&contract)
     }
 
     fn has_violation(violations: &[RuleViolation], fn_name: &str) -> bool {
         violations.iter().any(|v| {
-            v.rule_name == "soroban-inefficient-bytes-allocation"
-                && v.variable_name == fn_name
+            v.rule_name == "soroban-inefficient-bytes-allocation" && v.variable_name == fn_name
         })
     }
 
@@ -287,7 +283,8 @@ impl MyContract {
         let violations = violations_for(source);
         assert!(
             has_violation(&violations, "compare"),
-            "Expected violation for repeated Bytes::from_array, got: {:?}", violations
+            "Expected violation for repeated Bytes::from_array, got: {:?}",
+            violations
         );
     }
 
@@ -311,7 +308,8 @@ impl MyContract {
         let violations = violations_for(source);
         assert!(
             has_violation(&violations, "hash_twice"),
-            "Expected violation for repeated bytes! macro, got: {:?}", violations
+            "Expected violation for repeated bytes! macro, got: {:?}",
+            violations
         );
     }
 
@@ -335,7 +333,8 @@ impl MyContract {
         let violations = violations_for(source);
         assert!(
             has_violation(&violations, "process"),
-            "Expected violation for mixed Bytes constructors, got: {:?}", violations
+            "Expected violation for mixed Bytes constructors, got: {:?}",
+            violations
         );
     }
 
@@ -359,7 +358,8 @@ impl MyContract {
         let violations = violations_for(source);
         assert!(
             !has_violation(&violations, "build"),
-            "Should not flag a single Bytes construction, got: {:?}", violations
+            "Should not flag a single Bytes construction, got: {:?}",
+            violations
         );
     }
 
@@ -381,7 +381,8 @@ impl MyContract {
         let violations = violations_for(source);
         assert!(
             !has_violation(&violations, "add"),
-            "Should not flag a function with no Bytes usage, got: {:?}", violations
+            "Should not flag a function with no Bytes usage, got: {:?}",
+            violations
         );
     }
 
@@ -416,7 +417,8 @@ impl MyContract {
         });
         assert!(
             loop_violation,
-            "Expected loop-allocation violation for 'batch', got: {:?}", violations
+            "Expected loop-allocation violation for 'batch', got: {:?}",
+            violations
         );
     }
 
@@ -449,7 +451,8 @@ impl MyContract {
         });
         assert!(
             loop_violation,
-            "Expected loop-allocation violation for 'stream', got: {:?}", violations
+            "Expected loop-allocation violation for 'stream', got: {:?}",
+            violations
         );
     }
 
@@ -511,9 +514,7 @@ impl MyContract {
         let violations = violations_for(source);
         let loop_v = violations
             .iter()
-            .find(|v| {
-                v.variable_name == "loopy" && v.description.contains("inside a loop")
-            })
+            .find(|v| v.variable_name == "loopy" && v.description.contains("inside a loop"))
             .expect("Expected loop violation");
 
         assert!(
@@ -542,9 +543,7 @@ impl MyContract {
         let violations = violations_for(source);
         let rep_v = violations
             .iter()
-            .find(|v| {
-                v.variable_name == "twice" && v.description.contains("time(s)")
-            })
+            .find(|v| v.variable_name == "twice" && v.description.contains("time(s)"))
             .expect("Expected repeated-allocation violation");
 
         assert!(

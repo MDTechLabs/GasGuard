@@ -1,4 +1,4 @@
-use gasguard_ast::{UnifiedAST, Language, ContractNode, FunctionNode, Visibility};
+use gasguard_ast::{ContractNode, FunctionNode, Language, UnifiedAST, Visibility};
 use regex::Regex;
 use thiserror::Error;
 
@@ -41,7 +41,14 @@ impl VyperParser {
             }
         }
 
-        let contract_name = file_path.split(['/', '\\']).last().unwrap_or("Contract").split('.').next().unwrap_or("Contract").to_string();
+        let contract_name = file_path
+            .split(['/', '\\'])
+            .last()
+            .unwrap_or("Contract")
+            .split('.')
+            .next()
+            .unwrap_or("Contract")
+            .to_string();
 
         Ok(UnifiedAST {
             language: Language::Vyper,

@@ -32,11 +32,7 @@ impl Rule for HardcodedAddressesRule {
     }
 
     fn check(&self, ast: &[Item]) -> Vec<RuleViolation> {
-        // Matches a 20-byte Ethereum address: 0x followed by exactly 40 hex chars.
-        // The trailing `(?![0-9a-fA-F])` negative lookahead prevents matching a
-        // longer hex string (e.g. a 256-bit hash) as an address.
-        let address_re =
-            Regex::new(r"(?i)0x[0-9a-f]{40}(?![0-9a-f])").expect("invalid regex");
+        let address_re = Regex::new(r"(?i)\b0x[0-9a-f]+\b").expect("invalid regex");
 
         let mut violations = Vec::new();
         // Track addresses seen globally to avoid duplicate violations across items.
@@ -49,6 +45,9 @@ impl Rule for HardcodedAddressesRule {
 
             for m in address_re.find_iter(&token_str) {
                 let addr = m.as_str().to_lowercase();
+                if addr.len() != 42 {
+                    continue;
+                }
                 if reported.contains(&addr) {
                     continue;
                 }
@@ -66,8 +65,7 @@ impl Rule for HardcodedAddressesRule {
                         line_number: 0,
                         column_number: 0,
                         variable_name: addr.clone(),
-                        suggestion:
-                            "Replace the hardcoded address with a configurable \
+                        suggestion: "Replace the hardcoded address with a configurable \
                              parameter: pass it as a constructor argument, store it in \
                              an owner-controlled setter, or read it from an on-chain \
                              configuration registry."
@@ -171,7 +169,11 @@ mod tests {
             const ADDR_B: &str = "0x2222222222222222222222222222222222222222";
         "#;
         let violations = check(code);
-        assert_eq!(violations.len(), 2, "Two distinct addresses should each be reported");
+        assert_eq!(
+            violations.len(),
+            2,
+            "Two distinct addresses should each be reported"
+        );
     }
 
     #[test]

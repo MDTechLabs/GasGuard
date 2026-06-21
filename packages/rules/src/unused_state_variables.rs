@@ -42,7 +42,7 @@ impl Rule for UnusedStateVariablesRule {
                                 var_name, struct_name
                             ),
                             severity: ViolationSeverity::Warning,
-                            line_number: 0, 
+                            line_number: 0,
                             column_number: 0,
                             variable_name: var_name.clone(),
                             suggestion: format!(

@@ -3,15 +3,15 @@
 //! This module provides custom linting rules specifically for Soroban contracts
 //! that go beyond standard Rust linters to catch Soroban-specific issues.
 
-pub mod soroban_rules;
-pub mod stellar_sdk_rules;
 pub mod gas_optimization_rules;
 pub mod networking;
+pub mod soroban_rules;
+pub mod stellar_sdk_rules;
 
-pub use soroban_rules::*;
-pub use stellar_sdk_rules::*;
 pub use gas_optimization_rules::*;
 pub use networking::*;
+pub use soroban_rules::*;
+pub use stellar_sdk_rules::*;
 
 use crate::{RuleViolation, ViolationSeverity};
 use crate::stellar::unsafe_operations::UnsafeOperationsRule;
@@ -25,7 +25,7 @@ impl SorobanLinter {
     /// Create a new linter with default rules
     pub fn new() -> Self {
         let mut rules: Vec<Box<dyn SorobanLintRule>> = Vec::new();
-        
+
         // Add default Soroban-specific rules
         rules.push(Box::new(soroban_rules::ContractMacroRule));
         rules.push(Box::new(soroban_rules::EnvParameterRule));
@@ -50,13 +50,13 @@ impl SorobanLinter {
     /// Lint a Soroban contract source code
     pub fn lint(&self, source: &str, file_path: &str) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for rule in &self.rules {
             if let Some(rule_violations) = rule.check(source, file_path) {
                 violations.extend(rule_violations);
             }
         }
-        
+
         violations
     }
 
@@ -76,16 +76,16 @@ impl Default for SorobanLinter {
 pub trait SorobanLintRule: Send + Sync {
     /// Get the rule ID
     fn id(&self) -> &'static str;
-    
+
     /// Get the rule name
     fn name(&self) -> &'static str;
-    
+
     /// Get the rule description
     fn description(&self) -> &'static str;
-    
+
     /// Get the rule severity
     fn severity(&self) -> ViolationSeverity;
-    
+
     /// Check the source code for violations
     fn check(&self, source: &str, file_path: &str) -> Option<Vec<RuleViolation>>;
 }

@@ -20,8 +20,8 @@ program
 
 // Global error handling
 program.configureOutput({
-  writeErr: (str) => process.stderr.write(chalk.red(str)),
-  writeOut: (str) => process.stdout.write(str),
+  writeErr: (str: string) => process.stderr.write(chalk.red(str)),
+  writeOut: (str: string) => process.stdout.write(str),
 });
 
 // Add commands
@@ -38,7 +38,7 @@ program.on("command:*", () => {
 });
 
 // Parse arguments
-program.parse();
+program.parse(process.argv);
 
 // Show help if no command provided
 if (!process.argv.slice(2).length) {

@@ -119,7 +119,10 @@ impl Parser {
             if self.eat(&TokenKind::When) {
                 let cond = self.parse_when_block()?;
                 if condition.replace(cond).is_some() {
-                    return Err(DslError::DuplicateField { field: "when".into(), span: field_span });
+                    return Err(DslError::DuplicateField {
+                        field: "when".into(),
+                        span: field_span,
+                    });
                 }
                 continue;
             }
@@ -131,28 +134,40 @@ impl Parser {
                     self.expect(&TokenKind::Colon)?;
                     let v = self.expect_string("name value")?;
                     if name.replace(v).is_some() {
-                        return Err(DslError::DuplicateField { field: "name".into(), span: field_span });
+                        return Err(DslError::DuplicateField {
+                            field: "name".into(),
+                            span: field_span,
+                        });
                     }
                 }
                 "description" => {
                     self.expect(&TokenKind::Colon)?;
                     let v = self.expect_string("description value")?;
                     if description.replace(v).is_some() {
-                        return Err(DslError::DuplicateField { field: "description".into(), span: field_span });
+                        return Err(DslError::DuplicateField {
+                            field: "description".into(),
+                            span: field_span,
+                        });
                     }
                 }
                 "severity" => {
                     self.expect(&TokenKind::Colon)?;
                     let v = self.parse_severity()?;
                     if severity.replace(v).is_some() {
-                        return Err(DslError::DuplicateField { field: "severity".into(), span: field_span });
+                        return Err(DslError::DuplicateField {
+                            field: "severity".into(),
+                            span: field_span,
+                        });
                     }
                 }
                 "language" => {
                     self.expect(&TokenKind::Colon)?;
                     let v = self.parse_language()?;
                     if language.replace(v).is_some() {
-                        return Err(DslError::DuplicateField { field: "language".into(), span: field_span });
+                        return Err(DslError::DuplicateField {
+                            field: "language".into(),
+                            span: field_span,
+                        });
                     }
                 }
                 "tags" => {
@@ -163,7 +178,10 @@ impl Parser {
                     self.expect(&TokenKind::Colon)?;
                     let v = self.expect_string("message value")?;
                     if message.replace(v).is_some() {
-                        return Err(DslError::DuplicateField { field: "message".into(), span: field_span });
+                        return Err(DslError::DuplicateField {
+                            field: "message".into(),
+                            span: field_span,
+                        });
                     }
                 }
                 "suggestion" => {
@@ -186,12 +204,22 @@ impl Parser {
         self.expect(&TokenKind::RBrace)?;
 
         // Validate required fields
-        let name = name.ok_or_else(|| DslError::MissingField { field: "name".into() })?;
-        let description = description.ok_or_else(|| DslError::MissingField { field: "description".into() })?;
-        let severity = severity.ok_or_else(|| DslError::MissingField { field: "severity".into() })?;
+        let name = name.ok_or_else(|| DslError::MissingField {
+            field: "name".into(),
+        })?;
+        let description = description.ok_or_else(|| DslError::MissingField {
+            field: "description".into(),
+        })?;
+        let severity = severity.ok_or_else(|| DslError::MissingField {
+            field: "severity".into(),
+        })?;
         let language = language.unwrap_or(DslLanguage::Any);
-        let condition = condition.ok_or_else(|| DslError::MissingField { field: "when".into() })?;
-        let message = message.ok_or_else(|| DslError::MissingField { field: "message".into() })?;
+        let condition = condition.ok_or_else(|| DslError::MissingField {
+            field: "when".into(),
+        })?;
+        let message = message.ok_or_else(|| DslError::MissingField {
+            field: "message".into(),
+        })?;
 
         Ok(RuleDefinition {
             id,
@@ -225,7 +253,10 @@ impl Parser {
                 "warning" => Ok(DslSeverity::Warning),
                 "error" => Ok(DslSeverity::Error),
                 "critical" => Ok(DslSeverity::Critical),
-                other => Err(DslError::InvalidSeverity { value: other.to_string(), span }),
+                other => Err(DslError::InvalidSeverity {
+                    value: other.to_string(),
+                    span,
+                }),
             },
             other => Err(DslError::UnexpectedToken {
                 found: other.to_string(),
@@ -244,7 +275,10 @@ impl Parser {
                 "rust" => Ok(DslLanguage::Rust),
                 "vyper" => Ok(DslLanguage::Vyper),
                 "any" => Ok(DslLanguage::Any),
-                other => Err(DslError::InvalidLanguage { value: other.to_string(), span }),
+                other => Err(DslError::InvalidLanguage {
+                    value: other.to_string(),
+                    span,
+                }),
             },
             other => Err(DslError::UnexpectedToken {
                 found: other.to_string(),
@@ -474,7 +508,10 @@ mod tests {
         let file = parse(src);
         let rule = &file.rules[0];
         assert_eq!(rule.tags, vec!["gas", "optimization"]);
-        assert_eq!(rule.suggestion.as_deref(), Some("Use a cheaper alternative"));
+        assert_eq!(
+            rule.suggestion.as_deref(),
+            Some("Use a cheaper alternative")
+        );
     }
 
     #[test]
@@ -535,6 +572,10 @@ mod tests {
         let result = Parser::new(tokens).parse();
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("description"), "expected missing-field error for 'description', got: {}", err);
+        assert!(
+            err.contains("description"),
+            "expected missing-field error for 'description', got: {}",
+            err
+        );
     }
 }

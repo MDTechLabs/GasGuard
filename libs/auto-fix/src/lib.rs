@@ -1,8 +1,8 @@
 use gasguard_rule_engine::RuleViolation;
-use std::fs;
-use std::path::Path;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FixPreview {
@@ -31,7 +31,11 @@ impl FixEngine {
     }
 
     /// Generates a preview of fixes without applying them
-    pub fn preview_fixes<P: AsRef<Path>>(&self, path: P, violations: &[RuleViolation]) -> Result<FixReport, String> {
+    pub fn preview_fixes<P: AsRef<Path>>(
+        &self,
+        path: P,
+        violations: &[RuleViolation],
+    ) -> Result<FixReport, String> {
         let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
         let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
         let mut previews = Vec::new();
@@ -46,7 +50,7 @@ impl FixEngine {
 
             let is_safe = self.is_safe_fix(&violation);
             let confidence = self.calculate_fix_confidence(&violation, is_safe);
-            
+
             if is_safe {
                 safe_count += 1;
             } else {
@@ -76,7 +80,11 @@ impl FixEngine {
     }
 
     /// Applies safe fixes to a file based on rule violations
-    pub fn apply_fixes<P: AsRef<Path>>(&self, path: P, violations: &[RuleViolation]) -> Result<String, String> {
+    pub fn apply_fixes<P: AsRef<Path>>(
+        &self,
+        path: P,
+        violations: &[RuleViolation],
+    ) -> Result<String, String> {
         let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
         let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
 
@@ -98,7 +106,7 @@ impl FixEngine {
         &self,
         path: P,
         violations: &[RuleViolation],
-        min_confidence: f64
+        min_confidence: f64,
     ) -> Result<String, String> {
         let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
         let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
@@ -109,7 +117,7 @@ impl FixEngine {
         for violation in sorted_violations {
             let is_safe = self.is_safe_fix(&violation);
             let confidence = self.calculate_fix_confidence(&violation, is_safe);
-            
+
             if confidence >= min_confidence {
                 self.apply_single_fix(&mut lines, &violation)?;
             }
@@ -121,7 +129,7 @@ impl FixEngine {
     /// Determines if a violation can be safely fixed automatically
     fn is_safe_fix(&self, violation: &RuleViolation) -> bool {
         matches!(
-            violation.rule_name.as_str(), 
+            violation.rule_name.as_str(),
             "unused-state-variable" | "soroban-unused-state-variables" | "redundant-external"
         )
     }
@@ -157,9 +165,7 @@ impl FixEngine {
                     format!("// [GasGuard Auto-Fix] {}", original)
                 }
             }
-            "redundant-external" => {
-                original.replace("@external", "@internal")
-            }
+            "redundant-external" => original.replace("@external", "@internal"),
             _ => {
                 // Use the suggestion from the violation if available
                 if !violation.suggestion.is_empty() {
@@ -171,7 +177,11 @@ impl FixEngine {
         }
     }
 
-    fn apply_single_fix(&self, lines: &mut Vec<String>, violation: &RuleViolation) -> Result<(), String> {
+    fn apply_single_fix(
+        &self,
+        lines: &mut Vec<String>,
+        violation: &RuleViolation,
+    ) -> Result<(), String> {
         let line_idx = violation.line_number.saturating_sub(1);
         if line_idx >= lines.len() {
             return Err(format!("Line {} out of bounds", violation.line_number));
@@ -201,7 +211,8 @@ impl FixEngine {
 
         // Group violations by line
         for violation in violations {
-            line_map.entry(violation.line_number)
+            line_map
+                .entry(violation.line_number)
                 .or_insert_with(Vec::new)
                 .push(violation);
         }
@@ -217,7 +228,8 @@ impl FixEngine {
             } else {
                 // Multiple violations on same line - check for conflicts
                 let mut has_conflicting_rules = false;
-                let rule_names: Vec<&str> = line_violations.iter()
+                let rule_names: Vec<&str> = line_violations
+                    .iter()
                     .map(|v| v.rule_name.as_str())
                     .collect();
 
@@ -266,16 +278,20 @@ impl FixEngine {
     }
 
     /// Applies fixes with comprehensive safety checks
-    pub fn apply_safe_fixes<P: AsRef<Path>>(&self, path: P, violations: &[RuleViolation]) -> Result<(String, FixReport), String> {
+    pub fn apply_safe_fixes<P: AsRef<Path>>(
+        &self,
+        path: P,
+        violations: &[RuleViolation],
+    ) -> Result<(String, FixReport), String> {
         // First, generate preview
         let preview_report = self.preview_fixes(&path, violations)?;
-        
+
         // Filter to only safe fixes
         let safe_violations = self.validate_and_filter_fixes(violations);
-        
+
         // Apply the safe fixes
         let result = self.apply_fixes(&path, &safe_violations)?;
-        
+
         Ok((result, preview_report))
     }
 }

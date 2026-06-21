@@ -1,4 +1,4 @@
-use gasguard_ast::{UnifiedAST, Language, ContractNode, FunctionNode, Visibility};
+use gasguard_ast::{ContractNode, FunctionNode, Language, UnifiedAST, Visibility};
 use regex::Regex;
 use thiserror::Error;
 

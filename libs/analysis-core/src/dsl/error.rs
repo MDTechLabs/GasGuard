@@ -15,7 +15,12 @@ pub struct Span {
 
 impl Span {
     pub fn new(start: usize, end: usize, line: usize, col: usize) -> Self {
-        Self { start, end, line, col }
+        Self {
+            start,
+            end,
+            line,
+            col,
+        }
     }
 }
 
@@ -37,7 +42,11 @@ pub enum DslError {
 
     // ---- Parser errors ------------------------------------------------------
     #[error("Unexpected token '{found}' at {span}, expected {expected}")]
-    UnexpectedToken { found: String, expected: String, span: Span },
+    UnexpectedToken {
+        found: String,
+        expected: String,
+        span: Span,
+    },
 
     #[error("Unexpected end of input, expected {expected}")]
     UnexpectedEof { expected: String },
@@ -53,12 +62,24 @@ pub enum DslError {
     UnknownPredicate { name: String, span: Span },
 
     #[error("Wrong number of arguments for predicate '{name}': expected {expected}, got {got} at {span}")]
-    WrongArgCount { name: String, expected: usize, got: usize, span: Span },
+    WrongArgCount {
+        name: String,
+        expected: usize,
+        got: usize,
+        span: Span,
+    },
 
     #[error("Type mismatch in predicate '{name}' argument {arg_index}: {detail} at {span}")]
-    TypeMismatch { name: String, arg_index: usize, detail: String, span: Span },
+    TypeMismatch {
+        name: String,
+        arg_index: usize,
+        detail: String,
+        span: Span,
+    },
 
-    #[error("Invalid severity '{value}' at {span}; expected one of: info, warning, error, critical")]
+    #[error(
+        "Invalid severity '{value}' at {span}; expected one of: info, warning, error, critical"
+    )]
     InvalidSeverity { value: String, span: Span },
 
     #[error("Invalid language '{value}' at {span}; expected one of: solidity, rust, vyper, any")]

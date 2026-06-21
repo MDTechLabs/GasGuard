@@ -1,4 +1,4 @@
-import { SolidityAnalyzer } from "../../../../libs/engine/analyzers/solidity-analyzer";
+import { SolidityAnalyzer } from "../../../../../libs/engine/analyzers/solidity-analyzer";
 
 export class SolidityAnalyzerWrapper {
   private analyzer: SolidityAnalyzer;

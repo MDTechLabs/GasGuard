@@ -1,1 +1,1 @@
-export * from './registry/interfaces';
+export * from "./registry/interfaces";

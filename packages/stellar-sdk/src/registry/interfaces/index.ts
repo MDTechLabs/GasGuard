@@ -1,4 +1,4 @@
-export { SorobanInterfaceRegistry } from './registry';
+export { SorobanInterfaceRegistry } from "./registry";
 export type {
   SorobanContractInterface,
   SorobanFunctionInterface,
@@ -6,4 +6,4 @@ export type {
   SorobanType,
   SorobanStructInterface,
   SorobanEventInterface,
-} from './types';
+} from "./types";

@@ -43,7 +43,11 @@ pub struct PredicateMatch {
 
 impl PredicateMatch {
     pub fn new(line: u32, snippet: impl Into<String>) -> Self {
-        Self { line, column: None, snippet: snippet.into() }
+        Self {
+            line,
+            column: None,
+            snippet: snippet.into(),
+        }
     }
 
     pub fn with_column(mut self, col: u32) -> Self {
@@ -68,17 +72,61 @@ pub struct PredicateDescriptor {
 /// All registered built-in predicates.
 pub fn all_descriptors() -> Vec<PredicateDescriptor> {
     vec![
-        PredicateDescriptor { name: "contains_pattern", description: "True when source contains the literal or regex pattern", arity: Some(1) },
-        PredicateDescriptor { name: "matches_regex",     description: "True when any line matches the regex",                   arity: Some(1) },
-        PredicateDescriptor { name: "line_count_exceeds",description: "True when file has more than N lines",                   arity: Some(1) },
-        PredicateDescriptor { name: "function_count_exceeds", description: "True when file has more than N function definitions", arity: Some(1) },
-        PredicateDescriptor { name: "has_keyword",       description: "True when source contains the keyword as a whole word",  arity: Some(1) },
-        PredicateDescriptor { name: "lacks_keyword",     description: "True when source does NOT contain the keyword",          arity: Some(1) },
-        PredicateDescriptor { name: "identifier_matches",description: "True when any identifier matches the regex",             arity: Some(1) },
-        PredicateDescriptor { name: "comment_ratio_below", description: "True when comment ratio < threshold",                  arity: Some(1) },
-        PredicateDescriptor { name: "nesting_depth_exceeds", description: "True when brace nesting depth exceeds N",            arity: Some(1) },
-        PredicateDescriptor { name: "always",            description: "Always true",                                            arity: Some(0) },
-        PredicateDescriptor { name: "never",             description: "Always false",                                           arity: Some(0) },
+        PredicateDescriptor {
+            name: "contains_pattern",
+            description: "True when source contains the literal or regex pattern",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "matches_regex",
+            description: "True when any line matches the regex",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "line_count_exceeds",
+            description: "True when file has more than N lines",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "function_count_exceeds",
+            description: "True when file has more than N function definitions",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "has_keyword",
+            description: "True when source contains the keyword as a whole word",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "lacks_keyword",
+            description: "True when source does NOT contain the keyword",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "identifier_matches",
+            description: "True when any identifier matches the regex",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "comment_ratio_below",
+            description: "True when comment ratio < threshold",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "nesting_depth_exceeds",
+            description: "True when brace nesting depth exceeds N",
+            arity: Some(1),
+        },
+        PredicateDescriptor {
+            name: "always",
+            description: "Always true",
+            arity: Some(0),
+        },
+        PredicateDescriptor {
+            name: "never",
+            description: "Always false",
+            arity: Some(0),
+        },
     ]
 }
 
@@ -140,11 +188,7 @@ pub fn evaluate(
 // Individual predicate implementations
 // ---------------------------------------------------------------------------
 
-fn require_string_arg<'a>(
-    args: &'a [Arg],
-    predicate: &str,
-    span: &Span,
-) -> DslResult<&'a str> {
+fn require_string_arg<'a>(args: &'a [Arg], predicate: &str, span: &Span) -> DslResult<&'a str> {
     if args.len() != 1 {
         return Err(DslError::WrongArgCount {
             name: predicate.to_string(),
@@ -254,7 +298,10 @@ fn eval_line_count_exceeds(
     let threshold = require_int_arg(args, "line_count_exceeds", span)?;
     let count = ctx.source.lines().count() as i64;
     if count > threshold {
-        Ok(vec![PredicateMatch::new(1, format!("{} lines (threshold: {})", count, threshold))])
+        Ok(vec![PredicateMatch::new(
+            1,
+            format!("{} lines (threshold: {})", count, threshold),
+        )])
     } else {
         Ok(vec![])
     }
@@ -272,7 +319,10 @@ fn eval_function_count_exceeds(
     let fn_re = Regex::new(r"\b(fn|function|def)\s+\w+").unwrap();
     let count = fn_re.find_iter(ctx.source).count() as i64;
     if count > threshold {
-        Ok(vec![PredicateMatch::new(1, format!("{} functions (threshold: {})", count, threshold))])
+        Ok(vec![PredicateMatch::new(
+            1,
+            format!("{} functions (threshold: {})", count, threshold),
+        )])
     } else {
         Ok(vec![])
     }
@@ -312,7 +362,10 @@ fn eval_lacks_keyword(
     let re = compile_regex(&pattern, "lacks_keyword")?;
     // Fires once (at line 1) if the keyword is absent from the entire file
     if !re.is_match(ctx.source) {
-        Ok(vec![PredicateMatch::new(1, format!("keyword '{}' not found", kw))])
+        Ok(vec![PredicateMatch::new(
+            1,
+            format!("keyword '{}' not found", kw),
+        )])
     } else {
         Ok(vec![])
     }
@@ -427,7 +480,13 @@ mod tests {
     #[test]
     fn test_contains_pattern_match() {
         let args = vec![Arg::String("unsafe".into())];
-        let result = evaluate("contains_pattern", &args, &ctx("fn foo() { unsafe { } }"), &dummy_span()).unwrap();
+        let result = evaluate(
+            "contains_pattern",
+            &args,
+            &ctx("fn foo() { unsafe { } }"),
+            &dummy_span(),
+        )
+        .unwrap();
         assert!(!result.is_empty());
         assert_eq!(result[0].line, 1);
     }
@@ -435,7 +494,13 @@ mod tests {
     #[test]
     fn test_contains_pattern_no_match() {
         let args = vec![Arg::String("unsafe".into())];
-        let result = evaluate("contains_pattern", &args, &ctx("fn foo() { }"), &dummy_span()).unwrap();
+        let result = evaluate(
+            "contains_pattern",
+            &args,
+            &ctx("fn foo() { }"),
+            &dummy_span(),
+        )
+        .unwrap();
         assert!(result.is_empty());
     }
 
@@ -455,7 +520,13 @@ mod tests {
         let args = vec![Arg::String("require".into())];
         let result = evaluate("lacks_keyword", &args, &ctx("fn foo() { }"), &dummy_span()).unwrap();
         assert!(!result.is_empty()); // fires because "require" is absent
-        let result2 = evaluate("lacks_keyword", &args, &ctx("require(x > 0);"), &dummy_span()).unwrap();
+        let result2 = evaluate(
+            "lacks_keyword",
+            &args,
+            &ctx("require(x > 0);"),
+            &dummy_span(),
+        )
+        .unwrap();
         assert!(result2.is_empty()); // does not fire because "require" is present
     }
 

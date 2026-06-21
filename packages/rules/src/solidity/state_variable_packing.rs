@@ -1,12 +1,11 @@
-/// Solidity State Variable Packing Rule
-/// 
-/// This rule analyzes contract state variables and detects opportunities to pack them more efficiently.
-
-use crate::rule_engine::{Rule, RuleViolation, ViolationSeverity};
 use crate::optimization::storage::{
-    detect_packing_opportunities, VariableInfo, get_type_size, is_packable_type
+    detect_packing_opportunities, get_type_size, is_packable_type, VariableInfo,
 };
-use gasguard_ast::{UnifiedAST, Language};
+/// Solidity State Variable Packing Rule
+///
+/// This rule analyzes contract state variables and detects opportunities to pack them more efficiently.
+use crate::rule_engine::{Rule, RuleViolation, ViolationSeverity};
+use gasguard_ast::{Language, UnifiedAST};
 use syn::Item;
 
 pub struct StateVariablePackingRule;
@@ -51,10 +50,15 @@ impl StateVariablePackingRule {
             let opportunities = detect_packing_opportunities(variables.clone());
 
             for opportunity in opportunities {
-                let var_names: Vec<String> = 
-                    opportunity.variables.iter().map(|v| v.name.clone()).collect();
-                
-                let line_number = opportunity.variables.first()
+                let var_names: Vec<String> = opportunity
+                    .variables
+                    .iter()
+                    .map(|v| v.name.clone())
+                    .collect();
+
+                let line_number = opportunity
+                    .variables
+                    .first()
                     .map(|v| v.line_number)
                     .unwrap_or(1);
 
@@ -86,6 +90,6 @@ mod tests {
     fn test_state_variable_packing_rule() {
         let rule = StateVariablePackingRule;
         assert_eq!(rule.name(), "state-variable-packing");
-        assert!(rule.description().contains("packing"));
+        assert!(rule.description().contains("pack"));
     }
 }

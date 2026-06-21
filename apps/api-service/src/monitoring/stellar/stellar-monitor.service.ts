@@ -1,15 +1,15 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Cron } from '@nestjs/schedule';
-import * as http from 'http';
-import * as https from 'https';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { Cron } from "@nestjs/schedule";
+import * as http from "http";
+import * as https from "https";
 import {
   StellarNetworkStatus,
   StellarRpcEndpointStatus,
   StellarRpcEndpointHealth,
   StellarNetworkMetrics,
-} from './interfaces/stellar-monitor.interface';
-import { MonitoringHooksService } from '../../performance-monitoring/services/monitoring-hooks.service';
+} from "./interfaces/stellar-monitor.interface";
+import { MonitoringHooksService } from "../../performance-monitoring/services/monitoring-hooks.service";
 
 /** Minimum fraction of healthy endpoints required for HEALTHY status */
 const HEALTHY_THRESHOLD = 0.6;
@@ -22,8 +22,8 @@ const DEFAULT_TIMEOUT_MS = 5000;
 
 /** Default Stellar RPC endpoints (Horizon + Soroban RPC) */
 const DEFAULT_ENDPOINTS = [
-  'https://horizon.stellar.org',
-  'https://soroban-testnet.stellar.org',
+  "https://horizon.stellar.org",
+  "https://soroban-testnet.stellar.org",
 ];
 
 /**
@@ -56,13 +56,16 @@ export class StellarMonitorService implements OnModuleInit {
     private readonly monitoringHooks: MonitoringHooksService,
   ) {
     this.timeoutMs = this.configService.get<number>(
-      'STELLAR_MONITOR_TIMEOUT_MS',
+      "STELLAR_MONITOR_TIMEOUT_MS",
       DEFAULT_TIMEOUT_MS,
     );
 
-    const raw = this.configService.get<string>('STELLAR_RPC_ENDPOINTS', '');
+    const raw = this.configService.get<string>("STELLAR_RPC_ENDPOINTS", "");
     this.endpoints = raw
-      ? raw.split(',').map((u) => u.trim()).filter(Boolean)
+      ? raw
+          .split(",")
+          .map((u) => u.trim())
+          .filter(Boolean)
       : DEFAULT_ENDPOINTS;
 
     // Initialise state for every endpoint
@@ -81,7 +84,7 @@ export class StellarMonitorService implements OnModuleInit {
   /** Run an initial probe on startup so metrics are available immediately */
   async onModuleInit(): Promise<void> {
     this.logger.log(
-      `Stellar monitor initialised with ${this.endpoints.length} endpoint(s): ${this.endpoints.join(', ')}`,
+      `Stellar monitor initialised with ${this.endpoints.length} endpoint(s): ${this.endpoints.join(", ")}`,
     );
     await this.probeAll();
   }
@@ -89,7 +92,7 @@ export class StellarMonitorService implements OnModuleInit {
   // ─── Scheduled probe ────────────────────────────────────────────────────────
 
   /** Probe all endpoints every 30 seconds */
-  @Cron('*/30 * * * * *')
+  @Cron("*/30 * * * * *")
   async scheduledProbe(): Promise<void> {
     await this.probeAll();
   }
@@ -127,7 +130,11 @@ export class StellarMonitorService implements OnModuleInit {
         : 100;
 
     return {
-      status: this.deriveNetworkStatus(healthy.length, endpoints.length, averageLatencyMs),
+      status: this.deriveNetworkStatus(
+        healthy.length,
+        endpoints.length,
+        averageLatencyMs,
+      ),
       healthyEndpoints: healthy.length,
       totalEndpoints: endpoints.length,
       averageLatencyMs,
@@ -184,7 +191,7 @@ export class StellarMonitorService implements OnModuleInit {
     } catch (err: unknown) {
       this.totalFailedProbes++;
       const errorMessage = err instanceof Error ? err.message : String(err);
-      const isTimeout = errorMessage.toLowerCase().includes('timeout');
+      const isTimeout = errorMessage.toLowerCase().includes("timeout");
 
       this.endpointState.set(url, {
         ...current,
@@ -198,7 +205,7 @@ export class StellarMonitorService implements OnModuleInit {
       });
 
       this.logger.warn(
-        `[${url}] ${isTimeout ? 'TIMEOUT' : 'DOWN'} — ${errorMessage}`,
+        `[${url}] ${isTimeout ? "TIMEOUT" : "DOWN"} — ${errorMessage}`,
       );
     }
   }
@@ -210,14 +217,14 @@ export class StellarMonitorService implements OnModuleInit {
   private httpHead(url: string, timeoutMs: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const parsed = new URL(url);
-      const lib = parsed.protocol === 'https:' ? https : http;
+      const lib = parsed.protocol === "https:" ? https : http;
 
       const req = lib.request(
         {
-          method: 'HEAD',
+          method: "HEAD",
           hostname: parsed.hostname,
-          port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-          path: parsed.pathname || '/',
+          port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
+          path: parsed.pathname || "/",
           timeout: timeoutMs,
         },
         (res) => {
@@ -227,12 +234,12 @@ export class StellarMonitorService implements OnModuleInit {
         },
       );
 
-      req.on('timeout', () => {
+      req.on("timeout", () => {
         req.destroy();
         reject(new Error(`Request timed out after ${timeoutMs}ms`));
       });
 
-      req.on('error', (err) => reject(err));
+      req.on("error", (err) => reject(err));
 
       req.end();
     });
@@ -270,35 +277,51 @@ export class StellarMonitorService implements OnModuleInit {
   private emitMetricsToHooks(): void {
     const metrics = this.getMetrics();
 
-    this.monitoringHooks.setGauge('stellar_healthy_endpoints', metrics.healthyEndpoints, {
-      service: 'stellar',
-    });
+    this.monitoringHooks.setGauge(
+      "stellar_healthy_endpoints",
+      metrics.healthyEndpoints,
+      {
+        service: "stellar",
+      },
+    );
 
-    this.monitoringHooks.setGauge('stellar_total_endpoints', metrics.totalEndpoints, {
-      service: 'stellar',
-    });
+    this.monitoringHooks.setGauge(
+      "stellar_total_endpoints",
+      metrics.totalEndpoints,
+      {
+        service: "stellar",
+      },
+    );
 
-    this.monitoringHooks.setGauge('stellar_uptime_percentage', metrics.uptimePercentage, {
-      service: 'stellar',
-    });
+    this.monitoringHooks.setGauge(
+      "stellar_uptime_percentage",
+      metrics.uptimePercentage,
+      {
+        service: "stellar",
+      },
+    );
 
     if (metrics.averageLatencyMs !== null) {
-      this.monitoringHooks.setGauge('stellar_average_latency_ms', metrics.averageLatencyMs, {
-        service: 'stellar',
-      });
+      this.monitoringHooks.setGauge(
+        "stellar_average_latency_ms",
+        metrics.averageLatencyMs,
+        {
+          service: "stellar",
+        },
+      );
     }
 
-    this.monitoringHooks.incrementCounter('stellar_total_probes', 1, {
-      service: 'stellar',
+    this.monitoringHooks.incrementCounter("stellar_total_probes", 1, {
+      service: "stellar",
     });
 
     // Per-endpoint latency histogram
     for (const endpoint of metrics.endpoints) {
       if (endpoint.latencyMs !== null) {
         this.monitoringHooks.observeHistogram(
-          'stellar_endpoint_latency_ms',
+          "stellar_endpoint_latency_ms",
           endpoint.latencyMs,
-          { service: 'stellar', endpoint: endpoint.url },
+          { service: "stellar", endpoint: endpoint.url },
         );
       }
     }
@@ -308,11 +331,11 @@ export class StellarMonitorService implements OnModuleInit {
       metrics.status === StellarNetworkStatus.HEALTHY
         ? 2
         : metrics.status === StellarNetworkStatus.DEGRADED
-        ? 1
-        : 0;
+          ? 1
+          : 0;
 
-    this.monitoringHooks.setGauge('stellar_network_status', statusValue, {
-      service: 'stellar',
+    this.monitoringHooks.setGauge("stellar_network_status", statusValue, {
+      service: "stellar",
     });
   }
 }

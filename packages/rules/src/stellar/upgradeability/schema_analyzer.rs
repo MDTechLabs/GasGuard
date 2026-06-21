@@ -3,9 +3,9 @@
 //! This module provides analysis of struct definitions and their serialization
 //! compatibility across contract upgrades.
 
-use std::collections::{HashMap, HashSet};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldDef {
@@ -66,13 +66,18 @@ impl SchemaAnalyzer {
 
         // Pattern to match struct definitions with derive macros
         let struct_pattern = Regex::new(
-            r#"(?ms)(#\[derive\(([^)]*)\)]\s*)*(#\[.*?\]\s*)*pub\s+struct\s+(\w+)\s*\{([^}]*)\}"#
-        ).unwrap();
+            r#"(?ms)(#\[derive\(([^)]*)\)]\s*)*(#\[.*?\]\s*)*pub\s+struct\s+(\w+)\s*\{([^}]*)\}"#,
+        )
+        .unwrap();
 
         for captures in struct_pattern.captures_iter(source) {
             let derives_str = captures.get(2).map(|m| m.as_str()).unwrap_or("");
-            let struct_name = captures.get(3).map(|m| m.as_str()).unwrap_or("").to_string();
-            let fields_str = captures.get(4).map(|m| m.as_str()).unwrap_or("");
+            let struct_name = captures
+                .get(4)
+                .map(|m| m.as_str())
+                .unwrap_or("")
+                .to_string();
+            let fields_str = captures.get(5).map(|m| m.as_str()).unwrap_or("");
             let full_match = captures.get(0).unwrap().as_str();
 
             let line_number = source[..captures.get(0).unwrap().start()].lines().count();
@@ -83,7 +88,9 @@ impl SchemaAnalyzer {
                 .filter(|s| !s.is_empty())
                 .collect();
 
-            let has_serde = derives.iter().any(|d| d.contains("Serialize") || d.contains("Deserialize"))
+            let has_serde = derives
+                .iter()
+                .any(|d| d.contains("Serialize") || d.contains("Deserialize"))
                 || full_match.contains("#[serde");
 
             let fields = Self::extract_fields(fields_str, line_number);
@@ -154,8 +161,17 @@ impl SchemaAnalyzer {
         let field_pattern = Regex::new(r"pub\s+(\w+)\s*:\s*(.+?)(?:\s*=|$)").unwrap();
 
         if let Some(captures) = field_pattern.captures(trimmed) {
-            let name = captures.get(1).map(|m| m.as_str()).unwrap_or("").to_string();
-            let mut type_str = captures.get(2).map(|m| m.as_str()).unwrap_or("").trim().to_string();
+            let name = captures
+                .get(1)
+                .map(|m| m.as_str())
+                .unwrap_or("")
+                .to_string();
+            let mut type_str = captures
+                .get(2)
+                .map(|m| m.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_string();
 
             // Check for Option<T> pattern
             let is_optional = type_str.starts_with("Option<");
@@ -237,7 +253,9 @@ impl SchemaAnalyzer {
                         "New required field '{}' added to struct '{}'",
                         name, new_schema.struct_name
                     ),
-                    impact: "Existing contract instances cannot be upgraded without migration logic.".to_string(),
+                    impact:
+                        "Existing contract instances cannot be upgraded without migration logic."
+                            .to_string(),
                 });
             }
         }
@@ -256,7 +274,9 @@ impl SchemaAnalyzer {
                             "Field '{}' type changed from '{}' to '{}'",
                             name, old_field.type_name, new_field.type_name
                         ),
-                        impact: "This will cause deserialization to fail or produce incorrect data.".to_string(),
+                        impact:
+                            "This will cause deserialization to fail or produce incorrect data."
+                                .to_string(),
                     });
                 }
 
@@ -268,11 +288,9 @@ impl SchemaAnalyzer {
                         field_name: Some(name.to_string()),
                         old_type: Some(old_field.type_name.clone()),
                         new_type: Some(new_field.type_name.clone()),
-                        description: format!(
-                            "Optional field '{}' became required",
-                            name
-                        ),
-                        impact: "Existing instances with missing field will fail to deserialize.".to_string(),
+                        description: format!("Optional field '{}' became required", name),
+                        impact: "Existing instances with missing field will fail to deserialize."
+                            .to_string(),
                     });
                 }
             }
@@ -291,7 +309,9 @@ impl SchemaAnalyzer {
                         "Serde derive macros changed for struct '{}'",
                         old_schema.struct_name
                     ),
-                    impact: "Serialization format may be incompatible with existing persisted state.".to_string(),
+                    impact:
+                        "Serialization format may be incompatible with existing persisted state."
+                            .to_string(),
                 });
             }
         }
@@ -334,7 +354,10 @@ impl SchemaAnalyzer {
     fn extract_base_type(type_str: &str) -> String {
         let re = Regex::new(r"(?:Option|Vec)<(.+?)>").unwrap();
         if let Some(caps) = re.captures(type_str) {
-            caps.get(1).map(|m| m.as_str()).unwrap_or(type_str).to_string()
+            caps.get(1)
+                .map(|m| m.as_str())
+                .unwrap_or(type_str)
+                .to_string()
         } else {
             type_str.to_string()
         }
@@ -377,15 +400,13 @@ mod tests {
     fn test_detect_field_removal() {
         let old = StructSchema {
             struct_name: "Config".to_string(),
-            fields: vec![
-                FieldDef {
-                    name: "value".to_string(),
-                    type_name: "u64".to_string(),
-                    is_optional: false,
-                    is_vector: false,
-                    line_number: 1,
-                },
-            ],
+            fields: vec![FieldDef {
+                name: "value".to_string(),
+                type_name: "u64".to_string(),
+                is_optional: false,
+                is_vector: false,
+                line_number: 1,
+            }],
             derives: vec!["Serialize".to_string(), "Deserialize".to_string()],
             has_serde: true,
             line_number: 1,

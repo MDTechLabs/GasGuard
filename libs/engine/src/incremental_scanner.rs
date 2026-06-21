@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
-use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
 use crate::ScanResult;
@@ -62,19 +62,20 @@ impl IncrementalScanner {
     /// Generate content-based hash for a file
     pub async fn generate_file_hash(&self, file_path: &Path) -> Result<FileHashInfo> {
         use std::fs;
-        
+
         let content = fs::read_to_string(file_path)
             .with_context(|| format!("Failed to read file: {:?}", file_path))?;
-        
+
         let metadata = fs::metadata(file_path)
             .with_context(|| format!("Failed to get metadata for: {:?}", file_path))?;
-        
+
         let content_hash = sha256::digest(&content);
-        let last_modified = metadata.modified()?
+        let last_modified = metadata
+            .modified()?
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-        
+
         Ok(FileHashInfo {
             file_path: file_path.to_path_buf(),
             content_hash,
@@ -84,7 +85,10 @@ impl IncrementalScanner {
     }
 
     /// Generate hashes for multiple files
-    pub async fn generate_multiple_file_hashes(&self, file_paths: &[PathBuf]) -> Result<Vec<FileHashInfo>> {
+    pub async fn generate_multiple_file_hashes(
+        &self,
+        file_paths: &[PathBuf],
+    ) -> Result<Vec<FileHashInfo>> {
         let mut hashes = Vec::new();
         for file_path in file_paths {
             hashes.push(self.generate_file_hash(file_path).await?);
@@ -93,38 +97,50 @@ impl IncrementalScanner {
     }
 
     /// Get cached hash information
-    pub async fn get_cached_hashes(&self, repo_path: &Path) -> Result<HashMap<PathBuf, FileHashInfo>> {
-        let cache_file = self.cache_dir.join(format!("{}.hashes", repo_path.display()));
-        
+    pub async fn get_cached_hashes(
+        &self,
+        repo_path: &Path,
+    ) -> Result<HashMap<PathBuf, FileHashInfo>> {
+        let cache_file = self
+            .cache_dir
+            .join(format!("{}.hashes", repo_path.display()));
+
         if !cache_file.exists() {
             return Ok(HashMap::new());
         }
-        
+
         let content = std::fs::read_to_string(&cache_file)?;
-        let hashes: HashMap<String, FileHashInfo> = serde_json::from_str(&content)
-            .with_context(|| "Failed to parse cached hashes")?;
-        
-        Ok(hashes.into_iter()
+        let hashes: HashMap<String, FileHashInfo> =
+            serde_json::from_str(&content).with_context(|| "Failed to parse cached hashes")?;
+
+        Ok(hashes
+            .into_iter()
             .map(|(k, v)| (PathBuf::from(k), v))
             .collect())
     }
 
     /// Cache hash information
-    pub async fn cache_hashes(&self, repo_path: &Path, hashes: &HashMap<PathBuf, FileHashInfo>) -> Result<()> {
+    pub async fn cache_hashes(
+        &self,
+        repo_path: &Path,
+        hashes: &HashMap<PathBuf, FileHashInfo>,
+    ) -> Result<()> {
         use std::fs;
-        
+
         fs::create_dir_all(&self.cache_dir)?;
-        
-        let cache_file = self.cache_dir.join(format!("{}.hashes", repo_path.display()));
-        
+
+        let cache_file = self
+            .cache_dir
+            .join(format!("{}.hashes", repo_path.display()));
+
         let serializable: HashMap<String, FileHashInfo> = hashes
             .iter()
             .map(|(k, v)| (k.to_string_lossy().to_string(), v.clone()))
             .collect();
-        
+
         let content = serde_json::to_string_pretty(&serializable)?;
         fs::write(cache_file, content)?;
-        
+
         Ok(())
     }
 
@@ -136,7 +152,7 @@ impl IncrementalScanner {
     ) -> Result<HashComparisonResult> {
         let cached_hashes = self.get_cached_hashes(repo_path).await?;
         let current_hashes = self.generate_multiple_file_hashes(current_files).await?;
-        
+
         let mut unchanged = Vec::new();
         let mut modified = Vec::new();
         let mut added = Vec::new();
@@ -182,14 +198,14 @@ impl IncrementalScanner {
         all_files: &[PathBuf],
     ) -> Result<Vec<PathBuf>> {
         let mut dependent_files = HashSet::new();
-        
+
         for modified_file in modified_files {
             let dependencies = self.detect_dependencies(modified_file, all_files).await?;
             for dep in dependencies {
                 dependent_files.insert(dep);
             }
         }
-        
+
         Ok(dependent_files.into_iter().collect())
     }
 
@@ -200,10 +216,13 @@ impl IncrementalScanner {
         all_files: &[PathBuf],
     ) -> Result<Vec<PathBuf>> {
         let mut dependencies = Vec::new();
-        
+
         let content = std::fs::read_to_string(source_file)?;
         let source_dir = source_file.parent().unwrap_or_else(|| Path::new("."));
-        let source_ext = source_file.extension().and_then(|s| s.to_str()).unwrap_or("");
+        let source_ext = source_file
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
 
         match source_ext {
             "rs" => {
@@ -212,7 +231,8 @@ impl IncrementalScanner {
                 for captures in import_regex.captures_iter(&content) {
                     if let Some(module_path) = captures.get(1) {
                         let module_str = module_path.as_str().trim();
-                        let possible_files = self.resolve_rust_import(module_str, source_dir, all_files);
+                        let possible_files =
+                            self.resolve_rust_import(module_str, source_dir, all_files);
                         dependencies.extend(possible_files);
                     }
                 }
@@ -223,7 +243,8 @@ impl IncrementalScanner {
                 for captures in import_regex.captures_iter(&content) {
                     if let Some(import_path) = captures.get(1) {
                         let import_str = import_path.as_str();
-                        let possible_files = self.resolve_solidity_import(import_str, source_dir, all_files);
+                        let possible_files =
+                            self.resolve_solidity_import(import_str, source_dir, all_files);
                         dependencies.extend(possible_files);
                     }
                 }
@@ -231,7 +252,10 @@ impl IncrementalScanner {
             _ => {}
         }
 
-        Ok(dependencies.into_iter().filter(|dep| all_files.contains(dep)).collect())
+        Ok(dependencies
+            .into_iter()
+            .filter(|dep| all_files.contains(dep))
+            .collect())
     }
 
     /// Resolve Rust import paths to actual files
@@ -242,13 +266,19 @@ impl IncrementalScanner {
         all_files: &[PathBuf],
     ) -> Vec<PathBuf> {
         let mut possible_files = Vec::new();
-        
+
         if module_path.starts_with("crate::") {
             let relative_path = module_path.replace("crate::", "").replace("::", "/");
-            
-            let possible_file = source_dir.join("../src").join(&relative_path).with_extension("rs");
-            let possible_mod_dir = source_dir.join("../src").join(&relative_path).join("mod.rs");
-            
+
+            let possible_file = source_dir
+                .join("../src")
+                .join(&relative_path)
+                .with_extension("rs");
+            let possible_mod_dir = source_dir
+                .join("../src")
+                .join(&relative_path)
+                .join("mod.rs");
+
             if all_files.contains(&possible_file) {
                 possible_files.push(possible_file);
             }
@@ -256,7 +286,7 @@ impl IncrementalScanner {
                 possible_files.push(possible_mod_dir);
             }
         }
-        
+
         possible_files
     }
 
@@ -268,11 +298,11 @@ impl IncrementalScanner {
         all_files: &[PathBuf],
     ) -> Vec<PathBuf> {
         let mut possible_files = Vec::new();
-        
+
         // Relative imports
         if import_path.starts_with("./") || import_path.starts_with("../") {
             let absolute_path = source_dir.join(import_path);
-            
+
             // Try to find a file that matches this path
             for file in all_files {
                 if file.starts_with(&absolute_path) {
@@ -281,7 +311,7 @@ impl IncrementalScanner {
                 }
             }
         }
-        
+
         // Try adding .sol extension if not present
         if !import_path.ends_with(".sol") {
             let with_sol_ext = source_dir.join(format!("{}.sol", import_path));
@@ -289,23 +319,29 @@ impl IncrementalScanner {
                 possible_files.push(with_sol_ext);
             }
         }
-        
+
         possible_files
     }
 
     /// Get cached analysis results
-    pub async fn get_cached_analysis(&self, repo_path: &Path) -> Result<HashMap<PathBuf, AnalysisCacheEntry>> {
-        let cache_file = self.cache_dir.join(format!("{}.analysis", repo_path.display()));
-        
+    pub async fn get_cached_analysis(
+        &self,
+        repo_path: &Path,
+    ) -> Result<HashMap<PathBuf, AnalysisCacheEntry>> {
+        let cache_file = self
+            .cache_dir
+            .join(format!("{}.analysis", repo_path.display()));
+
         if !cache_file.exists() {
             return Ok(HashMap::new());
         }
-        
+
         let content = std::fs::read_to_string(&cache_file)?;
-        let analysis: HashMap<String, AnalysisCacheEntry> = serde_json::from_str(&content)
-            .with_context(|| "Failed to parse cached analysis")?;
-        
-        Ok(analysis.into_iter()
+        let analysis: HashMap<String, AnalysisCacheEntry> =
+            serde_json::from_str(&content).with_context(|| "Failed to parse cached analysis")?;
+
+        Ok(analysis
+            .into_iter()
             .map(|(k, v)| (PathBuf::from(k), v))
             .collect())
     }
@@ -317,19 +353,21 @@ impl IncrementalScanner {
         results: &HashMap<PathBuf, AnalysisCacheEntry>,
     ) -> Result<()> {
         use std::fs;
-        
+
         fs::create_dir_all(&self.cache_dir)?;
-        
-        let cache_file = self.cache_dir.join(format!("{}.analysis", repo_path.display()));
-        
+
+        let cache_file = self
+            .cache_dir
+            .join(format!("{}.analysis", repo_path.display()));
+
         let serializable: HashMap<String, AnalysisCacheEntry> = results
             .iter()
             .map(|(k, v)| (k.to_string_lossy().to_string(), v.clone()))
             .collect();
-        
+
         let content = serde_json::to_string_pretty(&serializable)?;
         fs::write(cache_file, content)?;
-        
+
         Ok(())
     }
 
@@ -344,64 +382,77 @@ impl IncrementalScanner {
         Fut: std::future::Future<Output = Result<Vec<ScanResult>>> + Send,
     {
         let start_time = SystemTime::now();
-        
+
         // Find all supported files
         let all_files = self.find_supported_files(repo_path)?;
-        
+
         // Get hash comparison
         let hash_comparison = self.compare_with_cache(repo_path, &all_files).await?;
-        
+
         // Get cached analysis results
         let mut cached_analysis = self.get_cached_analysis(repo_path).await?;
-        
+
         // Determine which files need re-analysis
         let mut files_to_reanalyze = HashSet::new();
-        
+
         // Add modified files
         for file in &hash_comparison.modified {
             files_to_reanalyze.insert(file.file_path.clone());
         }
-        
+
         // Add new files
         for file in &hash_comparison.added {
             files_to_reanalyze.insert(file.file_path.clone());
         }
-        
+
         // Remove deleted files from cache
         for deleted_file in &hash_comparison.deleted {
             cached_analysis.remove(deleted_file);
         }
-        
+
         // Filter out unchanged files that have valid cache entries
-        let files_to_analyze: Vec<PathBuf> = files_to_reanalyze.into_iter()
+        let files_to_analyze: Vec<PathBuf> = files_to_reanalyze
+            .into_iter()
             .filter(|file_path| {
                 if let Some(cached) = cached_analysis.get(file_path) {
                     // Check if the cached result is still valid
-                    if let Some(current_file) = hash_comparison.unchanged.iter()
-                        .find(|f| f.file_path == *file_path) {
+                    if let Some(current_file) = hash_comparison
+                        .unchanged
+                        .iter()
+                        .find(|f| f.file_path == *file_path)
+                    {
                         return current_file.content_hash != cached.content_hash;
                     }
                 }
                 true
             })
             .collect();
-        
+
         // Perform analysis on files that need it
         let mut new_results = Vec::new();
         if !files_to_analyze.is_empty() {
             new_results = analysis_function(files_to_analyze.clone()).await?;
         }
-        
+
         // Update cache with new results
         for result in &new_results {
-            if let Some(file_info) = hash_comparison.modified.iter()
+            if let Some(file_info) = hash_comparison
+                .modified
+                .iter()
                 .find(|f| f.file_path.as_path() == Path::new(&result.source))
-                .or_else(|| hash_comparison.added.iter()
-                    .find(|f| f.file_path.as_path() == Path::new(&result.source))) {
-                
+                .or_else(|| {
+                    hash_comparison
+                        .added
+                        .iter()
+                        .find(|f| f.file_path.as_path() == Path::new(&result.source))
+                })
+            {
                 // Build dependency graph for this file
-                let dependencies = self.find_dependent_files(&[file_info.file_path.clone()], &all_files).await.unwrap_or_default();
-                
+                let dependencies = self
+                    .find_dependent_files(&[file_info.file_path.clone()], &all_files)
+                    .await
+                    .unwrap_or_default();
+
                 let cache_entry = AnalysisCacheEntry {
                     file_path: file_info.file_path.clone(),
                     content_hash: file_info.content_hash.clone(),
@@ -412,34 +463,36 @@ impl IncrementalScanner {
                         .as_secs(),
                     dependencies,
                 };
-                
+
                 cached_analysis.insert(file_info.file_path.clone(), cache_entry);
             }
         }
-        
+
         // Save updated cache
-        self.cache_analysis_results(repo_path, &cached_analysis).await?;
-        
+        self.cache_analysis_results(repo_path, &cached_analysis)
+            .await?;
+
         // Update file hashes cache
         let mut current_hashes = HashMap::new();
-        for file_info in hash_comparison.modified.iter()
+        for file_info in hash_comparison
+            .modified
+            .iter()
             .chain(hash_comparison.added.iter())
-            .chain(hash_comparison.unchanged.iter()) {
+            .chain(hash_comparison.unchanged.iter())
+        {
             current_hashes.insert(file_info.file_path.clone(), file_info.clone());
         }
         self.cache_hashes(repo_path, &current_hashes).await?;
-        
-        let analysis_time = SystemTime::now()
-            .duration_since(start_time)?
-            .as_millis() as u64;
-        
+
+        let analysis_time = SystemTime::now().duration_since(start_time)?.as_millis() as u64;
+
         let total_files = all_files.len();
         let cache_hit_rate = if total_files > 0 {
             (total_files - files_to_analyze.len()) as f64 / total_files as f64
         } else {
             0.0
         };
-        
+
         Ok(IncrementalAnalysisResult {
             cached_results: cached_analysis.into_values().collect(),
             new_results,
@@ -453,7 +506,7 @@ impl IncrementalScanner {
     /// Find all supported files in a directory
     fn find_supported_files(&self, dir_path: &Path) -> Result<Vec<PathBuf>> {
         let mut files = Vec::new();
-        
+
         for entry in WalkDir::new(dir_path)
             .into_iter()
             .filter_map(|e| e.ok())
@@ -466,23 +519,27 @@ impl IncrementalScanner {
         {
             files.push(entry.path().to_path_buf());
         }
-        
+
         Ok(files)
     }
 
     /// Clear all cache for a repository
     pub async fn clear_cache(&self, repo_path: &Path) -> Result<()> {
-        let hash_file = self.cache_dir.join(format!("{}.hashes", repo_path.display()));
-        let analysis_file = self.cache_dir.join(format!("{}.analysis", repo_path.display()));
-        
+        let hash_file = self
+            .cache_dir
+            .join(format!("{}.hashes", repo_path.display()));
+        let analysis_file = self
+            .cache_dir
+            .join(format!("{}.analysis", repo_path.display()));
+
         if hash_file.exists() {
             std::fs::remove_file(hash_file)?;
         }
-        
+
         if analysis_file.exists() {
             std::fs::remove_file(analysis_file)?;
         }
-        
+
         Ok(())
     }
 }

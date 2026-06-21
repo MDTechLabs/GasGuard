@@ -321,7 +321,7 @@ contract CleanContract {
     it('should run multiple fixtures and generate report', async () => {
       const fixtures = FixtureLoader.loadFixturesFromDir(
         './tests/rules/fixtures'
-      );
+      ).filter(f => f.metadata?.language === 'solidity');
 
       const summary = await tester.runAll(fixtures);
       

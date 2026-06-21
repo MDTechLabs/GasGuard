@@ -2,8 +2,8 @@
 //!
 //! Rules that detect unsafe serialization changes during contract upgrades
 
-use crate::{RuleViolation, ViolationSeverity};
 use super::schema_analyzer::{SchemaAnalyzer, SerializationIssue, SerializationIssueType};
+use crate::{RuleViolation, ViolationSeverity};
 
 /// Rule to detect incompatible serialization changes during upgrades
 pub struct SerializationUpgradeCompatibilityRule {
@@ -23,8 +23,10 @@ impl SerializationUpgradeCompatibilityRule {
         let new_schemas = SchemaAnalyzer::extract_schemas(new_code);
 
         // Create a map of schemas for easier lookup
-        let new_schema_map: std::collections::HashMap<&str, _> =
-            new_schemas.iter().map(|s| (s.struct_name.as_str(), s)).collect();
+        let new_schema_map: std::collections::HashMap<&str, _> = new_schemas
+            .iter()
+            .map(|s| (s.struct_name.as_str(), s))
+            .collect();
 
         // Check each old schema for compatibility with new version
         for old_schema in &old_schemas {
@@ -153,12 +155,15 @@ impl UnsafeSerializationPatternRule {
         if Self::has_struct_modifications(source) && !Self::has_migration_function(source) {
             violations.push(RuleViolation {
                 rule_name: "missing-upgrade-migration".to_string(),
-                description: "Serialized struct modified but no migration function found".to_string(),
+                description: "Serialized struct modified but no migration function found"
+                    .to_string(),
                 severity: ViolationSeverity::Medium,
                 line_number: 1,
                 column_number: 0,
                 variable_name: file_path.to_string(),
-                suggestion: "Add a migration function to safely upgrade contract state between versions.".to_string(),
+                suggestion:
+                    "Add a migration function to safely upgrade contract state between versions."
+                        .to_string(),
             });
         }
 
@@ -179,8 +184,10 @@ impl UnsafeSerializationPatternRule {
             if line.trim().starts_with("//") && line.contains("pub ") {
                 // Check if there's a doc comment nearby explaining the change
                 let has_explanation = if i > 0 {
-                    lines[i - 1].contains("DEPRECATED") || lines[i - 1].contains("deprecated")
-                        || lines[i - 1].contains("removed") || lines[i - 1].contains("migration")
+                    lines[i - 1].contains("DEPRECATED")
+                        || lines[i - 1].contains("deprecated")
+                        || lines[i - 1].contains("removed")
+                        || lines[i - 1].contains("migration")
                 } else {
                     false
                 };
@@ -232,14 +239,13 @@ mod tests {
         let violations = rule.check_upgrade(new_code, "contract.rs");
 
         assert!(!violations.is_empty());
-        assert!(violations[0]
-            .description
-            .contains("New required field"));
+        assert!(violations[0].description.contains("New required field"));
     }
 
     #[test]
     fn test_unsafe_serde_removal() {
         let source = r#"
+        #[contracttype]
         pub struct State {
             pub balance: u64,
         }

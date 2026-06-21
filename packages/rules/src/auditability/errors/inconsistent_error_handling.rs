@@ -26,8 +26,17 @@ impl Rule for InconsistentErrorHandlingRule {
             self.extract_patterns_from_item(item, &mut found_patterns);
         }
 
-        // If more than one pattern is found, flag inconsistencies
-        if found_patterns.len() > 1 {
+        // If more than one pattern is found, flag inconsistencies.
+        // Note: Result and CustomEnum are allowed to co-exist as they are commonly used together.
+        let mut is_inconsistent = found_patterns.len() > 1;
+        if found_patterns.len() == 2
+            && found_patterns.contains("Result")
+            && found_patterns.contains("CustomEnum")
+        {
+            is_inconsistent = false;
+        }
+
+        if is_inconsistent {
             let patterns: Vec<_> = found_patterns.into_iter().collect();
             violations.push(RuleViolation {
                 rule_name: self.name().to_string(),
@@ -113,6 +122,9 @@ impl InconsistentErrorHandlingRule {
                 if let Some(init) = &local.init {
                     self.extract_patterns_from_expr(&init.expr, patterns);
                 }
+            }
+            Stmt::Macro(stmt_macro) => {
+                self.check_macro(&stmt_macro.mac, patterns);
             }
             _ => {}
         }

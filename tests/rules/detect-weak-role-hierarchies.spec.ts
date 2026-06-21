@@ -88,7 +88,7 @@ describe('detectWeakRoleHierarchies', () => {
         './tests/rules/fixtures/stellar-weak-role-hierarchy.json'
       );
       expect(fixture.id).toBe('stellar-weak-role-hierarchy-1');
-      expect(fixture.expectedViolations).toHaveLength(2);
+      expect(fixture.expectedFindings).toHaveLength(2);
       expect(fixture.metadata?.category).toBe('access-control');
     });
 

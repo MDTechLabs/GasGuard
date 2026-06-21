@@ -4,8 +4,8 @@
 //! Soroban contracts should validate they're running on the expected network
 //! to prevent issues when deployed across different Stellar networks.
 
-use crate::{RuleViolation, ViolationSeverity};
 use crate::stellar::linting::SorobanLintRule;
+use crate::{RuleViolation, ViolationSeverity};
 
 /// Rule to detect missing network validation in Soroban contracts
 pub struct NetworkValidationRule;
@@ -14,33 +14,33 @@ impl SorobanLintRule for NetworkValidationRule {
     fn id(&self) -> &'static str {
         "stellar-network-validation"
     }
-    
+
     fn name(&self) -> &'static str {
         "Stellar Network Validation"
     }
-    
+
     fn description(&self) -> &'static str {
         "Detects contracts lacking network/environment validation. Contracts may behave incorrectly across networks."
     }
-    
+
     fn severity(&self) -> ViolationSeverity {
         ViolationSeverity::High
     }
-    
+
     fn check(&self, source: &str, file_path: &str) -> Option<Vec<RuleViolation>> {
         let mut violations = Vec::new();
-        
+
         // Check if contract uses Env but doesn't validate network
         if source.contains("Env") || source.contains("env.") {
             // Check for network passphrase validation
-            let has_network_validation = source.contains("get_network_passphrase") 
+            let has_network_validation = source.contains("get_network_passphrase")
                 || source.contains("network_passphrase")
                 || source.contains("is_testnet")
                 || source.contains("is_mainnet")
                 || source.contains("NETWORK")
                 || source.contains("Network")
                 || source.contains("env.ledger().network_passphrase()");
-            
+
             if !has_network_validation {
                 violations.push(RuleViolation {
                     rule_name: self.id().to_string(),
@@ -53,29 +53,33 @@ impl SorobanLintRule for NetworkValidationRule {
                 });
             }
         }
-        
+
         // Check for functions that interact with external systems without network checks
         let lines: Vec<&str> = source.lines().collect();
-        
+
         for (i, line) in lines.iter().enumerate() {
             // Look for functions that might need network validation
-            if (line.contains("pub fn") || line.contains("fn ")) 
-                && (line.contains("transfer") || line.contains("withdraw") || line.contains("deposit") 
-                    || line.contains("mint") || line.contains("burn") || line.contains("swap")) {
-                
+            if (line.contains("pub fn") || line.contains("fn "))
+                && (line.contains("transfer")
+                    || line.contains("withdraw")
+                    || line.contains("deposit")
+                    || line.contains("mint")
+                    || line.contains("burn")
+                    || line.contains("swap"))
+            {
                 // Check if function has Env parameter
                 let has_env_param = line.contains("env: Env") || line.contains("env: &Env");
-                
+
                 if has_env_param {
                     // Look ahead to see if there's network validation in the function
                     let next_lines: Vec<&str> = lines.iter().skip(i).take(20).copied().collect();
                     let next_lines_str = next_lines.join("\n");
-                    
-                    if !next_lines_str.contains("network_passphrase") 
+
+                    if !next_lines_str.contains("network_passphrase")
                         && !next_lines_str.contains("get_network_passphrase")
                         && !next_lines_str.contains("is_testnet")
-                        && !next_lines_str.contains("is_mainnet") {
-                        
+                        && !next_lines_str.contains("is_mainnet")
+                    {
                         violations.push(RuleViolation {
                             rule_name: self.id().to_string(),
                             description: format!("Function '{}' at line {} performs sensitive operations without network validation", 
@@ -90,13 +94,13 @@ impl SorobanLintRule for NetworkValidationRule {
                 }
             }
         }
-        
+
         // Check for hardcoded addresses or values that might be network-specific
         if source.contains("Address::from") || source.contains("Address::generate") {
             let has_network_check = source.contains("network_passphrase")
                 || source.contains("is_testnet")
                 || source.contains("is_mainnet");
-            
+
             if !has_network_check {
                 violations.push(RuleViolation {
                     rule_name: self.id().to_string(),
@@ -109,7 +113,7 @@ impl SorobanLintRule for NetworkValidationRule {
                 });
             }
         }
-        
+
         // Check for contracts that might have network-specific behavior
         if source.contains("#[contractimpl]") {
             let has_any_network_check = source.contains("network_passphrase")
@@ -117,7 +121,7 @@ impl SorobanLintRule for NetworkValidationRule {
                 || source.contains("is_testnet")
                 || source.contains("is_mainnet")
                 || source.contains("NETWORK");
-            
+
             if !has_any_network_check {
                 // Only add this warning if we haven't already added a similar one
                 if !violations.iter().any(|v| v.rule_name == self.id()) {
@@ -133,7 +137,7 @@ impl SorobanLintRule for NetworkValidationRule {
                 }
             }
         }
-        
+
         if violations.is_empty() {
             None
         } else {
@@ -156,7 +160,7 @@ fn extract_function_name(line: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_detects_missing_network_validation_with_env() {
         let rule = NetworkValidationRule;
@@ -170,17 +174,19 @@ impl MyContract {
     }
 }
 "#;
-        
+
         let violations = rule.check(source, "test.rs");
         assert!(violations.is_some());
         let violations = violations.unwrap();
         assert!(!violations.is_empty());
-        
+
         // Should detect missing network validation
-        let network_violation = violations.iter().find(|v| v.rule_name == "stellar-network-validation");
+        let network_violation = violations
+            .iter()
+            .find(|v| v.rule_name == "stellar-network-validation");
         assert!(network_violation.is_some());
     }
-    
+
     #[test]
     fn test_passes_with_network_validation() {
         let rule = NetworkValidationRule;
@@ -196,15 +202,18 @@ impl MyContract {
     }
 }
 "#;
-        
+
         let violations = rule.check(source, "test.rs");
         // Should have fewer or no violations since network validation is present
         if let Some(viols) = violations {
-            let network_violations: Vec<_> = viols.iter().filter(|v| v.rule_name == "stellar-network-validation").collect();
+            let network_violations: Vec<_> = viols
+                .iter()
+                .filter(|v| v.rule_name == "stellar-network-validation")
+                .collect();
             assert!(network_violations.is_empty() || network_violations.len() < 2);
         }
     }
-    
+
     #[test]
     fn test_detects_sensitive_function_without_network_check() {
         let rule = NetworkValidationRule;
@@ -218,18 +227,18 @@ impl MyContract {
     }
 }
 "#;
-        
+
         let violations = rule.check(source, "test.rs");
         assert!(violations.is_some());
         let violations = violations.unwrap();
-        
+
         // Should detect transfer function without network validation
-        let function_violation = violations.iter().find(|v| 
+        let function_violation = violations.iter().find(|v| {
             v.description.contains("transfer") && v.description.contains("network validation")
-        );
+        });
         assert!(function_violation.is_some());
     }
-    
+
     #[test]
     fn test_detects_address_generation_without_network_check() {
         let rule = NetworkValidationRule;
@@ -243,18 +252,19 @@ impl MyContract {
     }
 }
 "#;
-        
+
         let violations = rule.check(source, "test.rs");
         assert!(violations.is_some());
         let violations = violations.unwrap();
-        
+
         // Should detect address generation without network validation
-        let address_violation = violations.iter().find(|v| 
-            v.description.contains("addresses without network validation")
-        );
+        let address_violation = violations.iter().find(|v| {
+            v.description
+                .contains("addresses without network validation")
+        });
         assert!(address_violation.is_some());
     }
-    
+
     #[test]
     fn test_no_false_positives_for_safe_contract() {
         let rule = NetworkValidationRule;
@@ -271,24 +281,28 @@ impl MyContract {
     }
 }
 "#;
-        
+
         let violations = rule.check(source, "test.rs");
-        
+
         // Should have minimal or no violations
         if let Some(viols) = violations {
-            let critical_violations: Vec<_> = viols.iter().filter(|v| 
-                v.rule_name == "stellar-network-validation"
-            ).collect();
+            let critical_violations: Vec<_> = viols
+                .iter()
+                .filter(|v| v.rule_name == "stellar-network-validation")
+                .collect();
             // Should not flag critical violations when network check is present
             assert!(critical_violations.len() <= 1);
         }
     }
-    
+
     #[test]
     fn test_extract_function_name() {
         assert_eq!(extract_function_name("pub fn transfer("), "transfer");
         assert_eq!(extract_function_name("fn deposit("), "deposit");
-        assert_eq!(extract_function_name("pub fn withdraw(env: Env,"), "withdraw");
+        assert_eq!(
+            extract_function_name("pub fn withdraw(env: Env,"),
+            "withdraw"
+        );
         assert_eq!(extract_function_name("no function here"), "unknown");
     }
 }
