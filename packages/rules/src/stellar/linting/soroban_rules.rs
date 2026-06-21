@@ -65,7 +65,7 @@ impl SorobanLintRule for ContractMacroRule {
                     line_number: i + 1,
                     column_number: 0,
                     variable_name: file_path.to_string(),
-                    severity: ViolationSeverity::Error,
+                    severity: ViolationSeverity::High,
                 });
             }
         }
@@ -110,7 +110,7 @@ impl SorobanLintRule for EnvParameterRule {
             if line.contains("pub fn") && !line.contains("Env") {
                 // Check if function body has storage operations
                 if i + 1 < lines.len() {
-                    let next_lines = lines.iter().skip(i).take(10).collect::<Vec<_>>().join("\n");
+                    let next_lines = lines.iter().skip(i).take(10).cloned().collect::<Vec<_>>().join("\n");
                     if next_lines.contains(".set(") || next_lines.contains(".put(") {
                         violations.push(RuleViolation {
                             rule_name: self.id().to_string(),

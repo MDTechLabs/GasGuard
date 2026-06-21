@@ -29,7 +29,7 @@ impl SerializationUpgradeCompatibilityRule {
         // Check each old schema for compatibility with new version
         for old_schema in old_schemas {
             if let Some(new_schema) = new_schema_map.get(old_schema.struct_name.as_str()) {
-                let issues = SchemaAnalyzer::detect_incompatibilities(old_schema, new_schema);
+                let issues = SchemaAnalyzer::detect_incompatibilities(&old_schema, &new_schema);
 
                 for issue in issues {
                     let violation = self.issue_to_violation(&issue, file_path);
