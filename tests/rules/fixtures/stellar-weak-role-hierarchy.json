@@ -3,18 +3,18 @@
   "name": "Weak Role Hierarchy Detection",
   "description": "Flags role-assignment functions that use only basic require_auth without a superior-authority check, enabling privilege escalation",
   "input": "use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};\n\n#[contracttype]\npub enum Role { Admin, Moderator, User }\n\n#[contractimpl]\nimpl AccessContract {\n    pub fn grant_role(env: Env, caller: Address, target: Address, role: Role) {\n        caller.require_auth();\n        env.storage().instance().set(&target, &role);\n    }\n\n    pub fn add_admin(env: Env, caller: Address, new_admin: Address) {\n        caller.require_auth();\n        env.storage().instance().set(&new_admin, &Role::Admin);\n    }\n\n    pub fn safe_promote(env: Env, admin: Address, target: Address, role: Role) {\n        admin.require_auth();\n        assert_admin(&env, &admin);\n        env.storage().instance().set(&target, &role);\n    }\n}",
-  "expectedViolations": [
+  "expectedFindings": [
     {
-      "rule_name": "detect-weak-role-hierarchies",
+      "ruleId": "detect-weak-role-hierarchies",
       "severity": "High",
-      "message_pattern": "grant_role",
-      "line_number": 8
+      "messagePattern": "grant_role",
+      "line": 8
     },
     {
-      "rule_name": "detect-weak-role-hierarchies",
+      "ruleId": "detect-weak-role-hierarchies",
       "severity": "High",
-      "message_pattern": "add_admin",
-      "line_number": 13
+      "messagePattern": "add_admin",
+      "line": 13
     }
   ],
   "metadata": {
