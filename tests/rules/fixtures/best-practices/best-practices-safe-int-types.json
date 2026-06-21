@@ -1,0 +1,43 @@
+{
+  "id": "best-practices-safe-int-types-1",
+  "name": "Unsafe Integer Types Detection",
+  "description": "Flags uses of i128/u128 where smaller bounded types would suffice",
+  "input": "pub fn transfer(env: Env, from: Address, to: Address, value: i128) {\n    let fee: u128 = 100;\n}\n\npub fn get_balance(env: Env, id: Address) -> i128 {\n    0\n}\n\npub fn process_fee(env: Env, fee_id: u128) -> u128 {\n    let multiplier: u128 = 2;\n    fee_id\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "use-safe-int-types",
+      "severity": "medium",
+      "messagePattern": "i128",
+      "line": 1
+    },
+    {
+      "ruleId": "use-safe-int-types",
+      "severity": "medium",
+      "messagePattern": "u128",
+      "line": 2
+    },
+    {
+      "ruleId": "use-safe-int-types",
+      "severity": "medium",
+      "messagePattern": "i128",
+      "line": 5
+    },
+    {
+      "ruleId": "use-safe-int-types",
+      "severity": "medium",
+      "messagePattern": "u128",
+      "line": 9
+    },
+    {
+      "ruleId": "use-safe-int-types",
+      "severity": "medium",
+      "messagePattern": "u128",
+      "line": 10
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "best-practices",
+    "tags": ["integer-types", "gas-optimization", "best-practices"]
+  }
+}

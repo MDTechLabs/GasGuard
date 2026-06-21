@@ -1,0 +1,19 @@
+{
+  "id": "best-practices-result-types-1",
+  "name": "Missing Result Return Type Detection",
+  "description": "Flags functions that use fallible operations without returning Result",
+  "input": "impl FallibleContract {\n    pub fn get_value(env: Env, key: Address) -> i128 {\n        env.storage().instance().get(&key).unwrap()\n    }\n\n    pub fn safe_get(env: Env, key: Address) -> Option<i128> {\n        env.storage().instance().get(&key)\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "use-result-types",
+      "severity": "medium",
+      "messagePattern": "unwrap",
+      "line": 2
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "best-practices",
+    "tags": ["error-handling", "result-types", "best-practices"]
+  }
+}

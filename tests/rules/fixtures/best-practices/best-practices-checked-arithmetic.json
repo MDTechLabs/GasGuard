@@ -1,0 +1,31 @@
+{
+  "id": "best-practices-checked-arithmetic-1",
+  "name": "Unchecked Arithmetic Detection",
+  "description": "Flags arithmetic operations that could overflow without checked methods",
+  "input": "pub fn add(a: i64, b: i64) -> i64 {\n    a + b\n}\n\npub fn multiply(x: u64, y: u64) -> u64 {\n    x * y\n}\n\npub fn safe_add(a: i64, b: i64) -> i64 {\n    a.checked_add(b).unwrap_or(0)\n}\n\npub fn subtract(a: i64, b: i64) -> i64 {\n    a - b\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "use-checked-arithmetic",
+      "severity": "high",
+      "messagePattern": "unchecked arithmetic",
+      "line": 2
+    },
+    {
+      "ruleId": "use-checked-arithmetic",
+      "severity": "high",
+      "messagePattern": "unchecked arithmetic",
+      "line": 6
+    },
+    {
+      "ruleId": "use-checked-arithmetic",
+      "severity": "high",
+      "messagePattern": "unchecked arithmetic",
+      "line": 14
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "best-practices",
+    "tags": ["arithmetic", "overflow", "best-practices"]
+  }
+}

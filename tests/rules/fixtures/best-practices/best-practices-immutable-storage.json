@@ -1,0 +1,19 @@
+{
+  "id": "best-practices-immutable-storage-1",
+  "name": "Mutable Storage in Read-Only Functions Detection",
+  "description": "Flags storage writes in functions that appear to be read-only views",
+  "input": "impl ViewContract {\n    pub fn get_balance(env: Env, addr: Address) -> i128 {\n        let bal = env.storage().instance().get(&addr).unwrap_or(0);\n        env.storage().instance().set(&\"last_viewed\", &addr);\n        bal\n    }\n\n    pub fn read_config(env: Env) -> u32 {\n        env.storage().instance().get(&\"config\").unwrap_or(0)\n    }\n\n    pub fn set_config(env: Env, val: u32) {\n        env.storage().instance().set(&\"config\", &val);\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "use-immutable-storage",
+      "severity": "medium",
+      "messagePattern": "storage write",
+      "line": 3
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "best-practices",
+    "tags": ["storage", "immutable", "best-practices"]
+  }
+}

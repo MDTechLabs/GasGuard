@@ -71,6 +71,77 @@
       },
       "dependencies": [],
       "tags": ["security", "reentrancy", "solidity"]
+    },
+    {
+      "id": "use-safe-int-types",
+      "name": "Use Safe Integer Types",
+      "enabled": true,
+      "severity": "medium",
+      "category": "best-practices",
+      "language": "rust",
+      "description": "Flags uses of i128/u128 where smaller bounded integer types would suffice for Soroban contracts",
+      "parameters": {
+        "allowAmountParams": true
+      },
+      "dependencies": [],
+      "tags": ["best-practices", "integer-types", "gas-optimization", "soroban"]
+    },
+    {
+      "id": "use-immutable-storage",
+      "name": "Use Immutable Storage for Read-Only Data",
+      "enabled": true,
+      "severity": "medium",
+      "category": "best-practices",
+      "language": "rust",
+      "description": "Flags storage writes in functions that follow read-only naming conventions",
+      "parameters": {
+        "checkViewFunctions": true
+      },
+      "dependencies": [],
+      "tags": ["best-practices", "storage", "view-functions", "soroban"]
+    },
+    {
+      "id": "use-checked-arithmetic",
+      "name": "Use Checked Arithmetic",
+      "enabled": true,
+      "severity": "high",
+      "category": "best-practices",
+      "language": "rust",
+      "description": "Flags arithmetic operations that could overflow without checked methods",
+      "parameters": {
+        "allowLoopCounters": true
+      },
+      "dependencies": [],
+      "tags": ["best-practices", "arithmetic", "overflow", "soroban"]
+    },
+    {
+      "id": "use-result-types",
+      "name": "Use Result Return Types",
+      "enabled": true,
+      "severity": "medium",
+      "category": "best-practices",
+      "language": "rust",
+      "description": "Flags functions that use fallible operations like unwrap without returning Result",
+      "parameters": {
+        "checkStorageReads": true,
+        "checkCrossContractCalls": true
+      },
+      "dependencies": [],
+      "tags": ["best-practices", "error-handling", "result-types", "soroban"]
+    },
+    {
+      "id": "use-initialization-functions",
+      "name": "Use Initialization Functions",
+      "enabled": true,
+      "severity": "high",
+      "category": "best-practices",
+      "language": "rust",
+      "description": "Flags Soroban contracts that lack a constructor despite performing storage initialization",
+      "parameters": {
+        "requireConstructor": true
+      },
+      "dependencies": [],
+      "tags": ["best-practices", "initialization", "constructor", "soroban"]
     }
   ],
   "profiles": [

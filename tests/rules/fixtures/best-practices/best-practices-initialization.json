@@ -1,0 +1,19 @@
+{
+  "id": "best-practices-initialization-1",
+  "name": "Missing Initialization Function Detection",
+  "description": "Flags contracts that perform storage initialization without a dedicated constructor",
+  "input": "impl NoInitContract {\n    pub fn set_admin(env: Env, admin: Address) {\n        env.storage().instance().set(&\"admin\", &admin);\n    }\n\n    pub fn get_config(env: Env) -> u32 {\n        env.storage().instance().get(&\"config\").unwrap_or(0)\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "use-initialization-functions",
+      "severity": "high",
+      "messagePattern": "missing",
+      "line": 1
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "best-practices",
+    "tags": ["initialization", "constructor", "best-practices"]
+  }
+}
