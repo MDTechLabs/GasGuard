@@ -452,6 +452,7 @@ dependencies = [
 name = "gasguard-rules"
 version = "0.1.0"
 dependencies = [
+ "gasguard-ast",
  "mockall",
  "proc-macro2",
  "quote",
