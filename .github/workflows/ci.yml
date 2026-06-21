@@ -10,22 +10,19 @@ jobs:
   rust-test:
     name: Rust Tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: libs/engine
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check for Cargo.toml
+      - name: Check for workspace Cargo.toml
         id: check-cargo
         run: |
           if [ -f "Cargo.toml" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Found Cargo.toml, proceeding with Rust tests"
+            echo "Found workspace Cargo.toml, proceeding with Rust tests"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "No Cargo.toml found in libs/engine. Skipping Rust tests."
+            echo "No Cargo.toml found. Skipping Rust tests."
           fi
 
       - name: Install Rust toolchain
@@ -43,14 +40,14 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            libs/engine/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('libs/engine/Cargo.lock') }}
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Run cargo test
+      - name: Run cargo test (workspace)
         if: steps.check-cargo.outputs.exists == 'true'
-        run: cargo test --verbose
+        run: cargo test --workspace --verbose
 
   node-lint:
     name: Node.js Lint

@@ -6,6 +6,8 @@ import { generateJsonReport } from "../../reporting/json-reporter";
 import { generateSarifReport } from "../../reporting/sarif-reporter";
 import { printSummary } from "../../reporting/summary-printer";
 import { ScanWatcher } from "../../../../src/analysis/watch/watcher";
+import { SolidityAnalyzer } from "../../../../libs/engine/analyzers/solidity-analyzer";
+import { RustAnalyzer } from "../../../../libs/engine/analyzers/rust-analyzer";
 
 export const scanCommand = new Command("scan")
   .description("Scan smart contracts for gas optimization opportunities")
@@ -42,8 +44,7 @@ export const scanCommand = new Command("scan")
 
         console.log(chalk.green(`Found ${files.length} file(s) to scan.`));
 
-        // Simulate scanning (in real implementation, this would use the actual scanner)
-        const scanResults = await simulateScan(files);
+        const scanResults = await runAnalysis(files);
 
         // Generate reports
         if (options.format === "json" || options.format === "both") {
@@ -132,47 +133,64 @@ async function collectScannableFiles(dirPath: string): Promise<string[]> {
   return files;
 }
 
-async function simulateScan(files: string[]): Promise<any> {
-  // This is a placeholder - in real implementation, this would use the actual scanner
-  const results = {
+async function runAnalysis(files: string[]): Promise<any> {
+  const findings: any[] = [];
+  const solAnalyzer = new SolidityAnalyzer();
+  const rustAnalyzer = new RustAnalyzer();
+
+  for (const filePath of files) {
+    try {
+      const code = await fs.readFile(filePath, "utf8");
+      const ext = path.extname(filePath);
+      let result;
+
+      if (ext === ".sol") {
+        result = await solAnalyzer.analyze(code, filePath);
+      } else if (ext === ".rs") {
+        result = await rustAnalyzer.analyze(code, filePath);
+      } else {
+        continue;
+      }
+
+      for (const f of result.findings) {
+        findings.push({
+          file: f.location.file,
+          line: f.location.startLine,
+          ruleId: f.ruleId,
+          ruleName: "",
+          severity: f.severity,
+          message: f.message,
+          suggestion: f.suggestedFix?.description,
+          gasSavings: f.estimatedGasSavings,
+          confidence: f.metadata?.confidence ?? 0.8,
+        });
+      }
+    } catch (error) {
+      console.error(chalk.yellow(`  ⚠ Error scanning ${filePath}: ${error}`));
+    }
+  }
+
+  const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  const byRule: Record<string, number> = {};
+  let totalGasSavings = 0;
+
+  for (const f of findings) {
+    if (bySeverity[f.severity] !== undefined) bySeverity[f.severity]++;
+    byRule[f.ruleId] = (byRule[f.ruleId] || 0) + 1;
+    totalGasSavings += f.gasSavings || 0;
+  }
+
+  return {
     timestamp: new Date().toISOString(),
     scanPath: files[0] || ".",
     totalFiles: files.length,
     scannedFiles: files.length,
-    findings: [],
+    findings,
     summary: {
-      totalViolations: 0,
-      bySeverity: {
-        critical: 0,
-        high: 0,
-        medium: 0,
-        low: 0,
-        info: 0,
-      },
-      byRule: {},
-      totalGasSavings: 0,
+      totalViolations: findings.length,
+      bySeverity,
+      byRule,
+      totalGasSavings,
     },
   };
-
-  // Simulate some findings for demonstration
-  if (files.length > 0) {
-    results.findings.push({
-      file: files[0],
-      line: 10,
-      ruleId: "SOL-001",
-      ruleName: "string-to-bytes32",
-      severity: "high",
-      message: "Use bytes32 instead of string for fixed-length data",
-      suggestion: "Replace string with bytes32 to save gas",
-      gasSavings: 5000,
-      confidence: 0.9,
-    });
-
-    results.summary.totalViolations = 1;
-    results.summary.bySeverity.high = 1;
-    results.summary.byRule["SOL-001"] = 1;
-    results.summary.totalGasSavings = 5000;
-  }
-
-  return results;
 }

@@ -199,8 +199,6 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     },
   ];
 
-  getName(): string;
-
   getName(): string {
     return "SolidityAnalyzer";
   }

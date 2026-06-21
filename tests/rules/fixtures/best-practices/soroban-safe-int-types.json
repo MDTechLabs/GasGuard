@@ -1,0 +1,17 @@
+{
+  "id": "soroban-safe-int-types-1",
+  "name": "Safe Integer Types Detection",
+  "description": "Detects use of i128/u128 in non-amount fields",
+  "input": "#[contracttype]\npub struct Config {\n    pub admin: Address,\n    pub counter: u128,\n    pub fee: i128,\n}\n\n#[contractimpl]\nimpl Config {\n    pub fn get_counter(&self) -> u128 {\n        self.counter\n    }\n}\n",
+  "expected_violations": [
+    {
+      "rule_name": "use-safe-int-types",
+      "severity": "Medium",
+      "message_pattern": "counter",
+      "line_number": 4
+    }
+  ],
+  "metadata": {
+    "category": "best-practices"
+  }
+}

@@ -12,6 +12,7 @@ members = [
     "libs/rule-engine",
     "libs/plugin-system",
     "libs/auto-fix",
+    "libs/testing",
     "apps/api",
     "tests/mutation"
 ]

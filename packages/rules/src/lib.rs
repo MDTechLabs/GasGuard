@@ -1,3 +1,4 @@
+pub mod best_practices;
 pub mod rule_engine;
 pub mod unused_state_variables;
 pub mod vyper;
@@ -36,6 +37,19 @@ pub use soroban::{
     SorobanField,
     SorobanParam,
     InefficientBytesAllocationRule,
+};
+
+// Export best-practices types
+pub use best_practices::{
+    BestPracticeRuleConfig,
+    BestPracticesConfig,
+    default_best_practices_config,
+    default_best_practice_rules,
+    UseSafeIntTypesRule,
+    UseImmutableStorageRule,
+    UseCheckedArithmeticRule,
+    UseResultTypesRule,
+    UseInitializationFunctionsRule,
 };
 
 // Export Vyper types (keeping glob here is fine if Vyper module is clean, but let's be safe)
