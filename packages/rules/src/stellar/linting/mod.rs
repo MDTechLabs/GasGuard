@@ -14,6 +14,7 @@ pub use gas_optimization_rules::*;
 pub use networking::*;
 
 use crate::{RuleViolation, ViolationSeverity};
+use crate::stellar::unsafe_operations::UnsafeOperationsRule;
 
 /// Main linting engine for Soroban contracts
 pub struct SorobanLinter {
@@ -35,6 +36,7 @@ impl SorobanLinter {
         rules.push(Box::new(gas_optimization_rules::MapIterationRule));
         rules.push(Box::new(gas_optimization_rules::EventEmissionRule));
         rules.push(Box::new(networking::NetworkValidationRule));
+        rules.push(Box::new(UnsafeOperationsRule));
         
         Self { rules }
     }
