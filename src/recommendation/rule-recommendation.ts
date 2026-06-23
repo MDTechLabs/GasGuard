@@ -37,7 +37,13 @@ const RULE_SETS: RuleSet[] = [
     id: 'soroban-core',
     name: 'Soroban / Rust Core',
     language: 'rust',
-    rules: ['storage-efficiency', 'cpu-budget', 'ledger-limits', 'unused-state'],
+    rules: [
+      'storage-efficiency',
+      'cpu-budget',
+      'ledger-limits',
+      'unused-state',
+      'detect-inconsistent-visibility',
+    ],
     description: 'Optimization rules for Soroban (Stellar) contracts',
   },
   {

@@ -1,0 +1,37 @@
+{
+  "id": "stellar-inconsistent-visibility-1",
+  "name": "Inconsistent Soroban Function Visibility",
+  "description": "Flags `pub fn` declarations inside `#[contractimpl]` impls whose name or shape indicates an internal helper but whose visibility registers them as a Soroban contract entry point. Excess entry points inflate Wasm size and broaden the attack surface.",
+  "input": "use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};\n\n#[contracttype]\npub struct Token { pub admin: Address }\n\n#[contractimpl]\nimpl Token {\n    // Real contract entry point — must stay `pub`.\n    pub fn transfer(env: Env, from: Address, to: Address) {\n        let _ = (env, from, to);\n    }\n\n    // Real contract entry point — must stay `pub`.\n    pub fn balance_of(env: Env, owner: Address) -> i128 {\n        let _ = (env, owner);\n        0\n    }\n\n    // VIOLATION #1: leading-underscore name but still `pub`.\n    pub fn _internal_seed(env: Env) -> u32 {\n        let _ = env;\n        0\n    }\n\n    // VIOLATION #2: helper_ prefix — clearly an internal utility.\n    pub fn helper_compute_total(env: Env) -> u64 {\n        let _ = env;\n        0\n    }\n\n    // VIOLATION #3: *_inner suffix — internal helper.\n    pub fn state_inner(env: Env) -> u64 {\n        let _ = env;\n        0\n    }\n\n    // VIOLATION #4: priv_ prefix — explicitly names itself private.\n    pub fn priv_lock(env: Env) -> bool {\n        let _ = env;\n        true\n    }\n\n    // Safe: `pub(crate)` is not seen by the Soroban entry-point generator.\n    pub(crate) fn helper_recompute(env: Env) -> u64 {\n        let _ = env;\n        0\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "detect-inconsistent-visibility",
+      "severity": "High",
+      "messagePattern": "_internal_seed",
+      "line": 18
+    },
+    {
+      "ruleId": "detect-inconsistent-visibility",
+      "severity": "High",
+      "messagePattern": "helper_compute_total",
+      "line": 23
+    },
+    {
+      "ruleId": "detect-inconsistent-visibility",
+      "severity": "High",
+      "messagePattern": "state_inner",
+      "line": 28
+    },
+    {
+      "ruleId": "detect-inconsistent-visibility",
+      "severity": "Medium",
+      "messagePattern": "priv_lock",
+      "line": 33
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "security",
+    "tags": ["visibility", "gas-optimization", "entry-point", "soroban"]
+  }
+}
