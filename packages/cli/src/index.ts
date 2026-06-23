@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import "./commander-compat";
 import { Command } from "commander";
 import chalk from "chalk";
 import { scanCommand } from "./commands/scan";
@@ -19,10 +20,12 @@ program
   .option("--no-color", "Disable colored output");
 
 // Global error handling
-program.configureOutput({
-  writeErr: (str: string) => process.stderr.write(chalk.red(str)),
-  writeOut: (str: string) => process.stdout.write(str),
-});
+if (typeof (program as any).configureOutput === "function") {
+  program.configureOutput({
+    writeErr: (str: string) => process.stderr.write(chalk.red(str)),
+    writeOut: (str: string) => process.stdout.write(str),
+  });
+}
 
 // Add commands
 program.addCommand(scanCommand);

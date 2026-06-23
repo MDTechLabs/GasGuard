@@ -31,7 +31,7 @@ pub fn detect_mapping_iteration(ast: &UnifiedAST) -> Vec<RuleViolation> {
                         let pattern1 = format!("{}[{}[", mapping, array);
                         let pattern2 = format!("{}[ {}[", mapping, array); // e.g. mapping[ array[
                         let pattern3 = format!("{} [{}[", mapping, array); // e.g. mapping [array[
-                        
+
                         if body.contains(&pattern1) || body.contains(&pattern2) || body.contains(&pattern3) {
                             violations.push(RuleViolation {
                                 rule_name: "mapping-iteration-workaround".to_string(),

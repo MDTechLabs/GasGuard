@@ -9,7 +9,9 @@ pub mod unused_state_variables;
 pub mod vyper;
 
 // Explicitly export core types to avoid ambiguity
+pub use optimization::arrays::detect_dynamic_array_deletions;
 pub use optimization::deployment::{estimate_bytecode_size, ExcessiveContractSizeRule};
+pub use optimization::storage::detect_mapping_iteration;
 pub use optimization::storage::{
     detect_packing_opportunities, find_consecutive_packable_groups, get_type_size,
     is_packable_type, PackingOpportunity, VariableInfo,
@@ -17,6 +19,8 @@ pub use optimization::storage::{
 pub use rule_engine::{
     extract_struct_fields, find_variable_usage, Rule, RuleEngine, RuleViolation, ViolationSeverity,
 };
+pub use security::{HardcodedAddressesRule, MissingDomainSeparationRule};
+pub use solidity::{DynamicArrayDeletionRule, MappingIterationRule, StateVariablePackingRule};
 pub use security::{HardcodedAddressesRule, MissingDomainSeparationRule, defi::MissingSlippageValidationRule};
 pub use solidity::{StateVariablePackingRule, MappingIterationRule};
 pub use optimization::storage::detect_mapping_iteration;

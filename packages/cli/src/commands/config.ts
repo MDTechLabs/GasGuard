@@ -1,3 +1,5 @@
+import "../commander-compat";
+import "../commander-compat";
 import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
@@ -29,8 +31,7 @@ const showConfigCommand = new Command("show")
 
 const setConfigCommand = new Command("set")
   .description("Set a configuration value")
-  .argument("<key>", "Configuration key (e.g., scan.maxFiles)")
-  .argument("<value>", "Configuration value")
+  .arguments("<key> <value>")
   .action(async (key: string, value: string) => {
     try {
       const configPath = path.join(process.cwd(), "gasguard.config.json");

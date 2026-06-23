@@ -4,7 +4,7 @@ import { annotateFile, Annotation } from "../../../src/reporting/annotator";
 
 export const annotateCommand = new Command("annotate")
   .description("Annotate source files with inline issue comments")
-  .argument("<file>", "Source file to annotate")
+  .arguments("<file>")
   .option("-o, --output <file>", "Output file path (default: <file>.annotated)")
   .option("--line <n>", "Line number for a demo annotation", "1")
   .action((file: string, options) => {
