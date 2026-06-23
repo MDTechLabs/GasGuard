@@ -1,15 +1,25 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import fs from "fs-extra";
 import path from "path";
-import { generateJsonReport } from "../../reporting/json-reporter";
-import { generateSarifReport } from "../../reporting/sarif-reporter";
-import { printSummary } from "../../reporting/summary-printer";
+import { generateJsonReport, type ScanResult } from "../reporting/json-reporter";
+import { generateSarifReport } from "../reporting/sarif-reporter";
+import { printSummary } from "../reporting/summary-printer";
 import { ScanWatcher } from "../../../../src/analysis/watch/watcher";
+
+const fs: any = require("fs-extra");
+
+export interface ScanCommandOptions {
+  output?: string;
+  format: "json" | "sarif" | "text" | "both";
+  summary?: boolean;
+  fixPreview?: boolean;
+  watch?: boolean;
+  confidence: string;
+}
 
 export const scanCommand = new Command("scan")
   .description("Scan smart contracts for gas optimization opportunities")
-  .argument("[path]", "Path to scan (default: current directory)", ".")
+  .arguments("[path]")
   .option("-o, --output <file>", "Output file for JSON report")
   .option(
     "-f, --format <format>",
@@ -27,68 +37,26 @@ export const scanCommand = new Command("scan")
     "Minimum confidence threshold (0.0-1.0)",
     "0.7",
   )
-  .action(async (scanPath: string, options) => {
+  .action(async (scanPath: string = ".", options: ScanCommandOptions) => {
     try {
-      const runScan = async () => {
-        console.log(chalk.blue(`\n🔍 Scanning ${scanPath}...`));
+      await runScan(scanPath, options);
 
-        // Collect scannable files
-        const files = await collectScannableFiles(scanPath);
-
-        if (files.length === 0) {
-          console.log(chalk.yellow("No scannable files found."));
-          return;
-        }
-
-        console.log(chalk.green(`Found ${files.length} file(s) to scan.`));
-
-        // Simulate scanning (in real implementation, this would use the actual scanner)
-        const scanResults = await simulateScan(files);
-
-        // Generate reports
-        if (options.format === "json" || options.format === "both") {
-          const outputPath =
-            options.output || path.join(process.cwd(), "gasguard-report.json");
-          await generateJsonReport(scanResults, outputPath);
-          console.log(chalk.green(`✓ JSON report saved to ${outputPath}`));
-        }
-
-        if (options.format === "sarif") {
-          const outputPath =
-            options.output ||
-            path.join(process.cwd(), "gasguard-report.sarif.json");
-          await generateSarifReport(scanResults, outputPath);
-          console.log(chalk.green(`✓ SARIF report saved to ${outputPath}`));
-        }
-
-        if (
-          options.summary !== false &&
-          (options.format === "text" || options.format === "both")
-        ) {
-          printSummary(scanResults, options);
-        }
-      };
-
-      // Perform initial scan
-      await runScan();
-
-      // Setup Watch Mode if requested
       if (options.watch) {
         console.log(
           chalk.cyan(
-            `\n👀 Watch mode enabled. Listening for changes in ${scanPath}...`,
+            `\nWatch mode enabled. Listening for changes in ${scanPath}...`,
           ),
         );
+
         const watcher = new ScanWatcher(scanPath, {
           ignored: (p) => p.includes("node_modules") || p.includes(".git"),
         });
 
         watcher.watch(async (filePath) => {
           console.log(chalk.cyan(`\n[File Changed] ${filePath}`));
-          await runScan();
+          await runScan(scanPath, options);
         });
 
-        // Keep the process alive
         process.on("SIGINT", () => {
           watcher.stop();
           process.exit(0);
@@ -100,9 +68,56 @@ export const scanCommand = new Command("scan")
     }
   });
 
+export async function runScan(
+  scanPath: string,
+  options: ScanCommandOptions,
+): Promise<void> {
+  console.log(chalk.blue(`\nScanning ${scanPath}...`));
+
+  const files = await collectScannableFiles(scanPath);
+
+  if (files.length === 0) {
+    console.log(chalk.yellow("No scannable files found."));
+    return;
+  }
+
+  console.log(chalk.green(`Found ${files.length} file(s) to scan.`));
+
+  const scanResults = await simulateScan(files);
+
+  if (options.format === "json" || options.format === "both") {
+    const outputPath =
+      options.output || path.join(process.cwd(), "gasguard-report.json");
+    await generateJsonReport(scanResults, outputPath);
+    console.log(chalk.green(`JSON report saved to ${outputPath}`));
+  }
+
+  if (options.format === "sarif") {
+    const outputPath =
+      options.output || path.join(process.cwd(), "gasguard-report.sarif.json");
+    await generateSarifReport(scanResults, outputPath);
+    console.log(chalk.green(`SARIF report saved to ${outputPath}`));
+  }
+
+  if (
+    options.summary !== false &&
+    (options.format === "text" || options.format === "both")
+  ) {
+    printSummary(scanResults, {
+      fixPreview: options.fixPreview,
+      confidence: Number(options.confidence),
+    });
+  }
+}
+
 async function collectScannableFiles(dirPath: string): Promise<string[]> {
   const files: string[] = [];
   const extensions = [".sol", ".vy", ".rs"];
+
+  const stats = await fs.stat(dirPath);
+  if (stats.isFile()) {
+    return extensions.includes(path.extname(dirPath)) ? [dirPath] : [];
+  }
 
   async function walk(currentPath: string) {
     const entries = await fs.readdir(currentPath, { withFileTypes: true });
@@ -111,7 +126,6 @@ async function collectScannableFiles(dirPath: string): Promise<string[]> {
       const fullPath = path.join(currentPath, entry.name);
 
       if (entry.isDirectory()) {
-        // Skip node_modules and .git
         if (
           !["node_modules", ".git", "target", "dist", "build"].includes(
             entry.name,
@@ -132,9 +146,8 @@ async function collectScannableFiles(dirPath: string): Promise<string[]> {
   return files;
 }
 
-async function simulateScan(files: string[]): Promise<any> {
-  // This is a placeholder - in real implementation, this would use the actual scanner
-  const results = {
+async function simulateScan(files: string[]): Promise<ScanResult> {
+  const results: ScanResult = {
     timestamp: new Date().toISOString(),
     scanPath: files[0] || ".",
     totalFiles: files.length,
@@ -154,7 +167,6 @@ async function simulateScan(files: string[]): Promise<any> {
     },
   };
 
-  // Simulate some findings for demonstration
   if (files.length > 0) {
     results.findings.push({
       file: files[0],

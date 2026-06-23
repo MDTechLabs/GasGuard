@@ -1,5 +1,6 @@
-import fs from "fs-extra";
 import path from "path";
+
+const fs: any = require("fs-extra");
 
 export interface ScanResult {
   timestamp: string;
