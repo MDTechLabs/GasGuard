@@ -1,0 +1,114 @@
+{
+  "suite": "Stellar Security Rule Regression Suite",
+  "version": "1.0.0",
+  "created": "2026-06-21",
+  "description": "Cross-version regression detection for Stellar/Soroban security rules",
+  "rules": [
+    {
+      "id": "stellar-regression-access-control",
+      "ruleName": "detect-missing-access-control",
+      "category": "access-control",
+      "fixture": "missing-access-control-regression.json",
+      "type": "positive",
+      "baseline": {
+        "expectedDetected": true,
+        "expectedViolations": 4,
+        "safePatterns": 4
+      }
+    },
+    {
+      "id": "stellar-regression-weak-role-hierarchy",
+      "ruleName": "detect-weak-role-hierarchies",
+      "category": "access-control",
+      "fixture": "weak-role-hierarchy-regression.json",
+      "type": "positive",
+      "baseline": {
+        "expectedDetected": true,
+        "expectedViolations": 5,
+        "safePatterns": 4
+      }
+    },
+    {
+      "id": "stellar-regression-access-control-safe",
+      "ruleName": "detect-missing-access-control",
+      "category": "access-control",
+      "fixture": "access-control-safe-regression.json",
+      "type": "negative",
+      "baseline": {
+        "expectedDetected": false,
+        "expectedViolations": 0,
+        "safePatterns": 5
+      }
+    },
+    {
+      "id": "stellar-regression-unsafe-cross-contract",
+      "ruleName": "detect-unsafe-cross-contract-invocation",
+      "category": "cross-contract",
+      "fixture": "unsafe-cross-contract-regression.json",
+      "type": "positive",
+      "baseline": {
+        "expectedDetected": true,
+        "expectedViolations": 3,
+        "safePatterns": 1
+      }
+    },
+    {
+      "id": "stellar-regression-cross-contract-safe",
+      "ruleName": "detect-unsafe-cross-contract-invocation",
+      "category": "cross-contract",
+      "fixture": "cross-contract-safe-regression.json",
+      "type": "negative",
+      "baseline": {
+        "expectedDetected": false,
+        "expectedViolations": 0,
+        "safePatterns": 4
+      }
+    },
+    {
+      "id": "stellar-regression-excessive-event-topics",
+      "ruleName": "detect-excessive-event-topics",
+      "category": "events",
+      "fixture": "excessive-event-topics-regression.json",
+      "type": "positive",
+      "baseline": {
+        "expectedDetected": true,
+        "expectedViolations": 5,
+        "safePatterns": 4
+      }
+    },
+    {
+      "id": "stellar-regression-missing-upgrade-guards",
+      "ruleName": "detect-missing-upgrade-guards",
+      "category": "upgradeability",
+      "fixture": "missing-upgrade-guards-regression.json",
+      "type": "positive",
+      "baseline": {
+        "expectedDetected": true,
+        "expectedViolations": 3,
+        "safePatterns": 1
+      }
+    },
+    {
+      "id": "stellar-regression-upgrade-guards-safe",
+      "ruleName": "detect-missing-upgrade-guards",
+      "category": "upgradeability",
+      "fixture": "upgrade-guards-safe-regression.json",
+      "type": "negative",
+      "baseline": {
+        "expectedDetected": false,
+        "expectedViolations": 0,
+        "safePatterns": 4
+      }
+    }
+  ],
+  "ci": {
+    "command": "npx jest --testPathPattern 'tests/regression/security/stellar' --verbose",
+    "required": true,
+    "onFailure": "block-release"
+  },
+  "snapshot": {
+    "enabled": true,
+    "dir": "__snapshots__",
+    "autoUpdate": false
+  }
+}

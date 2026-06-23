@@ -1,0 +1,47 @@
+{
+  "id": "stellar-regression-excessive-event-topics",
+  "name": "Excessive Event Topics Regression Suite",
+  "description": "Validates that detect-excessive-event-topics correctly flags events exceeding 4 topics or using large payload types, while not flagging compliant events",
+  "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, Bytes, String, Vec, symbol_short};\n\n#[contractimpl]\nimpl EventContract {\n    pub fn complex_transfer(env: Env, from: Address, to: Address, amount: i128, meta: Bytes) {\n        // VIOLATION: 5 topics (exceeds max of 4)\n        env.events().publish((symbol_short!(\"transfer\"), from.clone(), to.clone(), amount, amount), ());\n\n        // VIOLATION: Bytes in topics (large payload type)\n        env.events().publish((symbol_short!(\"log\"), Bytes::from_slice(&env, &[1, 2, 3])), ());\n\n        // VIOLATION: String in topics (large payload type)\n        env.events().publish((symbol_short!(\"message\"), String::from_str(&env, \"hello\")), meta);\n\n        // VIOLATION: Vec in topics (large payload type)\n        env.events().publish((symbol_short!(\"batch\"), Vec::new(&env)), ());\n\n        // SAFE: 2 plain topics (symbol, Address)\n        env.events().publish((symbol_short!(\"ok\"), from), ());\n\n        // SAFE: 4 plain topics (exactly at limit)\n        env.events().publish((symbol_short!(\"swap\"), from.clone(), to.clone(), amount), meta);\n\n        // SAFE: 1 plain topic (well within limit)\n        env.events().publish((symbol_short!(\"ping\"),), ());\n\n        // VIOLATION: both >4 topics AND large payload\n        env.events().publish((symbol_short!(\"full\"), from.clone(), to.clone(), amount, Bytes::from_slice(&env, &[1])), meta);\n    }\n\n    pub fn no_events(env: Env, a: Address, b: Address) -> i128 {\n        let balance = env.storage().instance().get(&a).unwrap_or(0i128);\n        balance\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "stellar-events/excessive-topics",
+      "severity": "warning",
+      "messagePattern": "topic count exceeds 4",
+      "line": 8
+    },
+    {
+      "ruleId": "stellar-events/excessive-topics",
+      "severity": "warning",
+      "messagePattern": "large payload types",
+      "line": 11
+    },
+    {
+      "ruleId": "stellar-events/excessive-topics",
+      "severity": "warning",
+      "messagePattern": "large payload types",
+      "line": 14
+    },
+    {
+      "ruleId": "stellar-events/excessive-topics",
+      "severity": "warning",
+      "messagePattern": "large payload types",
+      "line": 17
+    },
+    {
+      "ruleId": "stellar-events/excessive-topics",
+      "severity": "warning",
+      "messagePattern": "topic count exceeds 4",
+      "line": 26
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "events",
+    "tags": ["regression", "event-topics", "gas-optimization"],
+    "regressionType": "cross-version",
+    "expectedTotalViolations": 5,
+    "safePatternsPresent": ["2 topics", "4 topics", "1 topic", "no events"],
+    "targetRule": "detect-excessive-event-topics"
+  }
+}

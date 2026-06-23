@@ -1,0 +1,16 @@
+{
+  "id": "stellar-regression-access-control-safe",
+  "name": "Safe Access Control Regression Suite",
+  "description": "Validates that detect-missing-access-control does NOT false-positive on guarded privileged functions",
+  "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Bytes, Symbol};\n\n#[contractimpl]\nimpl SafeAdminContract {\n    // SAFE: upgrade with require_auth\n    pub fn upgrade(env: Env, admin: Address, new_wasm: Bytes) {\n        admin.require_auth();\n        env.deployer().upload_contract_wasm(&new_wasm);\n    }\n\n    // SAFE: mint with require_auth via admin check\n    pub fn safe_mint(env: Env, admin: Address, to: Address, amount: i128) {\n        admin.require_auth();\n        env.storage().instance().set(&to, &amount);\n    }\n\n    // SAFE: transfer_admin with only_admin\n    pub fn transfer_admin(env: Env, caller: Address, new_admin: Address) {\n        only_admin(&env, &caller);\n        env.storage().instance().set(&Symbol::new(&env, \"admin\"), &new_admin);\n    }\n\n    // SAFE: unpause with assert_owner\n    pub fn safe_unpause(env: Env, owner: Address) {\n        assert_owner(&env, &owner);\n        env.storage().instance().set(&Symbol::new(&env, \"paused\"), &false);\n    }\n\n    // SAFE: regular function (no privileged pattern)\n    pub fn get_balance(env: Env, address: Address) -> i128 {\n        env.storage().instance().get(&address).unwrap_or(0)\n    }\n}",
+  "expectedFindings": [],
+  "metadata": {
+    "language": "soroban",
+    "category": "access-control",
+    "tags": ["regression", "privileged-functions", "safe-patterns"],
+    "regressionType": "cross-version",
+    "expectedTotalViolations": 0,
+    "safePatternsPresent": ["upgrade", "safe_mint", "transfer_admin", "safe_unpause", "get_balance"],
+    "targetRule": "detect-missing-access-control"
+  }
+}

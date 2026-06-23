@@ -1,0 +1,41 @@
+{
+  "id": "stellar-regression-access-control",
+  "name": "Missing Access Control Regression Suite",
+  "description": "Validates that detect-missing-access-control correctly identifies privileged functions without auth guards",
+  "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Bytes, Symbol};\n\n#[contractimpl]\nimpl AdminContract {\n    // VULNERABLE: set_admin without auth guard\n    pub fn set_admin(env: Env, new_admin: Address) {\n        env.storage().instance().set(&Symbol::new(&env, \"admin\"), &new_admin);\n    }\n\n    // VULNERABLE: withdraw without auth guard\n    pub fn withdraw(env: Env, amount: i128) {\n        env.storage().instance().set(&Symbol::new(&env, \"balance\"), &0i128);\n    }\n\n    // VULNERABLE: pause without auth\n    pub fn pause(env: Env) {\n        env.storage().instance().set(&Symbol::new(&env, \"paused\"), &true);\n    }\n\n    // VULNERABLE: burn without auth guard\n    pub fn burn(env: Env, from: Address, amount: i128) {\n        env.storage().instance().set(&from, &amount);\n    }\n\n    // SAFE: regular function (not a privileged pattern, not flagged)\n    pub fn get_balance(env: Env, address: Address) -> i128 {\n        env.storage().instance().get(&address).unwrap_or(0)\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "stellar-access-control/missing",
+      "severity": "high",
+      "messagePattern": "set_admin",
+      "line": 6
+    },
+    {
+      "ruleId": "stellar-access-control/missing",
+      "severity": "high",
+      "messagePattern": "withdraw",
+      "line": 11
+    },
+    {
+      "ruleId": "stellar-access-control/missing",
+      "severity": "high",
+      "messagePattern": "pause",
+      "line": 16
+    },
+    {
+      "ruleId": "stellar-access-control/missing",
+      "severity": "high",
+      "messagePattern": "burn",
+      "line": 21
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "access-control",
+    "tags": ["regression", "privileged-functions", "missing-auth"],
+    "regressionType": "cross-version",
+    "expectedTotalViolations": 4,
+    "safePatternsPresent": ["get_balance"],
+    "targetRule": "detect-missing-access-control"
+  }
+}
