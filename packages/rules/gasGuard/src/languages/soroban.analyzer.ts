@@ -1,3 +1,5 @@
+import { detectDuplicateEventEmissions } from "../../../../../rules/auditability/events/detect-duplicate-event-emissions";
+
 export class SorobanAnalyzer {
   analyze(source: string) {
     const issues = [];
@@ -26,6 +28,19 @@ export class SorobanAnalyzer {
         severity: "low",
         message: "Unnecessary clone detected",
         suggestion: "Avoid cloning; return original or borrow",
+      });
+    }
+
+    const duplicateEvents = detectDuplicateEventEmissions(source);
+    for (const violation of duplicateEvents.violations) {
+      issues.push({
+        ruleId: "detect-duplicate-event-emissions",
+        severity: "medium",
+        message: `Duplicate event emission detected at lines ${[
+          violation.firstLine,
+          ...violation.duplicateLines,
+        ].join(", ")}`,
+        suggestion: duplicateEvents.suggestion,
       });
     }
 
