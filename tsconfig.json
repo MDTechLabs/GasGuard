@@ -55,7 +55,8 @@
       "@api/*": ["apps/api/src/*"]
     }
   },
-  "include": ["apps/**/*", "libs/**/*", "packages/**/*"],
+  "include": ["apps/**/*", "libs/**/*", "packages/**/*", "src/**/*"],
+  "include": ["apps/**/*", "libs/**/*", "packages/**/*", "rules/**/*", "src/rules/**/*"],
   "exclude": [
     "node_modules",
     "dist",

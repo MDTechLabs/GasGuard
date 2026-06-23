@@ -1,4 +1,9 @@
-import { AnalysisResult } from '../../analysis/filter/analysis-filter';
+import { AnalysisResult } from "../../analysis/filter/analysis-filter";
+import { RefactorSuggestion } from "../../refactors/stellar";
+
+export type ReportIssue = AnalysisResult & {
+  refactorSuggestions?: RefactorSuggestion[];
+};
 
 export interface ReportMetrics {
   totalFiles: number;
@@ -15,5 +20,6 @@ export interface ReportData {
   projectName: string;
   version: string;
   metrics: ReportMetrics;
-  issues: AnalysisResult[];
+  issues: ReportIssue[];
+  refactorSuggestions?: RefactorSuggestion[];
 }

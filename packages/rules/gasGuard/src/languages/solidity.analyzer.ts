@@ -1,4 +1,5 @@
 import { SolidityAnalyzer } from "../../../../../libs/engine/analyzers/solidity-analyzer";
+import { detectDuplicateEventEmissions } from "../../../../../rules/auditability/events/detect-duplicate-event-emissions";
 
 export class SolidityAnalyzerWrapper {
   private analyzer: SolidityAnalyzer;
@@ -17,6 +18,20 @@ export class SolidityAnalyzerWrapper {
       line: finding.location.startLine,
       suggestion: finding.suggestedFix?.description,
     }));
+
+    const duplicateEvents = detectDuplicateEventEmissions(source);
+    for (const violation of duplicateEvents.violations) {
+      issues.push({
+        ruleId: "detect-duplicate-event-emissions",
+        severity: "medium",
+        message: `Duplicate event emission detected at lines ${[
+          violation.firstLine,
+          ...violation.duplicateLines,
+        ].join(", ")}`,
+        line: violation.firstLine,
+        suggestion: duplicateEvents.suggestion,
+      });
+    }
 
     return { issues };
   }
