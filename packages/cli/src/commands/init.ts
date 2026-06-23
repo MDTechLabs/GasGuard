@@ -1,8 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
+import fs from "fs-extra";
 import path from "path";
-
-const fs: any = require("fs-extra");
 
 export const initCommand = new Command("init")
   .description("Initialize GasGuard configuration in the current directory")

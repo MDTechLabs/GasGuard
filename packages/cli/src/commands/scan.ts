@@ -1,12 +1,11 @@
 import { Command } from "commander";
 import chalk from "chalk";
+import fs from "fs-extra";
 import path from "path";
 import { generateJsonReport, type ScanResult } from "../reporting/json-reporter";
 import { generateSarifReport } from "../reporting/sarif-reporter";
 import { printSummary } from "../reporting/summary-printer";
 import { ScanWatcher } from "../../../../src/analysis/watch/watcher";
-
-const fs: any = require("fs-extra");
 
 export interface ScanCommandOptions {
   output?: string;

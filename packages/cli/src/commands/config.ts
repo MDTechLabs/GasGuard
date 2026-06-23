@@ -1,9 +1,9 @@
 import "../commander-compat";
+import "../commander-compat";
 import { Command } from "commander";
 import chalk from "chalk";
+import fs from "fs-extra";
 import path from "path";
-
-const fs: any = require("fs-extra");
 
 const showConfigCommand = new Command("show")
   .description("Show current configuration")
