@@ -1,8 +1,79 @@
 /**
  * HTML Report Template
- * 
+ *
  * A modern, responsive template for GasGuard analysis reports.
  */
+
+const escapeHtml = (value: unknown): string =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const renderLocation = (location: any): string => {
+  const line =
+    typeof location.startLine === "number" ? `:${location.startLine}` : "";
+  return `${escapeHtml(location.file)}${line}`;
+};
+
+const renderRefactorSuggestions = (suggestions: any[] = []): string => {
+  if (suggestions.length === 0) {
+    return "";
+  }
+
+  return `
+        <section class="refactor-section">
+            <div class="section-heading">
+                <h2>Refactor Suggestions</h2>
+                <span>${suggestions.length} linked recommendations</span>
+            </div>
+            <div class="suggestion-list">
+                ${suggestions
+                  .map(
+                    (suggestion) => `
+                    <article class="suggestion-card priority-${escapeHtml(suggestion.priority)}">
+                        <div class="suggestion-meta">
+                            <span>${escapeHtml(suggestion.priority)} priority</span>
+                            <span>${escapeHtml(suggestion.category)}</span>
+                            <span>${escapeHtml(suggestion.effort)} effort</span>
+                        </div>
+                        <h3>${escapeHtml(suggestion.title)}</h3>
+                        <p>${escapeHtml(suggestion.description)}</p>
+                        <div class="suggestion-locations">
+                            ${(suggestion.locations ?? []).map(renderLocation).join(" · ")}
+                        </div>
+                    </article>
+                `,
+                  )
+                  .join("")}
+            </div>
+        </section>
+  `;
+};
+
+const renderIssueRefactorLinks = (issue: any): string => {
+  const suggestions = issue.refactorSuggestions ?? [];
+  if (suggestions.length === 0) {
+    return "";
+  }
+
+  return `
+                        <div class="issue-refactors">
+                            <span>Related refactors</span>
+                            <ul>
+                                ${suggestions
+                                  .map(
+                                    (suggestion: any) => `
+                                    <li>${escapeHtml(suggestion.title)}</li>
+                                `,
+                                  )
+                                  .join("")}
+                            </ul>
+                        </div>
+  `;
+};
 
 export const getReportTemplate = (data: any) => `
 <!DOCTYPE html>
@@ -102,6 +173,75 @@ export const getReportTemplate = (data: any) => `
         .severity-medium { color: var(--medium); }
         .severity-low { color: var(--low); }
 
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: baseline;
+            margin-bottom: 1rem;
+        }
+
+        .section-heading span {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .refactor-section {
+            margin-bottom: 2rem;
+        }
+
+        .suggestion-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+
+        .suggestion-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-top: 4px solid var(--info);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 1.25rem;
+        }
+
+        .suggestion-card.priority-high { border-top-color: var(--high); }
+        .suggestion-card.priority-medium { border-top-color: var(--medium); }
+        .suggestion-card.priority-low { border-top-color: var(--low); }
+
+        .suggestion-card h3 {
+            font-size: 1rem;
+            margin: 0.5rem 0;
+        }
+
+        .suggestion-card p {
+            color: var(--text-muted);
+            font-size: 0.925rem;
+        }
+
+        .suggestion-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .suggestion-meta span {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            padding: 0.15rem 0.45rem;
+            text-transform: capitalize;
+        }
+
+        .suggestion-locations {
+            color: var(--text-muted);
+            font-family: monospace;
+            font-size: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
         .issue-list {
             display: flex;
             flex-direction: column;
@@ -143,6 +283,34 @@ export const getReportTemplate = (data: any) => `
             font-size: 1rem;
             margin-bottom: 0.75rem;
         }
+
+        .issue-refactors {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+        }
+
+        .issue-refactors span {
+            color: var(--text-muted);
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+        }
+
+        .issue-refactors ul {
+            margin-left: 1rem;
+        }
+
+        .issue-refactors li {
+            color: var(--text);
+            font-size: 0.875rem;
+        }
+
 
         .confidence-bar {
             height: 4px;
@@ -197,23 +365,30 @@ export const getReportTemplate = (data: any) => `
             </div>
         </div>
 
+        ${renderRefactorSuggestions(data.refactorSuggestions)}
+
         <h2 style="margin-bottom: 1.5rem">Detected Issues</h2>
         <div class="issue-list">
-            ${data.issues.map((issue: any) => \`
-                <div class="issue-card" style="border-left-color: \${issue.confidence > 0.8 ? 'var(--critical)' : 'var(--high)'}">
+            ${data.issues
+              .map(
+                (issue: any) => `
+                <div class="issue-card" style="border-left-color: ${issue.confidence > 0.8 ? "var(--critical)" : "var(--high)"}">
                     <div class="issue-header">
-                        <span class="rule-id">\${issue.ruleId}</span>
+                        <span class="rule-id">${escapeHtml(issue.ruleId)}</span>
                         <div style="display: flex; align-items: center; gap: 0.5rem">
-                            <span style="font-size: 0.75rem; color: var(--text-muted)">Confidence: \${Math.round(issue.confidence * 100)}%</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted)">Confidence: ${Math.round(issue.confidence * 100)}%</span>
                             <div class="confidence-bar">
-                                <div class="confidence-fill" style="width: \${issue.confidence * 100}%"></div>
+                                <div class="confidence-fill" style="width: ${issue.confidence * 100}%"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="file-path">\${issue.filePath}:\${issue.line}</div>
-                    <div class="issue-message">\${issue.message}</div>
+                    <div class="file-path">${escapeHtml(issue.filePath)}:${issue.line}</div>
+                    <div class="issue-message">${escapeHtml(issue.message)}</div>
+                    ${renderIssueRefactorLinks(issue)}
                 </div>
-            \`).join('')}
+            `,
+              )
+              .join("")}
         </div>
 
         <div class="footer">
@@ -222,4 +397,4 @@ export const getReportTemplate = (data: any) => `
     </div>
 </body>
 </html>
-\`;
+	`;

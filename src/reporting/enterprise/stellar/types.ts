@@ -27,6 +27,13 @@ export interface StellarEnterpriseFinding extends AnalysisResult {
   impact: string;
   recommendation: string;
   complianceAreas: string[];
+  functionName?: string;
+}
+
+export interface FunctionRiskSummary {
+  functionName: string;
+  overallScore: number;
+  riskLevel: 'critical' | 'high' | 'medium' | 'low' | 'minimal';
 }
 
 export interface StellarComplianceControl {
@@ -74,5 +81,6 @@ export interface StellarEnterpriseReport {
   summary: StellarEnterpriseSummary;
   compliance: StellarComplianceSummary;
   findings: StellarEnterpriseFinding[];
+  functionRiskSummary?: FunctionRiskSummary[];
   exportFormats: EnterpriseExportFormat[];
 }

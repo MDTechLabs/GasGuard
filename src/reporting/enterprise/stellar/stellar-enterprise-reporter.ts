@@ -13,6 +13,7 @@ import {
   StellarEnterpriseReportOptions,
   StellarEnterpriseSummary,
 } from "./types";
+import { calculateFunctionRiskScores } from "../../../scoring/functions/stellar";
 
 const DEFAULT_VERSION = "1.0.0";
 const DEFAULT_GENERATOR = "GasGuard Enterprise Reporter";
@@ -32,12 +33,20 @@ export class StellarEnterpriseReporter {
     );
     const summary = this.createSummary(normalizedFindings);
     const compliance = this.createComplianceSummary(normalizedFindings);
+    const functionRiskSummary = calculateFunctionRiskScores(
+      normalizedFindings,
+    ).map((risk) => ({
+      functionName: risk.functionName,
+      overallScore: risk.overallScore,
+      riskLevel: risk.riskLevel,
+    }));
 
     return {
       metadata,
       summary,
       compliance,
       findings: normalizedFindings,
+      functionRiskSummary,
       exportFormats: ["json", "csv", "markdown"],
     };
   }
