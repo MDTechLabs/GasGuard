@@ -34,14 +34,8 @@ impl SorobanLintRule for StorageReadRule {
             // Check for multiple .get() calls on same storage
             if line.contains(".get(") {
                 // Look for repeated patterns
-                let func_lines = lines
-                    .iter()
-                    .skip(i.saturating_sub(20))
-                    .take(40)
-                    .copied()
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
+                let func_lines = lines.iter().skip(i.saturating_sub(20)).take(40).copied().collect::<Vec<&str>>().join("\n");
+                
                 let get_count = func_lines.matches(".get(").count();
                 if get_count > 2 {
                     violations.push(RuleViolation {
@@ -95,20 +89,9 @@ impl SorobanLintRule for MapIterationRule {
         let lines: Vec<&str> = source.lines().collect();
 
         for (i, line) in lines.iter().enumerate() {
-            if (line.contains("for ") || line.contains("while "))
-                && (line.contains(".iter()")
-                    || line.contains(".keys(")
-                    || line.contains(".values(")
-                    || line.contains(".entries(")
-                    || line.contains(".range("))
-            {
-                let window = lines
-                    .iter()
-                    .skip(i.saturating_sub(8))
-                    .take(20)
-                    .copied()
-                    .collect::<Vec<_>>()
-                    .join("\n");
+            if (line.contains("for ") || line.contains("while ")) &&
+               (line.contains(".iter()") || line.contains(".keys(") || line.contains(".values(") || line.contains(".entries(") || line.contains(".range(")) {
+                let window = lines.iter().skip(i.saturating_sub(8)).take(20).copied().collect::<Vec<&str>>().join("\n");
                 if window.contains("Map<") || window.contains("Map::") || window.contains(": Map") {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
@@ -191,17 +174,9 @@ impl SorobanLintRule for EventEmissionRule {
             let lines: Vec<&str> = source.lines().collect();
 
             for (i, line) in lines.iter().enumerate() {
-                if line.contains("pub fn")
-                    && (line.contains("transfer") || line.contains("mint") || line.contains("burn"))
-                {
-                    let func_lines = lines
-                        .iter()
-                        .skip(i)
-                        .take(20)
-                        .copied()
-                        .collect::<Vec<_>>()
-                        .join("\n");
-
+                if line.contains("pub fn") && (line.contains("transfer") || line.contains("mint") || line.contains("burn")) {
+                    let func_lines = lines.iter().skip(i).take(20).copied().collect::<Vec<&str>>().join("\n");
+                    
                     if !func_lines.contains("events().publish(") {
                         violations.push(RuleViolation {
                             rule_name: self.id().to_string(),
@@ -247,7 +222,8 @@ impl MyContract {
 }
 "#;
 
-        let violations = MapIterationRule.check(source, "test.rs");
+        let rule = MapIterationRule;
+        let violations = rule.check(source, "test.rs");
         assert!(violations.is_some());
         let violations = violations.unwrap();
         assert!(violations
@@ -270,7 +246,8 @@ impl MyContract {
 }
 "#;
 
-        let violations = MapIterationRule.check(source, "test.rs");
+        let rule = MapIterationRule;
+        let violations = rule.check(source, "test.rs");
         assert!(violations.is_none());
     }
 }

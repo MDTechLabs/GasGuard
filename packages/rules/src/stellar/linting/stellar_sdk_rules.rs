@@ -114,18 +114,11 @@ impl SorobanLintRule for AddressValidationRule {
             // Check for functions with Address parameters that might need validation
             if line.contains("Address") && (line.contains("pub fn") || line.contains("fn ")) {
                 // Look ahead to see if there's validation
-                let next_lines = lines
-                    .iter()
-                    .skip(i)
-                    .take(15)
-                    .copied()
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                if !next_lines.contains("require_auth")
-                    && !next_lines.contains("require_auth_for_args")
-                    && !next_lines.contains("try_from_xdr")
-                {
+                let next_lines = lines.iter().skip(i).take(15).copied().collect::<Vec<&str>>().join("\n");
+                
+                if !next_lines.contains("require_auth") && 
+                   !next_lines.contains("require_auth_for_args") &&
+                   !next_lines.contains("try_from_xdr") {
                     violations.push(RuleViolation {
                         rule_name: self.id().to_string(),
                         description:

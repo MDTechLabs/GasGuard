@@ -11,11 +11,11 @@ pub mod vyper;
 // Explicitly export core types to avoid ambiguity
 pub use optimization::deployment::{estimate_bytecode_size, ExcessiveContractSizeRule};
 pub use optimization::storage::{
-    detect_packing_opportunities, find_consecutive_packable_groups, get_type_size,
-    is_packable_type, PackingOpportunity, VariableInfo,
-};
-pub use rule_engine::{
-    extract_struct_fields, find_variable_usage, Rule, RuleEngine, RuleViolation, ViolationSeverity,
+    detect_packing_opportunities,
+    find_consecutive_packable_groups,
+    get_type_size,
+    PackingOpportunity,
+    VariableInfo,
 };
 pub use security::{HardcodedAddressesRule, MissingDomainSeparationRule, defi::MissingSlippageValidationRule};
 pub use solidity::{StateVariablePackingRule, MappingIterationRule, AbiEncodingRule};
