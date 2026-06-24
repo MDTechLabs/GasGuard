@@ -1,0 +1,42 @@
+{
+  "id": "detect-unsafe-fallback-1",
+  "name": "Unsafe Fallback Function Detection",
+  "description": "Fixture containing various unsafe fallback and receive function patterns in Solidity to validate detection",
+  "input": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n// VIOLATION #1: delegatecall in fallback to arbitrary target\ncontract UnrestrictedDelegatecall {\n    address public owner;\n\n    fallback(bytes calldata data) external returns (bytes memory) {\n        (bool success, bytes memory ret) = owner.delegatecall(data);\n        require(success, \"delegatecall failed\");\n        return ret;\n    }\n}\n\n// VIOLATION #2: state modification in receive()\ncontract StatefulReceive {\n    mapping(address => uint256) public balances;\n\n    receive() external payable {\n        balances[msg.sender] = msg.value;\n    }\n}\n\n// VIOLATION #3: arbitrary external call in fallback\ncontract ArbitraryCall {\n    fallback(bytes calldata) external payable {\n        address target = abi.decode(msg.data[4:], (address));\n        (bool success,) = target.call{value: msg.value}(\"\");\n        require(success);\n    }\n}\n\n// VIOLATION #4: reentrancy-vulnerable ETH transfer in fallback\ncontract ReentrancyFallback {\n    receive() external payable {\n        (bool success,) = msg.sender.call{value: address(this).balance}(\"\");\n        require(success);\n    }\n}\n\n// VIOLATION #5: complex logic with loops in fallback\ncontract LoopyFallback {\n    mapping(address => uint256) public pending;\n    address[] public recipients;\n\n    fallback() external payable {\n        for (uint256 i = 0; i < recipients.length; i++) {\n            pending[recipients[i]] += msg.value / recipients.length;\n        }\n    }\n}\n\n// SAFE: receive() that just accepts ETH without state changes\ncontract SafeReceiver {\n    receive() external payable {}\n}\n\n// SAFE: fallback with revert\ncontract SafeRejecter {\n    fallback() external payable {\n        revert(\"Contract does not accept direct calls\");\n    }\n}\n\n// SAFE: receive() with only event emission\ncontract SafeEventReceiver {\n    event Received(address indexed sender, uint256 amount);\n\n    receive() external payable {\n        emit Received(msg.sender, msg.value);\n    }\n}\n",
+  "expectedFindings": [
+    {
+      "ruleId": "detect-unsafe-fallback",
+      "severity": "high",
+      "messagePattern": "delegatecall",
+      "line": 8
+    },
+    {
+      "ruleId": "detect-unsafe-fallback",
+      "severity": "high",
+      "messagePattern": "state-modification-in-receive",
+      "line": 17
+    },
+    {
+      "ruleId": "detect-unsafe-fallback",
+      "severity": "high",
+      "messagePattern": "arbitrary-external-call",
+      "line": 23
+    },
+    {
+      "ruleId": "detect-unsafe-fallback",
+      "severity": "high",
+      "messagePattern": "reentrancy-vulnerable-fallback",
+      "line": 30
+    },
+    {
+      "ruleId": "detect-unsafe-fallback",
+      "severity": "medium",
+      "messagePattern": "complex-logic-in-fallback",
+      "line": 36
+    }
+  ],
+  "metadata": {
+    "category": "security",
+    "tags": ["fallback", "receive", "reentrancy", "delegatecall"]
+  }
+}
