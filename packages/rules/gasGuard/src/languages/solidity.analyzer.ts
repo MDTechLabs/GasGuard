@@ -1,5 +1,6 @@
 import { SolidityAnalyzer } from "../../../../../libs/engine/analyzers/solidity-analyzer";
 import { detectDuplicateEventEmissions } from "../../../../../rules/auditability/events/detect-duplicate-event-emissions";
+import { detectStorageSlotCollisions } from "../../../../../rules/security/storage-layout/detect-storage-slot-collisions";
 
 export class SolidityAnalyzerWrapper {
   private analyzer: SolidityAnalyzer;
@@ -30,6 +31,17 @@ export class SolidityAnalyzerWrapper {
         ].join(", ")}`,
         line: violation.firstLine,
         suggestion: duplicateEvents.suggestion,
+      });
+    }
+
+    const storageCollisions = detectStorageSlotCollisions(source);
+    for (const collision of storageCollisions.collisions) {
+      issues.push({
+        ruleId: "detect-storage-slot-collisions",
+        severity: "high",
+        message: collision.reason,
+        line: collision.line1,
+        suggestion: storageCollisions.suggestion,
       });
     }
 

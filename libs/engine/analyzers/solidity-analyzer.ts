@@ -8,6 +8,7 @@ import {
   Finding,
   Severity,
 } from "../core/analyzer-interface";
+import { detectStorageSlotCollisions } from "../../../rules/security/storage-layout/detect-storage-slot-collisions";
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private rules: Rule[] = [
@@ -196,6 +197,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["dead-code", "maintainability", "unreachable"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-015",
+    },
+    {
+      id: "sol-016",
+      name: "Storage Slot Collision",
+      description:
+        "Detects potential storage layout conflicts that could corrupt upgradeable contracts",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "upgradeable", "storage", "collision"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-016",
     },
   ];
 
@@ -552,6 +564,29 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
             },
           })),
         );
+      }
+
+      // Rule: sol-016 - Storage Slot Collision
+      if (this.isRuleEnabled("sol-016", config)) {
+        const collisions = detectStorageSlotCollisions(code);
+        if (collisions.detected) {
+          findings.push(
+            ...collisions.collisions.map((collision) => ({
+              ruleId: "sol-016",
+              message: collision.reason,
+              severity: this.getRuleSeverity("sol-016", config),
+              location: {
+                file: filePath,
+                startLine: collision.line1,
+                endLine: collision.line2,
+              },
+              suggestedFix: {
+                description: collisions.suggestion,
+                documentationUrl: "https://docs.gasguard.dev/rules/sol-016",
+              },
+            })),
+          );
+        }
       }
     } catch (error) {
       errors.push({
