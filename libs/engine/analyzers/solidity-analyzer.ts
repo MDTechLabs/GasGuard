@@ -9,6 +9,7 @@ import {
   Severity,
 } from "../core/analyzer-interface";
 import { detectStorageSlotCollisions } from "../../../rules/security/storage-layout/detect-storage-slot-collisions";
+import { detectMissingImmutable } from "../../../rules/optimization/storage/detect-missing-immutable";
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private rules: Rule[] = [
@@ -208,6 +209,22 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "upgradeable", "storage", "collision"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-016",
+    },
+    {
+      id: "sol-017",
+      name: "Missing Immutable Variables",
+      description:
+        "Detects state variables that are only assigned in the constructor and could benefit from the immutable keyword",
+      severity: Severity.MEDIUM,
+      category: "gas-optimization",
+      enabled: true,
+      tags: ["storage", "immutable", "gas", "constructor"],
+      estimatedGasImpact: {
+        min: 200,
+        max: 2000,
+        typical: 500,
+      },
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-017",
     },
   ];
 
@@ -566,28 +583,53 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         );
       }
 
-      // Rule: sol-016 - Storage Slot Collision
-      if (this.isRuleEnabled("sol-016", config)) {
-        const collisions = detectStorageSlotCollisions(code);
-        if (collisions.detected) {
-          findings.push(
-            ...collisions.collisions.map((collision) => ({
-              ruleId: "sol-016",
-              message: collision.reason,
-              severity: this.getRuleSeverity("sol-016", config),
-              location: {
-                file: filePath,
-                startLine: collision.line1,
-                endLine: collision.line2,
-              },
-              suggestedFix: {
-                description: collisions.suggestion,
-                documentationUrl: "https://docs.gasguard.dev/rules/sol-016",
-              },
-            })),
-          );
-        }
-      }
+// Rule: sol-016 - Storage Slot Collision
+       if (this.isRuleEnabled("sol-016", config)) {
+         const collisions = detectStorageSlotCollisions(code);
+         if (collisions.detected) {
+           findings.push(
+             ...collisions.collisions.map((collision) => ({
+               ruleId: "sol-016",
+               message: collision.reason,
+               severity: this.getRuleSeverity("sol-016", config),
+               location: {
+                 file: filePath,
+                 startLine: collision.line1,
+                 endLine: collision.line2,
+               },
+               suggestedFix: {
+                 description: collisions.suggestion,
+                 documentationUrl: "https://docs.gasguard.dev/rules/sol-016",
+               },
+             })),
+           );
+         }
+       }
+
+       // Rule: sol-017 - Missing Immutable Variables
+       if (this.isRuleEnabled("sol-017", config)) {
+         const missingImmutable = detectMissingImmutable(code);
+         if (missingImmutable.detected) {
+           findings.push(
+             ...missingImmutable.variables.map((variable) => ({
+               ruleId: "sol-017",
+               message: variable.reason,
+               severity: this.getRuleSeverity("sol-017", config),
+               location: {
+                 file: filePath,
+                 startLine: variable.line,
+                 endLine: variable.line,
+               },
+               estimatedGasSavings: 500,
+               suggestedFix: {
+                 description: `Add 'immutable' keyword to variable '${variable.name}'`,
+                 codeSnippet: `${variable.type} immutable ${variable.name} = <constructor_value>;`,
+                 documentationUrl: "https://docs.gasguard.dev/rules/sol-017",
+               },
+             })),
+           );
+         }
+       }
     } catch (error) {
       errors.push({
         file: filePath,
