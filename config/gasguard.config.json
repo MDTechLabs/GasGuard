@@ -71,6 +71,23 @@
       },
       "dependencies": [],
       "tags": ["security", "reentrancy", "solidity"]
+    },
+    {
+      "id": "detect-inconsistent-visibility",
+      "name": "Detect Inconsistent Soroban Visibility",
+      "enabled": true,
+      "severity": "high",
+      "category": "security",
+      "language": "rust",
+      "description": "Flags `pub fn` declarations inside `#[contractimpl]` impl blocks whose name or shape indicates an internal helper but whose visibility registers them as a Soroban contract entry point (issue #322)",
+      "parameters": {
+        "checkHelperNames": true,
+        "checkUnderscoreNames": true,
+        "checkPrivateNames": true,
+        "checkEnvParameter": true
+      },
+      "dependencies": [],
+      "tags": ["security", "visibility", "gas-optimization", "soroban"]
     }
   ],
   "profiles": [

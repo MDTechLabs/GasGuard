@@ -24,7 +24,17 @@ export function detectMissingAccessControl(code: string): AccessControlResult {
       const fnName = match[1];
       // Extract a small window of code after the function signature to check for an auth guard
       const startIdx = match.index ?? 0;
-      const window = code.slice(startIdx, startIdx + 300);
+      let nextFn = code.indexOf(' fn ', startIdx + 5);
+      let nextPubFn = code.indexOf('pub fn ', startIdx + 5);
+      let endIdx = startIdx + 300;
+      if (nextFn !== -1 && nextPubFn !== -1) {
+          endIdx = Math.min(nextFn, nextPubFn);
+      } else if (nextFn !== -1) {
+          endIdx = nextFn;
+      } else if (nextPubFn !== -1) {
+          endIdx = nextPubFn;
+      }
+      const window = code.slice(startIdx, endIdx);
       if (!AUTH_GUARD.test(window)) {
         flaggedFunctions.push(fnName);
       }

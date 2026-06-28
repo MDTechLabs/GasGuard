@@ -1,0 +1,82 @@
+[
+  {
+    "id": "reg-ac-missing-001",
+    "name": "set_admin without auth guard",
+    "description": "Positive test: set_admin function missing require_auth should be flagged",
+    "ruleId": "detect-missing-access-control",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl AdminContract {\n    pub fn set_admin(env: Env, new_admin: Address) {\n        env.storage().instance().set(&Symbol::new(&env, \"admin\"), &new_admin);\n    }\n}",
+    "expected": {
+      "detected": true,
+      "flaggedFunctions": ["set_admin"]
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ac-missing-002",
+    "name": "withdraw without auth guard",
+    "description": "Positive test: withdraw function missing require_auth should be flagged",
+    "ruleId": "detect-missing-access-control",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Vault {\n    pub fn withdraw(env: Env, to: Address, amount: i128) {\n        env.balance().to.send(&to, amount);\n    }\n}",
+    "expected": {
+      "detected": true,
+      "flaggedFunctions": ["withdraw"]
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ac-missing-003",
+    "name": "set_admin with only_admin guard",
+    "description": "Negative test: set_admin with only_admin guard should NOT be flagged",
+    "ruleId": "detect-missing-access-control",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl AdminContract {\n    pub fn set_admin(env: Env, admin: Address, new_admin: Address) {\n        admin.require_auth();\n        env.storage().instance().set(&Symbol::new(&env, \"admin\"), &new_admin);\n    }\n}",
+    "expected": {
+      "detected": false,
+      "flaggedFunctions": []
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ac-missing-004",
+    "name": "non-privileged function not flagged",
+    "description": "Negative test: get_balance is not a privileged function so should not flag",
+    "ruleId": "detect-missing-access-control",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Token {\n    pub fn get_balance(env: Env, addr: Address) -> i128 {\n        env.storage().instance().get(&addr).unwrap_or(0)\n    }\n}",
+    "expected": {
+      "detected": false,
+      "flaggedFunctions": []
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ac-missing-005",
+    "name": "mixed privileged and safe functions",
+    "description": "Edge case: multiple privileged functions, some guarded, some not",
+    "ruleId": "detect-missing-access-control",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl MixedContract {\n    pub fn set_admin(env: Env, new_admin: Address) {\n        env.storage().instance().set(&Symbol::new(&env, \"admin\"), &new_admin);\n    }\n\n    pub fn withdraw(env: Env, admin: Address, to: Address, amount: i128) {\n        admin.require_auth();\n        env.balance().to.send(&to, amount);\n    }\n}",
+    "expected": {
+      "detected": true,
+      "flaggedFunctions": ["set_admin"]
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "edge",
+      "language": "soroban"
+    }
+  }
+]

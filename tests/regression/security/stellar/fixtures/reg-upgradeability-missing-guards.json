@@ -1,0 +1,77 @@
+[
+  {
+    "id": "reg-up-001",
+    "name": "upgrade function without auth",
+    "description": "Positive test: upgrade function with no authorization guard should be flagged",
+    "ruleId": "detect-missing-upgrade-guards",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Upgradeable {\n    pub fn upgrade(env: Env, new_wasm_hash: Bytes) {\n        env.deployer().update_current_contract_wasm(new_wasm_hash);\n    }\n}",
+    "expected": {
+      "detected": true
+    },
+    "metadata": {
+      "category": "upgradeability",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-up-002",
+    "name": "update_contract without auth",
+    "description": "Positive test: update_contract function with no authorization guard",
+    "ruleId": "detect-missing-upgrade-guards",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Upgradeable {\n    pub fn update_contract(env: Env, new_wasm_hash: Bytes) {\n        env.deployer().update_current_contract_wasm(new_wasm_hash);\n    }\n}",
+    "expected": {
+      "detected": true
+    },
+    "metadata": {
+      "category": "upgradeability",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-up-003",
+    "name": "upgrade with admin.require_auth",
+    "description": "Negative test: upgrade function with admin require_auth guard should NOT be flagged",
+    "ruleId": "detect-missing-upgrade-guards",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Upgradeable {\n    pub fn upgrade(env: Env, admin: Address, new_wasm_hash: Bytes) {\n        admin.require_auth();\n        env.deployer().update_current_contract_wasm(new_wasm_hash);\n    }\n}",
+    "expected": {
+      "detected": false
+    },
+    "metadata": {
+      "category": "upgradeability",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-up-004",
+    "name": "no upgrade functions",
+    "description": "Negative test: contract with no upgrade methods should not flag",
+    "ruleId": "detect-missing-upgrade-guards",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Simple {\n    pub fn get_value(env: Env) -> i128 {\n        env.storage().instance().get(&Symbol::new(&env, \"val\")).unwrap_or(0)\n    }\n}",
+    "expected": {
+      "detected": false
+    },
+    "metadata": {
+      "category": "upgradeability",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-up-005",
+    "name": "set_wasm without auth",
+    "description": "Positive test: set_wasm function without authorization guard should be flagged",
+    "ruleId": "detect-missing-upgrade-guards",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Upgradeable {\n    pub fn set_wasm(env: Env, new_wasm_hash: Bytes) {\n        env.deployer().update_current_contract_wasm(new_wasm_hash);\n    }\n}",
+    "expected": {
+      "detected": true
+    },
+    "metadata": {
+      "category": "upgradeability",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  }
+]

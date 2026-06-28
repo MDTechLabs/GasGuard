@@ -1,0 +1,85 @@
+[
+  {
+    "id": "reg-ev-001",
+    "name": "event with 5 topics",
+    "description": "Positive test: event with 5 topic symbols exceeds the recommended max of 4",
+    "ruleId": "detect-excessive-event-topics",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env, symbol_short};\n\n#[contractimpl]\nimpl EventContract {\n    pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {\n        env.events().publish((symbol_short!(\"transfer\"), from, to, amount, amount), ());\n    }\n}",
+    "expected": {
+      "detected": true,
+      "violations": [{ "topicCount": 5, "hasLargePayload": false }]
+    },
+    "metadata": {
+      "category": "events",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ev-002",
+    "name": "event with Bytes in topics",
+    "description": "Positive test: event with Bytes type in topics should flag as large payload",
+    "ruleId": "detect-excessive-event-topics",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Bytes, symbol_short};\n\n#[contractimpl]\nimpl EventContract {\n    pub fn log(env: Env, data: Vec<u8>) {\n        env.events().publish((symbol_short!(\"log\"), Bytes::from_slice(&env, &[1, 2, 3])), ());\n    }\n}",
+    "expected": {
+      "detected": true,
+      "violations": [{ "topicCount": 2, "hasLargePayload": true }]
+    },
+    "metadata": {
+      "category": "events",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ev-003",
+    "name": "event with 4 topics (max allowed)",
+    "description": "Negative test: event with exactly 4 topics should NOT flag",
+    "ruleId": "detect-excessive-event-topics",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env, symbol_short};\n\n#[contractimpl]\nimpl EventContract {\n    pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {\n        env.events().publish((symbol_short!(\"transfer\"), from, to, amount), ());\n    }\n}",
+    "expected": {
+      "detected": false,
+      "violations": []
+    },
+    "metadata": {
+      "category": "events",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ev-004",
+    "name": "no event publish calls",
+    "description": "Negative test: code with no event publish calls should not flag",
+    "ruleId": "detect-excessive-event-topics",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Simple {\n    pub fn get_value(env: Env) -> i128 {\n        env.storage().instance().get(&Symbol::new(&env, \"val\")).unwrap_or(0)\n    }\n}",
+    "expected": {
+      "detected": false,
+      "violations": []
+    },
+    "metadata": {
+      "category": "events",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ev-005",
+    "name": "mix of violating and safe events",
+    "description": "Edge case: multiple events, some exceeding limits and some safe",
+    "ruleId": "detect-excessive-event-topics",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env, Bytes, symbol_short};\n\n#[contractimpl]\nimpl EventContract {\n    pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {\n        env.events().publish((symbol_short!(\"transfer\"), from, to, amount, amount), ());\n        env.events().publish((symbol_short!(\"log\"), Bytes::from_slice(&env, &[1])), ());\n        env.events().publish((symbol_short!(\"ok\"), from), ());\n    }\n}",
+    "expected": {
+      "detected": true,
+      "violations": [
+        { "topicCount": 5, "hasLargePayload": false },
+        { "topicCount": 2, "hasLargePayload": true }
+      ]
+    },
+    "metadata": {
+      "category": "events",
+      "regressionType": "edge",
+      "language": "soroban"
+    }
+  }
+]

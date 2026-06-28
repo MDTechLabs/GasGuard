@@ -1,0 +1,4 @@
+Closes #342 
+ 
+### Summary 
+This PR adds the MappingIterationRule to detect gas-heavy mapping iteration workarounds where developers use an unbounded helper array to simulate mapping iterability on-chain. This rule will alert developers and suggest off-chain solutions or pagination.

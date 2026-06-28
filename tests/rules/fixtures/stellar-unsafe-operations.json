@@ -1,0 +1,48 @@
+{
+  "id": "stellar-unsafe-operations-1",
+  "name": "Unsafe Operations Detection in Soroban Contracts",
+  "description": "Flags unsafe blocks, unchecked unwrap, panic macros, raw pointers, and unchecked arithmetic in Soroban contracts",
+  "input": "use soroban_sdk::{contract, contractimpl, Env, Address};\n\n#[contract]\npub struct Vault;\n\n#[contractimpl]\nimpl Vault {\n    pub fn withdraw(env: Env, user: Address, amount: i128) -> i128 {\n        // Unsafe: unchecked unwrap\n        let balance: i128 = env.storage().instance().get(\"balance\").unwrap();\n\n        // Unsafe: raw arithmetic\n        let remaining = balance - amount;\n\n        // Unsafe: panic macro\n        if remaining < 0 {\n            panic!(\"insufficient balance\");\n        }\n\n        // Unsafe: unsafe block\n        unsafe {\n            let raw = 0 as *const i128;\n        }\n\n        remaining\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "detect-unsafe-operations",
+      "type": "unchecked-unwrap",
+      "severity": "Warning",
+      "messagePattern": "unwrap\\(\\)",
+      "line": 11
+    },
+    {
+      "ruleId": "detect-unsafe-operations",
+      "type": "unchecked-arithmetic-operator",
+      "severity": "Warning",
+      "messagePattern": "arithmetic operator",
+      "line": 14
+    },
+    {
+      "ruleId": "detect-unsafe-operations",
+      "type": "panic-macro",
+      "severity": "Warning",
+      "messagePattern": "panic!",
+      "line": 17
+    },
+    {
+      "ruleId": "detect-unsafe-operations",
+      "type": "unsafe-block",
+      "severity": "Critical",
+      "messagePattern": "unsafe",
+      "line": 21
+    },
+    {
+      "ruleId": "detect-unsafe-operations",
+      "type": "raw-pointer",
+      "severity": "Critical",
+      "messagePattern": "Raw pointer",
+      "line": 22
+    }
+  ],
+  "metadata": {
+    "language": "soroban",
+    "category": "security",
+    "tags": ["security", "unsafe-operations", "soroban"]
+  }
+}

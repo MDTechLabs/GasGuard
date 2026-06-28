@@ -1,0 +1,82 @@
+[
+  {
+    "id": "reg-ac-weak-001",
+    "name": "grant_role with only require_auth",
+    "description": "Positive test: grant_role with only basic require_auth should be flagged as weak role hierarchy",
+    "ruleId": "detect-weak-role-hierarchies",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl RoleContract {\n    pub fn grant_role(env: Env, caller: Address, target: Address, role: u32) {\n        caller.require_auth();\n        env.storage().instance().set(&target, &role);\n    }\n}",
+    "expected": {
+      "detected": true,
+      "weakRoles": ["grant_role"]
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ac-weak-002",
+    "name": "multiple weak role functions",
+    "description": "Positive test: multiple role-assignment functions with only require_auth",
+    "ruleId": "detect-weak-role-hierarchies",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl RoleContract {\n    pub fn grant_role(env: Env, caller: Address, target: Address, role: u32) {\n        caller.require_auth();\n        env.storage().instance().set(&target, &role);\n    }\n\n    pub fn add_admin(env: Env, caller: Address, new_admin: Address) {\n        caller.require_auth();\n        env.storage().instance().set(&new_admin, &0u32);\n    }\n}",
+    "expected": {
+      "detected": true,
+      "weakRoles": ["grant_role", "add_admin"]
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ac-weak-003",
+    "name": "grant_role with admin.require_auth",
+    "description": "Negative test: grant_role with admin.require_auth hierarchy guard should NOT be flagged",
+    "ruleId": "detect-weak-role-hierarchies",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl RoleContract {\n    pub fn grant_role(env: Env, admin: Address, target: Address, role: u32) {\n        admin.require_auth();\n        env.storage().instance().set(&target, &role);\n    }\n}",
+    "expected": {
+      "detected": false,
+      "weakRoles": []
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ac-weak-004",
+    "name": "no role-assignment functions",
+    "description": "Negative test: no role-assignment functions present should not flag",
+    "ruleId": "detect-weak-role-hierarchies",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Simple {\n    pub fn get_balance(env: Env, addr: Address) -> i128 {\n        env.storage().instance().get(&addr).unwrap_or(0)\n    }\n}",
+    "expected": {
+      "detected": false,
+      "weakRoles": []
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-ac-weak-005",
+    "name": "safe promote with assert_admin style guard",
+    "description": "Negative test: role-assignment guarded with assert_admin pattern should not flag",
+    "ruleId": "detect-weak-role-hierarchies",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl RoleContract {\n    pub fn promote(env: Env, admin: Address, target: Address, role: u32) {\n        admin.require_auth();\n        assert_admin(&env, &admin);\n        env.storage().instance().set(&target, &role);\n    }\n}",
+    "expected": {
+      "detected": false,
+      "weakRoles": []
+    },
+    "metadata": {
+      "category": "access-control",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  }
+]

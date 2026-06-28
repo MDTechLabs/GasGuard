@@ -22,7 +22,7 @@ pub use rule_engine::{
 pub use security::{HardcodedAddressesRule, MissingDomainSeparationRule};
 pub use solidity::{DynamicArrayDeletionRule, MappingIterationRule, StateVariablePackingRule};
 pub use security::{HardcodedAddressesRule, MissingDomainSeparationRule, defi::MissingSlippageValidationRule};
-pub use solidity::{StateVariablePackingRule, MappingIterationRule};
+pub use solidity::{StateVariablePackingRule, MappingIterationRule, AbiEncodingRule};
 pub use optimization::storage::detect_mapping_iteration;
 pub use unused_state_variables::UnusedStateVariablesRule;
 

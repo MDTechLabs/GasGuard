@@ -1,0 +1,25 @@
+{
+  "id": "sol-017-missing-immutable-1",
+  "name": "Missing Immutable Variable",
+  "description": "Test that the rule detects variables only assigned in constructor that could be immutable",
+  "input": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract ExampleContract {\n    address public owner;\n    uint256 public constantFactor;\n    address public feeRecipient;\n    \n    constructor() {\n        owner = msg.sender;\n        constantFactor = 100;\n        feeRecipient = msg.sender;\n    }\n    \n    function getValue() public view returns (uint256) {\n        return constantFactor * 2;\n    }\n}",
+  "expectedFindings": [
+    {
+      "ruleId": "sol-017",
+      "severity": "medium",
+      "messagePattern": "immutable",
+      "line": 7
+    },
+    {
+      "ruleId": "sol-017",
+      "severity": "medium",
+      "messagePattern": "immutable",
+      "line": 8
+    }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "gas-optimization",
+    "tags": ["storage", "immutable", "gas"]
+  }
+}

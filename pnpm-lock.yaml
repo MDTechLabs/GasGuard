@@ -442,6 +442,8 @@ importers:
         specifier: ^5.1.3
         version: 5.9.3
 
+  packages/stellar-sdk: {}
+
   packages/tsconfig: {}
 
 packages:

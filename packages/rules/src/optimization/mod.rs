@@ -1,6 +1,8 @@
 pub mod arrays;
 pub mod deployment;
+pub mod encoding;
 pub mod storage;
+pub mod visibility;
 
 pub use arrays::detect_dynamic_array_deletions;
 pub use storage::{
@@ -9,3 +11,5 @@ pub use storage::{
 };
 
 pub use deployment::{estimate_bytecode_size, ExcessiveContractSizeRule};
+pub use encoding::detect_abi_encoding_inefficiencies;
+pub use visibility::{check_unnecessary_public_functions, UnnecessaryPublicFunctionRule};
