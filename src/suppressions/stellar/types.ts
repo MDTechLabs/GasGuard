@@ -4,7 +4,7 @@
  * Defines the shapes for inline suppressions, configuration-based suppressions,
  * and suppression records with reasons.
  *
- * @see Issue #476 — Implement Soroban Rule Suppression Framework
+ * @see Issue #475 — Implement Soroban Rule Suppression Framework
  */
 
 // ─── Suppression Source ───────────────────────────────────────────────────────

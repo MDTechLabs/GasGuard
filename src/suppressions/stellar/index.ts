@@ -1,7 +1,7 @@
 /**
  * Soroban Rule Suppression Framework Module
  *
- * @see Issue #476 — Implement Soroban Rule Suppression Framework
+ * @see Issue #475 — Implement Soroban Rule Suppression Framework
  */
 
 export { RuleSuppressionFramework, parseInlineSuppressions } from './rule-suppression-framework';

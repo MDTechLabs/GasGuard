@@ -5,7 +5,7 @@
  * suppressions. Records suppression reasons and excludes suppressed findings
  * from reports.
  *
- * @see Issue #476 — Implement Soroban Rule Suppression Framework
+ * @see Issue #475 — Implement Soroban Rule Suppression Framework
  */
 
 import type {
