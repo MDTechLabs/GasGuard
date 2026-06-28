@@ -12,7 +12,7 @@ import {
 
 export const astCommand = new Command("ast")
   .description("Inspect the AST of a smart contract source file")
-  .argument("<file>", "Path to a .sol, .rs, or .vy source file")
+  .arguments("<file>")
   .option("--json", "Output full snapshot as JSON instead of the tree view")
   .option("--compact", "Use compact (single-line) JSON (implies --json)")
   .option("-o, --output <file>", "Write output to a file instead of stdout")

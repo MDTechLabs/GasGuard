@@ -1,8 +1,10 @@
+pub mod arrays;
 pub mod deployment;
 pub mod encoding;
 pub mod storage;
 pub mod visibility;
 
+pub use arrays::detect_dynamic_array_deletions;
 pub use storage::{
     detect_packing_opportunities, find_consecutive_packable_groups, get_type_size,
     is_packable_type, PackingOpportunity, VariableInfo,

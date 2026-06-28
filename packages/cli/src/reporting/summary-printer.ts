@@ -88,9 +88,20 @@ export function printSummary(
   );
 }
 
-function printSeverity(label: string, count: number, color: string): void {
-  const coloredCount =
-    count > 0 ? chalk[color](count.toString()) : chalk.gray("0");
+function printSeverity(
+  label: string,
+  count: number,
+  color: "red" | "yellow" | "blue" | "gray",
+): void {
+  const colorize =
+    color === "red"
+      ? chalk.red
+      : color === "yellow"
+        ? chalk.yellow
+        : color === "blue"
+          ? chalk.blue
+          : chalk.gray;
+  const coloredCount = count > 0 ? colorize(count.toString()) : chalk.gray("0");
   console.log(`  ${label.padEnd(10)}: ${coloredCount}`);
 }
 

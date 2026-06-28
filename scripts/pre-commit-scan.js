@@ -20,10 +20,8 @@ function filterScannable(files) {
 function runScanOnFile(file) {
   console.log(`Running GasGuard scan on staged file: ${file}`);
 
-  // Execute the monorepo CLI using ts-node to run the TypeScript source directly.
-  // This avoids requiring a pre-built CLI binary during development.
   const runner = 'node';
-  const args = ['-r', 'ts-node/register', 'packages/cli/src/index.ts', 'scan', file, '--no-summary', '--format', 'text'];
+  const args = ['-r', 'ts-node/register', 'scripts/run-precommit-scan.ts', file];
 
   const res = spawnSync(runner, args, { stdio: 'inherit' });
   if (res.error) {
