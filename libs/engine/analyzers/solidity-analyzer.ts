@@ -600,53 +600,53 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         );
       }
 
-// Rule: sol-016 - Storage Slot Collision
-       if (this.isRuleEnabled("sol-016", config)) {
-         const collisions = detectStorageSlotCollisions(code);
-         if (collisions.detected) {
-           findings.push(
-             ...collisions.collisions.map((collision) => ({
-               ruleId: "sol-016",
-               message: collision.reason,
-               severity: this.getRuleSeverity("sol-016", config),
-               location: {
-                 file: filePath,
-                 startLine: collision.line1,
-                 endLine: collision.line2,
-               },
-               suggestedFix: {
-                 description: collisions.suggestion,
-                 documentationUrl: "https://docs.gasguard.dev/rules/sol-016",
-               },
-             })),
-           );
-         }
-       }
+      // Rule: sol-016 - Storage Slot Collision
+      if (this.isRuleEnabled("sol-016", config)) {
+        const collisions = detectStorageSlotCollisions(code);
+        if (collisions.detected) {
+          findings.push(
+            ...collisions.collisions.map((collision) => ({
+              ruleId: "sol-016",
+              message: collision.reason,
+              severity: this.getRuleSeverity("sol-016", config),
+              location: {
+                file: filePath,
+                startLine: collision.line1,
+                endLine: collision.line2,
+              },
+              suggestedFix: {
+                description: collisions.suggestion,
+                documentationUrl: "https://docs.gasguard.dev/rules/sol-016",
+              },
+            })),
+          );
+        }
+      }
 
-       // Rule: sol-017 - Missing Immutable Variables
-       if (this.isRuleEnabled("sol-017", config)) {
-         const missingImmutable = detectMissingImmutable(code);
-         if (missingImmutable.detected) {
-           findings.push(
-             ...missingImmutable.variables.map((variable) => ({
-               ruleId: "sol-017",
-               message: variable.reason,
-               severity: this.getRuleSeverity("sol-017", config),
-               location: {
-                 file: filePath,
-                 startLine: variable.line,
-                 endLine: variable.line,
-               },
-               estimatedGasSavings: 500,
-               suggestedFix: {
-                 description: `Add 'immutable' keyword to variable '${variable.name}'`,
-                 codeSnippet: `${variable.type} immutable ${variable.name} = <constructor_value>;`,
-                 documentationUrl: "https://docs.gasguard.dev/rules/sol-017",
-               },
-             })),
-           );
-         }
-       }
+      // Rule: sol-017 - Missing Immutable Variables
+      if (this.isRuleEnabled("sol-017", config)) {
+        const missingImmutable = detectMissingImmutable(code);
+        if (missingImmutable.detected) {
+          findings.push(
+            ...missingImmutable.variables.map((variable) => ({
+              ruleId: "sol-017",
+              message: variable.reason,
+              severity: this.getRuleSeverity("sol-017", config),
+              location: {
+                file: filePath,
+                startLine: variable.line,
+                endLine: variable.line,
+              },
+              estimatedGasSavings: 500,
+              suggestedFix: {
+                description: `Add 'immutable' keyword to variable '${variable.name}'`,
+                codeSnippet: `${variable.type} immutable ${variable.name} = <constructor_value>;`,
+                documentationUrl: "https://docs.gasguard.dev/rules/sol-017",
+              },
+            })),
+          );
+        }
+      }
     } catch (error) {
       errors.push({
         file: filePath,
