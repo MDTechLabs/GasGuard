@@ -1,0 +1,3 @@
+mod redundant_constructor_init;
+
+pub use redundant_constructor_init::RedundantConstructorInitRule;
