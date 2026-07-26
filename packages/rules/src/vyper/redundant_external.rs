@@ -166,6 +166,7 @@ impl VyperRuleEngine {
     pub fn with_default_rules() -> Self {
         let mut engine = Self::new();
         engine.add_rule(Box::new(RedundantExternalDecoratorRule));
+        engine.add_rule(Box::new(crate::vyper::storage_packing::StructStoragePackingRule));
         engine
     }
 
