@@ -7,6 +7,9 @@
 pub mod parser;
 pub mod analyzer;
 pub mod rule_engine;
+pub mod interface_rules;
+
+pub use interface_rules::*;
 
 pub use parser::*;
 pub use analyzer::*;

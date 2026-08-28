@@ -3,7 +3,10 @@
 //! This module provides a specialized rule engine for analyzing Soroban smart contracts
 //! with rules tailored to Soroban's unique characteristics and gas optimization patterns.
 
-use super::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
+use super::{
+    InefficientInterfaceParamsRule, InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract,
+    SorobanParser, SorobanResult, UnsafeCallTargetRule, UnvalidatedContractAddressRule,
+};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -52,7 +55,12 @@ impl SorobanRuleEngine {
             .add_rule(ClaimExpirationRule::default())    // #117
             .add_rule(AntiFrontRunningRule::default())   // #118
             .add_rule(SecureRandomnessRule::default())   // #119
-            .add_rule(UpgradeVersionTrackingRule::default()); // #123
+            .add_rule(UpgradeVersionTrackingRule::default()) // #123
+            // Stellar Wave interface & call-safety rules (#861, #862, #863, #864)
+            .add_rule(UnvalidatedContractAddressRule::default()) // #861
+            .add_rule(UnsafeCallTargetRule::default())           // #862
+            .add_rule(InterfaceConsistencyRule::default())      // #863
+            .add_rule(InefficientInterfaceParamsRule::default()); // #864
     }
     
     /// Analyze Soroban contract source code
@@ -785,6 +793,11 @@ mod tests {
         assert!(rule_ids.contains(&"soroban-inefficient-storage"));
         assert!(rule_ids.contains(&"soroban-governance-voting"));
         assert!(rule_ids.contains(&"soroban-emergency-withdrawal"));
+        // Stellar Wave interface & call-safety rules (#861, #862, #863, #864)
+        assert!(rule_ids.contains(&"soroban-unvalidated-contract-address")); // #861
+        assert!(rule_ids.contains(&"soroban-unsafe-call-target"));           // #862
+        assert!(rule_ids.contains(&"soroban-interface-consistency"));       // #863
+        assert!(rule_ids.contains(&"soroban-inefficient-interface-params")); // #864
     }
     
     #[test]
