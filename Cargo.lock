@@ -874,6 +874,7 @@ dependencies = [
  "dialoguer",
  "gasguard-auto-fix",
  "gasguard-engine",
+ "gasguard-rule-engine",
  "similar",
  "walkdir",
 ]

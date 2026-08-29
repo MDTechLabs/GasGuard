@@ -105,7 +105,7 @@ impl SorobanLintRule for EnvParameterRule {
 
         // Check for functions that modify state but don't have Env parameter
         let lines: Vec<&str> = source.lines().collect();
-        let in_impl_block = false;
+        let _in_impl_block = false;
 
         for (i, line) in lines.iter().enumerate() {
             // Look for pub fn that might need Env
