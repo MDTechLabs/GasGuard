@@ -1,15 +1,19 @@
 import { StellarRoute, ScoredRoute, RouteRecommendationOptions } from "./types";
 import { scoreRoutes } from "./scorer";
 
+export class ConstantPropagationAnalyzer {
+  static analyze(_routes: StellarRoute[]): string[] {
+    return [];
+  }
+}
+
 export class StellarRouteRecommendationEngine {
   recommend(
     routes: StellarRoute[],
     options?: RouteRecommendationOptions,
   ): ScoredRoute[] {
     if (!routes.length) return [];
-
     const scored = scoreRoutes(routes, options);
-
     return scored.sort((a, b) => b.score - a.score);
   }
 

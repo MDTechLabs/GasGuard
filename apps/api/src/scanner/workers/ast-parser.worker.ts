@@ -26,6 +26,9 @@ if (parentPort) {
     if (task.content && task.content.includes('env.storage().persistent()')) {
       warningsCount++;
     }
+    if (task.content && /\d+\s*[+\-*/%]\s*\d+/.test(task.content)) {
+      warningsCount++;
+    }
 
     const durationMs = Date.now() - startTime;
 

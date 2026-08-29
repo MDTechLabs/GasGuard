@@ -4,4 +4,4 @@ export const defaultWeights: Required<RouteRecommendationOptions> = {
   weightCost: 0.5,
   weightSpeed: 0.4,
   weightReliability: 0.1,
-};
+} as const;

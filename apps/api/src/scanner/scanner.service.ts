@@ -12,6 +12,7 @@ export interface BatchScanReport {
   totalFiles: number;
   totalAstNodes: number;
   totalWarnings: number;
+  totalOptimizations: number;
   durationMs: number;
   results: ScanResult[];
 }
@@ -66,10 +67,16 @@ export class ScannerService implements OnModuleInit, OnModuleDestroy {
     const totalAstNodes = results.reduce((acc, r) => acc + r.astNodesCount, 0);
     const totalWarnings = results.reduce((acc, r) => acc + r.warningsCount, 0);
 
+    const totalOptimizations = results.reduce(
+      (acc, r) => acc + (((r as any).optimizationFindings || []).length as number),
+      0
+    );
+
     return {
       totalFiles: tasks.length,
       totalAstNodes,
       totalWarnings,
+      totalOptimizations,
       durationMs,
       results,
     };
