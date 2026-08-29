@@ -5,28 +5,24 @@
 //! `#[contract]`, `#[contractimpl]`, and `#[contracttype]`.
 
 pub mod analyzer;
+pub mod event_emission;
+pub mod inefficient_error_construction;
+pub mod interface_rules;
 pub mod loop_cost_analyzer;
 pub mod memory;
 pub mod parser;
 pub mod rule_engine;
-pub mod interface_rules;
-
-pub use interface_rules::*;
+pub mod unnecessary_cloning;
 
 pub use analyzer::*;
 pub use event_emission::EventEmissionCostRule;
 pub use inefficient_error_construction::InefficientErrorConstructionRule;
+pub use interface_rules::*;
 pub use memory::InefficientBytesAllocationRule;
 pub use memory::MemoryAllocationRule;
 pub use parser::*;
 pub use rule_engine::*;
 pub use unnecessary_cloning::UnnecessaryCloningRule;
-
-// New Soroban analysis rules
-pub use rule_engine::{
-    SorobanDeadCodeRule, SorobanDeepNestingRule, SorobanFunctionComplexityRule,
-    SorobanRepeatedComputationsRule,
-};
 
 /// Represents a Soroban contract structure
 #[derive(Debug, Clone, PartialEq)]

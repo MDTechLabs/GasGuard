@@ -4,8 +4,9 @@
 //! with rules tailored to Soroban's unique characteristics and gas optimization patterns.
 
 use super::{
-    InefficientInterfaceParamsRule, InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract,
-    SorobanParser, SorobanResult, UnsafeCallTargetRule, UnvalidatedContractAddressRule,
+    InefficientBytesAllocationRule, InefficientInterfaceParamsRule, InterfaceConsistencyRule,
+    SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult, UnsafeCallTargetRule,
+    UnvalidatedContractAddressRule,
 };
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
@@ -834,8 +835,11 @@ pub struct TestContract {
     pub admin: Address,
     pub unused_counter: u64,
 }
-
-        violations
+"#;
+        let contract = SorobanParser::parse_contract(source, "test.rs").unwrap();
+        let rule = UnusedStateVariablesRule::default();
+        let violations = rule.apply(&contract);
+        assert!(!violations.is_empty());
     }
 }
 
@@ -1708,7 +1712,7 @@ impl SorobanDeadCodeRule {
 }
 
 #[cfg(test)]
-mod tests {
+mod engine_tests {
     use super::*;
 
     #[test]

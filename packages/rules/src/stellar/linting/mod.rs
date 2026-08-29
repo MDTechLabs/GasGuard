@@ -3,11 +3,13 @@
 //! This module provides custom linting rules specifically for Soroban contracts
 //! that go beyond standard Rust linters to catch Soroban-specific issues.
 
+pub mod auth_and_footprint_rules;
 pub mod gas_optimization_rules;
 pub mod networking;
 pub mod soroban_rules;
 pub mod stellar_sdk_rules;
 
+pub use auth_and_footprint_rules::*;
 pub use gas_optimization_rules::*;
 pub use networking::*;
 pub use soroban_rules::*;
@@ -35,6 +37,10 @@ impl SorobanLinter {
         rules.push(Box::new(gas_optimization_rules::MapIterationRule));
         rules.push(Box::new(gas_optimization_rules::EventEmissionRule));
         rules.push(Box::new(networking::NetworkValidationRule));
+        rules.push(Box::new(auth_and_footprint_rules::AuthFlowRule));
+        rules.push(Box::new(auth_and_footprint_rules::RedundantAuthRule));
+        rules.push(Box::new(auth_and_footprint_rules::SignatureVerificationRule));
+        rules.push(Box::new(auth_and_footprint_rules::FootprintSizeRule));
 
         Self { rules }
     }
