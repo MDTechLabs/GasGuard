@@ -1,4 +1,4 @@
-import { SorobanStorageLifetimeAnalyzer } from '../storage-lifetime-analyzer';
+import { SorobanStorageLifetimeAnalyzer } from '../lifetime-analyzer';
 import { ContractDefinition } from '@gasguard/parser';
 
 describe('SorobanStorageLifetimeAnalyzer', () => {
