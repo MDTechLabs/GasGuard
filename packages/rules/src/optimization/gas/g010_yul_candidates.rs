@@ -102,7 +102,7 @@ impl YulCandidatesRule {
             + body.matches('^').count()
             + body.matches("<<").count()
             + body.matches(">>").count();
-        score += (bitwise_ops as i32);
+        score += bitwise_ops as i32;
 
         let addmod_count = body.matches("addmod(").count();
         score += (addmod_count as i32) * 2;

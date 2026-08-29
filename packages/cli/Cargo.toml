@@ -11,3 +11,4 @@ dialoguer = "0.11"
 similar = "2.6"
 gasguard-auto-fix = { path = "../../libs/auto-fix" }
 gasguard-engine = { path = "../../libs/engine" }
+gasguard-rule-engine = { path = "../../libs/rule-engine" }
