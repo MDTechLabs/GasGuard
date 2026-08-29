@@ -48,7 +48,7 @@ const CPU_PATTERNS: CpuPattern[] = [
   {
     id: 'unbounded-loop',
     description: 'Loop without an explicit upper bound',
-    pattern: /\b(for|while|loop)\b(?![^{]*\b(take|limit|MAX_|max_)/),
+    pattern: /\b(for|while|loop)\b(?![^{]*\b(take|limit|MAX_|max_))/,
     cpuWeight: 85,
     severity: 'high',
     suggestion:
