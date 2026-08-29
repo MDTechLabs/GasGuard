@@ -3,14 +3,10 @@
 //! This module provides a specialized rule engine for analyzing Soroban smart contracts
 //! with rules tailored to Soroban's unique characteristics and gas optimization patterns.
 
-use crate::soroban::loop_cost_analyzer::LoopCostAnalyzerRule;
-use crate::soroban::memory::InefficientBytesAllocationRule;
-use crate::soroban::unbounded_iteration::UnboundedIterationRule;
-use crate::soroban::memory::{InefficientBytesAllocationRule, MemoryAllocationRule};
-use crate::soroban::{
-    EventEmissionCostRule, InefficientErrorConstructionRule, UnnecessaryCloningRule,
+use super::{
+    InefficientInterfaceParamsRule, InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract,
+    SorobanParser, SorobanResult, UnsafeCallTargetRule, UnvalidatedContractAddressRule,
 };
-use crate::soroban::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -57,24 +53,15 @@ impl SorobanRuleEngine {
             .add_rule(InefficientBytesAllocationRule::default())
             .add_rule(EmergencyWithdrawalRule::default())
             .add_rule(GovernanceVotingRule::default())
-            .add_rule(ClaimExpirationRule::default()) // #117
-            .add_rule(AntiFrontRunningRule::default()) // #118
-            .add_rule(SecureRandomnessRule::default()) // #119
+            .add_rule(ClaimExpirationRule::default())    // #117
+            .add_rule(AntiFrontRunningRule::default())   // #118
+            .add_rule(SecureRandomnessRule::default())   // #119
             .add_rule(UpgradeVersionTrackingRule::default()) // #123
-            .add_rule(LoopCostAnalyzerRule::default()) // #769
-            .add_rule(UnboundedIterationRule::default()); // #770
-            .add_rule(UnnecessaryCloningRule::default()) // #775
-            .add_rule(MemoryAllocationRule::default()) // #776
-            .add_rule(InefficientErrorConstructionRule::default()) // #777
-            .add_rule(EventEmissionCostRule::default()); // #778
-            .add_rule(RedundantEventEmissionsRule::default()) // #779
-            .add_rule(AuthorizationCostRule::default())       // #780
-            .add_rule(ResourceBudgetEstimatorRule::default()) // #781
-            .add_rule(OptimizationPriorityRule::default())   // #782
-            .add_rule(SorobanFunctionComplexityRule::default()) // #783
-            .add_rule(SorobanDeepNestingRule::default())     // #784
-            .add_rule(SorobanRepeatedComputationsRule::default()) // #785
-            .add_rule(SorobanDeadCodeRule::default());       // #786
+            // Stellar Wave interface & call-safety rules (#861, #862, #863, #864)
+            .add_rule(UnvalidatedContractAddressRule::default()) // #861
+            .add_rule(UnsafeCallTargetRule::default())           // #862
+            .add_rule(InterfaceConsistencyRule::default())      // #863
+            .add_rule(InefficientInterfaceParamsRule::default()); // #864
     }
 
     /// Analyze Soroban contract source code
@@ -811,6 +798,42 @@ impl SorobanRule for GovernanceVotingRule {
                 }
             }
         }
+        
+        violations
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_soroban_rule_engine_creation() {
+        let engine = SorobanRuleEngine::with_default_rules();
+        assert!(!engine.get_rules().is_empty());
+        
+        let rule_ids: Vec<_> = engine.get_rules().iter().map(|r| r.id()).collect();
+        assert!(rule_ids.contains(&"soroban-unused-state-variables"));
+        assert!(rule_ids.contains(&"soroban-inefficient-storage"));
+        assert!(rule_ids.contains(&"soroban-governance-voting"));
+        assert!(rule_ids.contains(&"soroban-emergency-withdrawal"));
+        // Stellar Wave interface & call-safety rules (#861, #862, #863, #864)
+        assert!(rule_ids.contains(&"soroban-unvalidated-contract-address")); // #861
+        assert!(rule_ids.contains(&"soroban-unsafe-call-target"));           // #862
+        assert!(rule_ids.contains(&"soroban-interface-consistency"));       // #863
+        assert!(rule_ids.contains(&"soroban-inefficient-interface-params")); // #864
+    }
+    
+    #[test]
+    fn test_unused_state_variables_rule() {
+        let source = r#"
+use soroban_sdk::{contract, contractimpl, contracttype, Address};
+
+#[contracttype]
+pub struct TestContract {
+    pub admin: Address,
+    pub unused_counter: u64,
+}
 
         violations
     }
