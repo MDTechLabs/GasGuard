@@ -20,8 +20,8 @@ describe('Soroban Rule Tests', () => {
       );
       
       expect(fixture.id).toBe('soroban-unused-var-1');
-      expect(fixture.expectedViolations).toBeDefined();
-      expect(fixture.expectedViolations.length).toBeGreaterThan(0);
+      expect(fixture.expectedFindings).toBeDefined();
+      expect(fixture.expectedFindings.length).toBeGreaterThan(0);
       
       // The actual rule testing happens in Rust tests
       // This validates the fixture structure
@@ -39,7 +39,7 @@ describe('Soroban Rule Tests', () => {
       expect(fixture.name).toBeDefined();
       expect(fixture.description).toBeDefined();
       expect(fixture.input).toContain('soroban_sdk');
-      expect(fixture.expectedViolations).toBeDefined();
+      expect(fixture.expectedFindings).toBeDefined();
       expect(fixture.metadata?.language).toBe('soroban');
     });
   });

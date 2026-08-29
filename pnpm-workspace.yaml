@@ -2,3 +2,12 @@ packages:
   - 'apps/*'
   - 'libs/*'
   - 'packages/*'
+allowBuilds:
+  '@nestjs/core': set this to true or false
+  '@scarf/scarf': set this to true or false
+  bcrypt: set this to true or false
+  esbuild: set this to true or false
+  keccak: set this to true or false
+  msgpackr-extract: set this to true or false
+  secp256k1: set this to true or false
+  unrs-resolver: set this to true or false

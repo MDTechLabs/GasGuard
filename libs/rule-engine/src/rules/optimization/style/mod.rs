@@ -1,4 +1,3 @@
 mod redundant_boolean_comparisons;
 
 pub use redundant_boolean_comparisons::RedundantBooleanComparisonsRule;
-

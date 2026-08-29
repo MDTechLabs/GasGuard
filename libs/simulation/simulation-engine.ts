@@ -1,4 +1,4 @@
-import { ChainAdapter, SimulationResult } from '@chains/base-adapter';
+import { ChainAdapter, SimulationResult } from "@chains/base-adapter";
 
 export interface ComparisonReport {
   before: SimulationResult;
@@ -11,11 +11,20 @@ export interface ComparisonReport {
 export class SimulationEngine {
   constructor(private adapter: ChainAdapter) {}
 
-  async simulateExecution(code: string, method: string, params: any[]): Promise<SimulationResult> {
+  async simulateExecution(
+    code: string,
+    method: string,
+    params: any[],
+  ): Promise<SimulationResult> {
     return this.adapter.simulate(code, method, params);
   }
 
-  async compareOptimizations(originalCode: string, optimizedCode: string, method: string, params: any[]): Promise<ComparisonReport> {
+  async compareOptimizations(
+    originalCode: string,
+    optimizedCode: string,
+    method: string,
+    params: any[],
+  ): Promise<ComparisonReport> {
     const [before, after] = await Promise.all([
       this.simulateExecution(originalCode, method, params),
       this.simulateExecution(optimizedCode, method, params),
@@ -29,7 +38,10 @@ export class SimulationEngine {
     const beforeOps = this.getOpcodeFrequencies(before.opcodes);
     const afterOps = this.getOpcodeFrequencies(after.opcodes);
 
-    const allOps = new Set([...Object.keys(beforeOps), ...Object.keys(afterOps)]);
+    const allOps = new Set([
+      ...Object.keys(beforeOps),
+      ...Object.keys(afterOps),
+    ]);
     for (const op of allOps) {
       opcodeDiff[op] = (afterOps[op] || 0) - (beforeOps[op] || 0);
     }

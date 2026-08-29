@@ -1,10 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from "typeorm";
 
-@Entity('gas_savings')
-@Index(['projectId', 'scanId'])
-@Index(['createdAt'])
+@Entity("gas_savings")
+@Index(["projectId", "scanId"])
+@Index(["createdAt"])
 export class GasSavings {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
@@ -22,19 +28,19 @@ export class GasSavings {
   @Column()
   ruleName: string;
 
-  @Column('int')
+  @Column("int")
   gasSaved: number;
 
-  @Column('int')
+  @Column("int")
   severity: number; // 1=Info, 2=Warning, 3=Error, 4=Critical
 
-  @Column('text', { nullable: true })
+  @Column("text", { nullable: true })
   description: string;
 
-  @Column('text', { nullable: true })
+  @Column("text", { nullable: true })
   suggestion: string;
 
-  @Column('int')
+  @Column("int")
   lineNumber: number;
 
   @CreateDateColumn()

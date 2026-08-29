@@ -105,6 +105,98 @@ contract SecureBank is ReentrancyGuard {
     });
   });
 
+  describe('sol-013: Unsafe Timestamp Dependency', () => {
+    it('should detect unsafe reliance on block.timestamp and now in critical logic', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract TimeSensitive {
+    uint256 public deadline;
+
+    function bid() external {
+        require(block.timestamp <= deadline, "Auction expired");
+        // bidding logic
+    }
+
+    function recordStart() external {
+        uint256 startTime = now;
+        // start logic
+    }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'time-sensitive.sol');
+      RuleAssertions.assertHasFinding(result.findings, 'sol-013');
+      RuleAssertions.assertFindingSeverity(result.findings, 'sol-013', 'high');
+    });
+
+    it('should not flag block.timestamp when used only for event emission', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract LogTimestamp {
+    event Timestamped(uint256 timestamp);
+
+    function log() external {
+        emit Timestamped(block.timestamp);
+    }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'timestamp-log.sol');
+      RuleAssertions.assertNotHasFinding(result.findings, 'sol-013');
+    });
+
+    it('should detect insecure tx.origin authentication usage', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract OriginAuth {
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function adminAction() external {
+        require(tx.origin == owner, "Not authorized");
+        // sensitive logic
+    }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'origin-auth.sol');
+      RuleAssertions.assertHasFinding(result.findings, 'sol-014');
+      RuleAssertions.assertFindingMessage(result.findings, 'sol-014', 'tx.origin');
+    });
+
+    it('should not flag msg.sender authentication', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SenderAuth {
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function adminAction() external {
+        require(msg.sender == owner, "Not authorized");
+        // sensitive logic
+    }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'sender-auth.sol');
+      RuleAssertions.assertNotHasFinding(result.findings, 'sol-014');
+    });
+  });
+
   describe('Rule Assertions', () => {
     it('should provide helpful assertion messages', async () => {
       const code = `
@@ -163,19 +255,19 @@ contract TestContract {
     });
   });
 
-  // Helper config to isolate a single rule by disabling all others
-  function isolateRule(ruleId: string): any {
-    const allRuleIds = [
-      'sol-003', 'sol-004', 'sol-005', 'sol-006', 'sol-007',
-      'sol-008', 'sol-009', 'sol-010', 'sol-011', 'sol-012',
-      'sol-015'
-    ];
-    const rules: any = {};
-    for (const id of allRuleIds) {
-      rules[id] = { enabled: id === ruleId };
-    }
-    return { rules };
-  }
+// Helper config to isolate a single rule by disabling all others
+   function isolateRule(ruleId: string): any {
+     const allRuleIds = [
+       'sol-003', 'sol-004', 'sol-005', 'sol-006', 'sol-007',
+       'sol-008', 'sol-009', 'sol-010', 'sol-011', 'sol-012',
+       'sol-015', 'sol-017'
+     ];
+     const rules: any = {};
+     for (const id of allRuleIds) {
+       rules[id] = { enabled: id === ruleId };
+     }
+     return { rules };
+   }
 
   describe('sol-015: Dead Code Paths', () => {
     it('should detect dead code after return/revert statements', async () => {
@@ -225,11 +317,94 @@ contract CleanContract {
     });
   });
 
+  describe('sol-017: Missing Immutable Variables', () => {
+    it('should detect variables only assigned in constructor that could be immutable', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract TestContract {
+    address public owner;
+    uint256 public factor;
+    
+    constructor() {
+        owner = msg.sender;
+        factor = 100;
+    }
+    
+    function getValue() public view returns (uint256) {
+        return factor * 2;
+    }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'test017.sol', isolateRule('sol-017'));
+      
+      RuleAssertions.assertHasFinding(result.findings, 'sol-017');
+      const sol017Findings = result.findings.filter(f => f.ruleId === 'sol-017');
+      expect(sol017Findings.length).toBeGreaterThan(0);
+    });
+
+    it('should NOT flag variables already marked as immutable', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract OptimizedContract {
+    address public immutable owner;
+    uint256 public immutable constantFactor;
+    
+    constructor() {
+        owner = msg.sender;
+        constantFactor = 100;
+    }
+    
+    function getValue() public view returns (uint256) {
+        return constantFactor * 2;
+    }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'optimized.sol', isolateRule('sol-017'));
+      
+      RuleAssertions.assertNotHasFinding(result.findings, 'sol-017');
+    });
+
+    it('should NOT flag variables modified after constructor', async () => {
+      const code = `
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract MutableContract {
+    address public owner;
+    uint256 public value;
+    
+    constructor() {
+        owner = msg.sender;
+        value = 0;
+    }
+    
+    function updateOwner(address newOwner) public {
+        owner = newOwner;
+    }
+    
+    function updateValue(uint256 newValue) public {
+        value = newValue;
+    }
+}
+`;
+
+      const result = await analyzer.analyze(code, 'mutable.sol', isolateRule('sol-017'));
+      
+      RuleAssertions.assertNotHasFinding(result.findings, 'sol-017');
+    });
+  });
+
   describe('Batch Testing', () => {
     it('should run multiple fixtures and generate report', async () => {
       const fixtures = FixtureLoader.loadFixturesFromDir(
         './tests/rules/fixtures'
-      );
+      ).filter(f => f.metadata?.language === 'solidity');
 
       const summary = await tester.runAll(fixtures);
       

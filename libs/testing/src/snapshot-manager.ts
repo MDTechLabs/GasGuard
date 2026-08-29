@@ -2,17 +2,17 @@
  * Snapshot Manager - Handle snapshot testing for rules
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { Finding } from '../../../engine/core/analyzer-interface';
-import { TestSnapshot, ExpectedFinding } from './types';
+import * as fs from "fs";
+import * as path from "path";
+import { Finding } from "../../../engine/core/analyzer-interface";
+import { TestSnapshot, ExpectedFinding } from "./types";
 
 export class SnapshotManager {
   private snapshotDir: string;
 
-  constructor(snapshotDir: string = './__snapshots__') {
+  constructor(snapshotDir: string = "./__snapshots__") {
     this.snapshotDir = snapshotDir;
-    
+
     if (!fs.existsSync(this.snapshotDir)) {
       fs.mkdirSync(this.snapshotDir, { recursive: true });
     }
@@ -23,12 +23,12 @@ export class SnapshotManager {
    */
   loadSnapshot(ruleId: string, fixtureId: string): TestSnapshot | null {
     const snapshotPath = this.getSnapshotPath(ruleId, fixtureId);
-    
+
     if (!fs.existsSync(snapshotPath)) {
       return null;
     }
 
-    const content = fs.readFileSync(snapshotPath, 'utf-8');
+    const content = fs.readFileSync(snapshotPath, "utf-8");
     return JSON.parse(content) as TestSnapshot;
   }
 
@@ -36,10 +36,13 @@ export class SnapshotManager {
    * Save snapshot for a fixture
    */
   saveSnapshot(snapshot: TestSnapshot): void {
-    const snapshotPath = this.getSnapshotPath(snapshot.ruleId, snapshot.fixtureId);
+    const snapshotPath = this.getSnapshotPath(
+      snapshot.ruleId,
+      snapshot.fixtureId,
+    );
     const content = JSON.stringify(snapshot, null, 2);
-    
-    fs.writeFileSync(snapshotPath, content, 'utf-8');
+
+    fs.writeFileSync(snapshotPath, content, "utf-8");
   }
 
   /**
@@ -48,16 +51,16 @@ export class SnapshotManager {
   compareWithSnapshot(
     ruleId: string,
     fixtureId: string,
-    actualFindings: Finding[]
+    actualFindings: Finding[],
   ): { matches: boolean; snapshot: TestSnapshot | null; diff?: string } {
     const snapshot = this.loadSnapshot(ruleId, fixtureId);
-    
+
     if (!snapshot) {
       return { matches: false, snapshot: null };
     }
 
     const matches = this.findingsMatch(snapshot.actualFindings, actualFindings);
-    
+
     if (!matches) {
       const diff = this.generateDiff(snapshot.actualFindings, actualFindings);
       return { matches: false, snapshot, diff };
@@ -75,7 +78,7 @@ export class SnapshotManager {
     input: string,
     expectedFindings: ExpectedFinding[],
     actualFindings: Finding[],
-    passed: boolean
+    passed: boolean,
   ): TestSnapshot {
     const snapshot: TestSnapshot = {
       fixtureId,
@@ -96,12 +99,12 @@ export class SnapshotManager {
    */
   deleteSnapshot(ruleId: string, fixtureId: string): boolean {
     const snapshotPath = this.getSnapshotPath(ruleId, fixtureId);
-    
+
     if (fs.existsSync(snapshotPath)) {
       fs.unlinkSync(snapshotPath);
       return true;
     }
-    
+
     return false;
   }
 
@@ -110,12 +113,12 @@ export class SnapshotManager {
    */
   listSnapshotsForRule(ruleId: string): string[] {
     const ruleDir = path.join(this.snapshotDir, ruleId);
-    
+
     if (!fs.existsSync(ruleDir)) {
       return [];
     }
 
-    return fs.readdirSync(ruleDir).filter((f: string) => f.endsWith('.json'));
+    return fs.readdirSync(ruleDir).filter((f: string) => f.endsWith(".json"));
   }
 
   /**
@@ -123,19 +126,19 @@ export class SnapshotManager {
    */
   clearRuleSnapshots(ruleId: string): number {
     const ruleDir = path.join(this.snapshotDir, ruleId);
-    
+
     if (!fs.existsSync(ruleDir)) {
       return 0;
     }
 
     const files = fs.readdirSync(ruleDir);
     let count = 0;
-    
+
     for (const file of files) {
       fs.unlinkSync(path.join(ruleDir, file));
       count++;
     }
-    
+
     return count;
   }
 
@@ -144,7 +147,7 @@ export class SnapshotManager {
    */
   private getSnapshotPath(ruleId: string, fixtureId: string): string {
     const ruleDir = path.join(this.snapshotDir, ruleId);
-    
+
     if (!fs.existsSync(ruleDir)) {
       fs.mkdirSync(ruleDir, { recursive: true });
     }
@@ -177,17 +180,17 @@ export class SnapshotManager {
    * Generate a diff between expected and actual findings
    */
   private generateDiff(expected: Finding[], actual: Finding[]): string {
-    let diff = '\nSnapshot Diff:\n';
-    diff += '='.repeat(60) + '\n';
+    let diff = "\nSnapshot Diff:\n";
+    diff += "=".repeat(60) + "\n";
 
     diff += `\nExpected ${expected.length} finding(s), got ${actual.length}\n\n`;
 
     if (expected.length !== actual.length) {
-      diff += 'Finding count mismatch\n';
+      diff += "Finding count mismatch\n";
     }
 
     const maxLen = Math.max(expected.length, actual.length);
-    
+
     for (let i = 0; i < maxLen; i++) {
       const exp = expected[i];
       const act = actual[i];
@@ -207,8 +210,8 @@ export class SnapshotManager {
       }
     }
 
-    diff += '='.repeat(60) + '\n';
-    
+    diff += "=".repeat(60) + "\n";
+
     return diff;
   }
 }

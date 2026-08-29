@@ -1,5 +1,17 @@
-import { IsString, IsOptional, IsEnum, IsInt, IsNumber, Min, Max } from 'class-validator';
-import { SeverityLevel, PatternStatus, PatternType } from '../entities/suspicious-gas-pattern.entity';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  Min,
+  Max,
+} from "class-validator";
+import {
+  SeverityLevel,
+  PatternStatus,
+  PatternType,
+} from "../entities/suspicious-gas-pattern.entity";
 
 /**
  * DTO for querying suspicious gas patterns

@@ -1,4 +1,4 @@
-import { providers } from 'ethers';
+import { providers } from "ethers";
 
 export interface RpcProviderConfig {
   url: string;
@@ -25,7 +25,7 @@ export class RpcProviderManager {
   constructor(chainName: string, configs: RpcProviderConfig[]) {
     this.chainName = chainName;
     this.providers = configs.sort((a, b) => a.priority - b.priority);
-    this.providers.forEach(cfg => {
+    this.providers.forEach((cfg) => {
       this.health.set(cfg.url, {
         url: cfg.url,
         healthy: true,
@@ -50,7 +50,9 @@ export class RpcProviderManager {
       try {
         await Promise.race([
           provider.getBlockNumber(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("timeout")), timeoutMs),
+          ),
         ]);
         healthy = true;
       } catch (e) {
@@ -84,6 +86,6 @@ export class RpcProviderManager {
   }
 
   public getProviderUrls(): string[] {
-    return this.providers.map(p => p.url);
+    return this.providers.map((p) => p.url);
   }
 }

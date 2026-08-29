@@ -1,16 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Transaction } from '../../database/entities/transaction.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Transaction } from "../../database/entities/transaction.entity";
 import {
   SuspiciousGasPattern,
   GasPatternDetectionLog,
   SeverityLevel,
   PatternStatus,
   PatternType,
-} from '../entities/suspicious-gas-pattern.entity';
-import { GasBaseline } from '../entities/gas-baseline.entity';
+} from "../entities/suspicious-gas-pattern.entity";
+import { GasBaseline } from "../entities/gas-baseline.entity";
 
 export interface DetectionResult {
   isSuspicious: boolean;
@@ -52,10 +52,22 @@ export class SuspiciousGasDetectionService {
     private readonly transactionRepository: Repository<Transaction>,
     private readonly configService: ConfigService,
   ) {
-    this.zScoreThresholdLow = this.configService.get('SUSPICIOUS_GAS_ZSCORE_THRESHOLD_LOW', 2.0);
-    this.zScoreThresholdMedium = this.configService.get('SUSPICIOUS_GAS_ZSCORE_THRESHOLD_MEDIUM', 3.0);
-    this.zScoreThresholdHigh = this.configService.get('SUSPICIOUS_GAS_ZSCORE_THRESHOLD_HIGH', 5.0);
-    this.minBaselineSamples = this.configService.get('SUSPICIOUS_GAS_MIN_BASELINE_SAMPLES', 10);
+    this.zScoreThresholdLow = this.configService.get(
+      "SUSPICIOUS_GAS_ZSCORE_THRESHOLD_LOW",
+      2.0,
+    );
+    this.zScoreThresholdMedium = this.configService.get(
+      "SUSPICIOUS_GAS_ZSCORE_THRESHOLD_MEDIUM",
+      3.0,
+    );
+    this.zScoreThresholdHigh = this.configService.get(
+      "SUSPICIOUS_GAS_ZSCORE_THRESHOLD_HIGH",
+      5.0,
+    );
+    this.minBaselineSamples = this.configService.get(
+      "SUSPICIOUS_GAS_MIN_BASELINE_SAMPLES",
+      10,
+    );
     this.frequencyMultiplier = 10; // 10x normal frequency
     this.gasPriceMultiplier = 5; // 5x average gas price
   }
@@ -63,7 +75,9 @@ export class SuspiciousGasDetectionService {
   /**
    * Process a new transaction for suspicious patterns
    */
-  async processTransaction(transaction: TransactionData): Promise<DetectionResult | null> {
+  async processTransaction(
+    transaction: TransactionData,
+  ): Promise<DetectionResult | null> {
     try {
       // Get or compute baseline for the account
       const baseline = await this.getOrComputeBaseline(
@@ -72,7 +86,10 @@ export class SuspiciousGasDetectionService {
       );
 
       // Run detection algorithms
-      const gasUsageResult = await this.detectAbnormalGasUsage(transaction, baseline);
+      const gasUsageResult = await this.detectAbnormalGasUsage(
+        transaction,
+        baseline,
+      );
       if (gasUsageResult.isSuspicious) {
         await this.flagAccount(transaction, gasUsageResult);
         return gasUsageResult;
@@ -84,7 +101,10 @@ export class SuspiciousGasDetectionService {
         return frequencyResult;
       }
 
-      const gasPriceResult = await this.detectGasPriceManipulation(transaction, baseline);
+      const gasPriceResult = await this.detectGasPriceManipulation(
+        transaction,
+        baseline,
+      );
       if (gasPriceResult.isSuspicious) {
         await this.flagAccount(transaction, gasPriceResult);
         return gasPriceResult;
@@ -92,7 +112,10 @@ export class SuspiciousGasDetectionService {
 
       return null;
     } catch (error) {
-      this.logger.error('Error processing transaction for suspicious patterns', error);
+      this.logger.error(
+        "Error processing transaction for suspicious patterns",
+        error,
+      );
       return null;
     }
   }
@@ -108,7 +131,11 @@ export class SuspiciousGasDetectionService {
       return { isSuspicious: false } as DetectionResult;
     }
 
-    const zScore = this.computeZScore(transaction.gasUsed, baseline.avgGasUsed, baseline.stdDevGasUsed);
+    const zScore = this.computeZScore(
+      transaction.gasUsed,
+      baseline.avgGasUsed,
+      baseline.stdDevGasUsed,
+    );
 
     if (zScore > this.zScoreThresholdHigh) {
       return {
@@ -145,9 +172,11 @@ export class SuspiciousGasDetectionService {
   /**
    * Detect frequency anomalies (potential bot behavior)
    */
-  async detectFrequencyAnomaly(transaction: TransactionData): Promise<DetectionResult> {
+  async detectFrequencyAnomaly(
+    transaction: TransactionData,
+  ): Promise<DetectionResult> {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    
+
     const recentTxCount = await this.transactionRepository.count({
       where: {
         merchantId: transaction.accountAddress,
@@ -165,9 +194,13 @@ export class SuspiciousGasDetectionService {
       const baselineRate = baseline.avgTransactionFrequency;
 
       if (currentRate > baselineRate * this.frequencyMultiplier) {
-        const severity = currentRate > baselineRate * 50 ? SeverityLevel.HIGH : 
-                        currentRate > baselineRate * 20 ? SeverityLevel.MEDIUM : SeverityLevel.LOW;
-        
+        const severity =
+          currentRate > baselineRate * 50
+            ? SeverityLevel.HIGH
+            : currentRate > baselineRate * 20
+              ? SeverityLevel.MEDIUM
+              : SeverityLevel.LOW;
+
         return {
           isSuspicious: true,
           severity,
@@ -239,14 +272,21 @@ export class SuspiciousGasDetectionService {
     if (pattern) {
       // Update existing pattern
       pattern.flaggedTransactions += 1;
-      pattern.abnormalGasTotal = Number(pattern.abnormalGasTotal) + detectionResult.abnormalGasAmount;
+      pattern.abnormalGasTotal =
+        Number(pattern.abnormalGasTotal) + detectionResult.abnormalGasAmount;
       pattern.lastDetectedAt = new Date();
-      pattern.deviationScore = Math.max(pattern.deviationScore || 0, detectionResult.deviationScore);
-      
+      pattern.deviationScore = Math.max(
+        pattern.deviationScore || 0,
+        detectionResult.deviationScore,
+      );
+
       // Upgrade severity if needed
       if (detectionResult.severity === SeverityLevel.HIGH) {
         pattern.severity = SeverityLevel.HIGH;
-      } else if (detectionResult.severity === SeverityLevel.MEDIUM && pattern.severity === SeverityLevel.LOW) {
+      } else if (
+        detectionResult.severity === SeverityLevel.MEDIUM &&
+        pattern.severity === SeverityLevel.LOW
+      ) {
         pattern.severity = SeverityLevel.MEDIUM;
       }
 
@@ -315,16 +355,19 @@ export class SuspiciousGasDetectionService {
   /**
    * Compute behavioral baseline for an account
    */
-  async computeBaseline(accountAddress: string, chainId: number): Promise<GasBaseline | null> {
+  async computeBaseline(
+    accountAddress: string,
+    chainId: number,
+  ): Promise<GasBaseline | null> {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const transactions = await this.transactionRepository
-      .createQueryBuilder('tx')
-      .where('tx.merchantId = :account', { account: accountAddress })
-      .andWhere('tx.chainId = :chainId', { chainId: chainId.toString() })
-      .andWhere('tx.createdAt > :thirtyDaysAgo', { thirtyDaysAgo })
-      .andWhere('tx.status = :status', { status: 'success' })
-      .orderBy('tx.createdAt', 'ASC')
+      .createQueryBuilder("tx")
+      .where("tx.merchantId = :account", { account: accountAddress })
+      .andWhere("tx.chainId = :chainId", { chainId: chainId.toString() })
+      .andWhere("tx.createdAt > :thirtyDaysAgo", { thirtyDaysAgo })
+      .andWhere("tx.status = :status", { status: "success" })
+      .orderBy("tx.createdAt", "ASC")
       .getMany();
 
     if (transactions.length < this.minBaselineSamples) {
@@ -342,13 +385,17 @@ export class SuspiciousGasDetectionService {
     // Calculate transaction frequency (per hour)
     const firstTx = transactions[0].createdAt;
     const lastTx = transactions[transactions.length - 1].createdAt;
-    const hoursSpan = Math.max(1, (lastTx.getTime() - firstTx.getTime()) / (1000 * 60 * 60));
+    const hoursSpan = Math.max(
+      1,
+      (lastTx.getTime() - firstTx.getTime()) / (1000 * 60 * 60),
+    );
     const avgFrequency = transactions.length / hoursSpan;
 
     // Get common transaction types
     const txTypeCounts: Record<string, number> = {};
     transactions.forEach((tx) => {
-      txTypeCounts[tx.transactionType] = (txTypeCounts[tx.transactionType] || 0) + 1;
+      txTypeCounts[tx.transactionType] =
+        (txTypeCounts[tx.transactionType] || 0) + 1;
     });
     const commonTxTypes = Object.entries(txTypeCounts)
       .sort((a, b) => b[1] - a[1])
@@ -377,7 +424,10 @@ export class SuspiciousGasDetectionService {
   /**
    * Update baseline for an account
    */
-  async updateBaseline(accountAddress: string, chainId: number): Promise<GasBaseline | null> {
+  async updateBaseline(
+    accountAddress: string,
+    chainId: number,
+  ): Promise<GasBaseline | null> {
     return this.computeBaseline(accountAddress, chainId);
   }
 
@@ -385,13 +435,15 @@ export class SuspiciousGasDetectionService {
    * Clear old resolved flags
    */
   async clearOldFlags(olderThanDays: number = 30): Promise<number> {
-    const cutoffDate = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+    const cutoffDate = new Date(
+      Date.now() - olderThanDays * 24 * 60 * 60 * 1000,
+    );
 
     const result = await this.patternRepository
       .createQueryBuilder()
       .delete()
-      .where('status = :status', { status: PatternStatus.CLEARED })
-      .andWhere('updatedAt < :cutoff', { cutoff: cutoffDate })
+      .where("status = :status", { status: PatternStatus.CLEARED })
+      .andWhere("updatedAt < :cutoff", { cutoff: cutoffDate })
       .execute();
 
     return result.affected || 0;
@@ -419,7 +471,8 @@ export class SuspiciousGasDetectionService {
   private calculateStdDev(values: number[], mean: number): number {
     if (values.length === 0) return 0;
     const squaredDiffs = values.map((val) => Math.pow(val - mean, 2));
-    const avgSquaredDiff = squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
+    const avgSquaredDiff =
+      squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
     return Math.sqrt(avgSquaredDiff);
   }
 }

@@ -1,4 +1,4 @@
-declare module '@nestjs/common' {
+declare module "@nestjs/common" {
   export function Injectable(): ClassDecorator;
   export function Module(options: any): ClassDecorator;
   export function Controller(path?: string): ClassDecorator;

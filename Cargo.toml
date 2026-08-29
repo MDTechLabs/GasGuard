@@ -13,7 +13,10 @@ members = [
     "libs/plugin-system",
     "libs/auto-fix",
     "apps/api",
-    "tests/mutation"
+    "tests/mutation",
+    "packages/examples/stellar/token-example",
+    "packages/examples/stellar/access-control-example",
+    "packages/examples/stellar/upgradeable-example"
 ]
 
 [workspace.package]

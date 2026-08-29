@@ -1,6 +1,6 @@
 /**
  * Configuration Schema Definitions
- * 
+ *
  * JSON Schema definitions for configuration validation
  */
 
@@ -14,58 +14,65 @@ export const CONFIGURATION_SCHEMA = {
     version: {
       type: "string",
       pattern: "^\\d+\\.\\d+\\.\\d+(-.*)?$",
-      description: "Configuration version (semantic versioning)"
+      description: "Configuration version (semantic versioning)",
     },
     lastUpdated: {
       type: "string",
       format: "date-time",
-      description: "Last updated timestamp"
+      description: "Last updated timestamp",
     },
     system: {
-      $ref: "#/definitions/SystemConfiguration"
+      $ref: "#/definitions/SystemConfiguration",
     },
     rules: {
       type: "array",
       items: {
-        $ref: "#/definitions/RuleConfiguration"
+        $ref: "#/definitions/RuleConfiguration",
       },
-      description: "Array of rule configurations"
+      description: "Array of rule configurations",
     },
     profiles: {
       type: "array",
       items: {
-        $ref: "#/definitions/ConfigurationProfile"
+        $ref: "#/definitions/ConfigurationProfile",
       },
-      description: "Configuration profiles for different use cases"
-    }
+      description: "Configuration profiles for different use cases",
+    },
   },
   definitions: {
     SystemConfiguration: {
       type: "object",
-      required: ["version", "environment", "logging", "performance", "security", "features"],
+      required: [
+        "version",
+        "environment",
+        "logging",
+        "performance",
+        "security",
+        "features",
+      ],
       properties: {
         version: {
           type: "string",
-          description: "System version"
+          description: "System version",
         },
         environment: {
           type: "string",
           enum: ["development", "staging", "production"],
-          description: "Runtime environment"
+          description: "Runtime environment",
         },
         logging: {
-          $ref: "#/definitions/LoggingConfiguration"
+          $ref: "#/definitions/LoggingConfiguration",
         },
         performance: {
-          $ref: "#/definitions/PerformanceConfiguration"
+          $ref: "#/definitions/PerformanceConfiguration",
         },
         security: {
-          $ref: "#/definitions/SecurityConfiguration"
+          $ref: "#/definitions/SecurityConfiguration",
         },
         features: {
-          $ref: "#/definitions/FeatureConfiguration"
-        }
-      }
+          $ref: "#/definitions/FeatureConfiguration",
+        },
+      },
     },
     LoggingConfiguration: {
       type: "object",
@@ -74,21 +81,21 @@ export const CONFIGURATION_SCHEMA = {
         level: {
           type: "string",
           enum: ["debug", "info", "warn", "error"],
-          description: "Minimum log level"
+          description: "Minimum log level",
         },
         enableConsole: {
           type: "boolean",
-          description: "Enable console logging"
+          description: "Enable console logging",
         },
         enableFile: {
           type: "boolean",
-          description: "Enable file logging"
+          description: "Enable file logging",
         },
         enableAudit: {
           type: "boolean",
-          description: "Enable audit logging"
-        }
-      }
+          description: "Enable audit logging",
+        },
+      },
     },
     PerformanceConfiguration: {
       type: "object",
@@ -98,117 +105,133 @@ export const CONFIGURATION_SCHEMA = {
           type: "integer",
           minimum: 1,
           maximum: 32,
-          description: "Maximum concurrent rule executions"
+          description: "Maximum concurrent rule executions",
         },
         timeoutMs: {
           type: "integer",
           minimum: 0,
-          description: "Timeout in milliseconds for rule execution"
+          description: "Timeout in milliseconds for rule execution",
         },
         enableParallelExecution: {
           type: "boolean",
-          description: "Enable parallel rule execution"
-        }
-      }
+          description: "Enable parallel rule execution",
+        },
+      },
     },
     SecurityConfiguration: {
       type: "object",
-      required: ["enableApiKeyValidation", "enableRateLimiting", "maxRequestsPerMinute"],
+      required: [
+        "enableApiKeyValidation",
+        "enableRateLimiting",
+        "maxRequestsPerMinute",
+      ],
       properties: {
         enableApiKeyValidation: {
           type: "boolean",
-          description: "Enable API key validation"
+          description: "Enable API key validation",
         },
         enableRateLimiting: {
           type: "boolean",
-          description: "Enable rate limiting"
+          description: "Enable rate limiting",
         },
         maxRequestsPerMinute: {
           type: "integer",
           minimum: 1,
-          description: "Maximum requests per minute"
-        }
-      }
+          description: "Maximum requests per minute",
+        },
+      },
     },
     FeatureConfiguration: {
       type: "object",
-      required: ["enableAutoFix", "enableDetailedReporting", "enableRealTimeMonitoring"],
+      required: [
+        "enableAutoFix",
+        "enableDetailedReporting",
+        "enableRealTimeMonitoring",
+      ],
       properties: {
         enableAutoFix: {
           type: "boolean",
-          description: "Enable automatic fix suggestions"
+          description: "Enable automatic fix suggestions",
         },
         enableDetailedReporting: {
           type: "boolean",
-          description: "Enable detailed reporting"
+          description: "Enable detailed reporting",
         },
         enableRealTimeMonitoring: {
           type: "boolean",
-          description: "Enable real-time monitoring"
-        }
-      }
+          description: "Enable real-time monitoring",
+        },
+      },
     },
     RuleConfiguration: {
       type: "object",
-      required: ["id", "version", "name", "enabled", "severity", "category", "language"],
+      required: [
+        "id",
+        "version",
+        "name",
+        "enabled",
+        "severity",
+        "category",
+        "language",
+      ],
       properties: {
         id: {
           type: "string",
           pattern: "^[a-z0-9-]+$",
-          description: "Unique rule identifier"
+          description: "Unique rule identifier",
         },
         version: {
           type: "string",
           pattern: "^\\d+\\.\\d+\\.\\d+(-.*)?$",
-          description: "Rule version (semantic versioning)"
+          description: "Rule version (semantic versioning)",
         },
         name: {
           type: "string",
-          description: "Human-readable rule name"
+          description: "Human-readable rule name",
         },
         enabled: {
           type: "boolean",
-          description: "Whether the rule is enabled"
+          description: "Whether the rule is enabled",
         },
         severity: {
           type: "string",
           enum: ["critical", "high", "medium", "low", "info"],
-          description: "Rule severity level"
+          description: "Rule severity level",
         },
         category: {
           type: "string",
-          description: "Rule category"
+          description: "Rule category",
         },
         language: {
           type: "string",
-          description: "Target programming language"
+          description: "Target programming language",
         },
         description: {
           type: "string",
-          description: "Rule description"
+          description: "Rule description",
         },
         parameters: {
           type: "object",
-          description: "Rule-specific parameters"
+          description: "Rule-specific parameters",
         },
         dependencies: {
           type: "array",
           items: {
-            type: "string"
+            type: "string",
           },
-          description: "Rule dependencies"
+          description: "Rule dependencies",
         },
         tags: {
           type: "array",
           items: {
-            type: "string"
+            type: "string",
           },
-          description: "Rule tags"
+          description: "Rule tags",
         },
         customRules: {
-          $ref: "#/definitions/CustomRules"
-        }
-      }
+          $ref: "#/definitions/CustomRules",
+        },
+      },
     },
     CustomRules: {
       type: "object",
@@ -216,23 +239,23 @@ export const CONFIGURATION_SCHEMA = {
       properties: {
         enabled: {
           type: "boolean",
-          description: "Whether custom rules are enabled"
+          description: "Whether custom rules are enabled",
         },
         conditions: {
           type: "array",
           items: {
-            $ref: "#/definitions/RuleCondition"
+            $ref: "#/definitions/RuleCondition",
           },
-          description: "Custom rule conditions"
+          description: "Custom rule conditions",
         },
         actions: {
           type: "array",
           items: {
-            $ref: "#/definitions/RuleAction"
+            $ref: "#/definitions/RuleAction",
           },
-          description: "Custom rule actions"
-        }
-      }
+          description: "Custom rule actions",
+        },
+      },
     },
     RuleCondition: {
       type: "object",
@@ -240,22 +263,31 @@ export const CONFIGURATION_SCHEMA = {
       properties: {
         field: {
           type: "string",
-          description: "Field to evaluate"
+          description: "Field to evaluate",
         },
         operator: {
           type: "string",
-          enum: ["equals", "not_equals", "contains", "not_contains", "greater_than", "less_than", "in", "not_in"],
-          description: "Comparison operator"
+          enum: [
+            "equals",
+            "not_equals",
+            "contains",
+            "not_contains",
+            "greater_than",
+            "less_than",
+            "in",
+            "not_in",
+          ],
+          description: "Comparison operator",
         },
         value: {
-          description: "Value to compare against"
+          description: "Value to compare against",
         },
         caseSensitive: {
           type: "boolean",
           default: true,
-          description: "Whether comparison is case sensitive"
-        }
-      }
+          description: "Whether comparison is case sensitive",
+        },
+      },
     },
     RuleAction: {
       type: "object",
@@ -264,22 +296,22 @@ export const CONFIGURATION_SCHEMA = {
         type: {
           type: "string",
           enum: ["warn", "error", "info", "custom"],
-          description: "Action type"
+          description: "Action type",
         },
         message: {
           type: "string",
-          description: "Action message"
+          description: "Action message",
         },
         severity: {
           type: "string",
           enum: ["critical", "high", "medium", "low", "info"],
-          description: "Action severity"
+          description: "Action severity",
         },
         metadata: {
           type: "object",
-          description: "Additional metadata"
-        }
-      }
+          description: "Additional metadata",
+        },
+      },
     },
     ConfigurationProfile: {
       type: "object",
@@ -287,92 +319,100 @@ export const CONFIGURATION_SCHEMA = {
       properties: {
         name: {
           type: "string",
-          description: "Profile name"
+          description: "Profile name",
         },
         description: {
           type: "string",
-          description: "Profile description"
+          description: "Profile description",
         },
         rules: {
           type: "array",
           items: {
-            $ref: "#/definitions/RuleConfiguration"
+            $ref: "#/definitions/RuleConfiguration",
           },
-          description: "Rule configurations for this profile"
+          description: "Rule configurations for this profile",
         },
         systemOverrides: {
           $ref: "#/definitions/SystemConfiguration",
-          description: "System configuration overrides"
-        }
-      }
-    }
-  }
+          description: "System configuration overrides",
+        },
+      },
+    },
+  },
 };
 
 export const RULE_CONFIGURATION_SCHEMA = {
   $schema: "http://json-schema.org/draft-07/schema#",
   type: "object",
   title: "Rule Configuration",
-  required: ["id", "version", "name", "enabled", "severity", "category", "language"],
+  required: [
+    "id",
+    "version",
+    "name",
+    "enabled",
+    "severity",
+    "category",
+    "language",
+  ],
   properties: {
     id: {
       type: "string",
       pattern: "^[a-z0-9-]+$",
-      description: "Unique rule identifier"
+      description: "Unique rule identifier",
     },
     version: {
       type: "string",
       pattern: "^\\d+\\.\\d+\\.\\d+(-.*)?$",
-      description: "Rule version (semantic versioning)"
+      description: "Rule version (semantic versioning)",
     },
     name: {
       type: "string",
-      description: "Human-readable rule name"
+      description: "Human-readable rule name",
     },
     enabled: {
       type: "boolean",
-      description: "Whether the rule is enabled"
+      description: "Whether the rule is enabled",
     },
     severity: {
       type: "string",
       enum: ["critical", "high", "medium", "low", "info"],
-      description: "Rule severity level"
+      description: "Rule severity level",
     },
     category: {
       type: "string",
-      description: "Rule category"
+      description: "Rule category",
     },
     language: {
       type: "string",
-      description: "Target programming language"
+      description: "Target programming language",
     },
     description: {
       type: "string",
-      description: "Rule description"
+      description: "Rule description",
     },
     parameters: {
       type: "object",
-      description: "Rule-specific parameters"
+      description: "Rule-specific parameters",
     },
     dependencies: {
       type: "array",
       items: {
-        type: "string"
+        type: "string",
       },
-      description: "Rule dependencies"
+      description: "Rule dependencies",
     },
     tags: {
       type: "array",
       items: {
-        type: "string"
+        type: "string",
       },
-      description: "Rule tags"
+      description: "Rule tags",
     },
     customRules: {
-      $ref: "#/definitions/CustomRules"
-    }
+      $ref: "#/definitions/CustomRules",
+    },
   },
   definitions: {
-    CustomRules: CONFIGURATION_SCHEMA.definitions.CustomRules
-  }
+    CustomRules: CONFIGURATION_SCHEMA.definitions.CustomRules,
+  },
 };

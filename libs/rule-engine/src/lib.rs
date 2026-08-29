@@ -64,15 +64,15 @@ pub trait Rule: Send + Sync {
     fn id(&self) -> &str;
     fn name(&self) -> &str;
     fn description(&self) -> &str;
-    
+
     /// Returns list of rule IDs that this rule depends on
     fn dependencies(&self) -> Vec<String> {
         Vec::new()
     }
-    
+
     /// Execute the rule with context from prior rule outputs
     fn check(&self, ast: &UnifiedAST) -> Vec<RuleViolation>;
-    
+
     /// Execute the rule with access to prior rule outputs
     fn check_with_context(
         &self,
@@ -82,7 +82,7 @@ pub trait Rule: Send + Sync {
         // Default implementation ignores context; rules can override
         self.check(ast)
     }
-    
+
     /// Generate output data for dependent rules
     fn generate_output(&self, violations: &[RuleViolation]) -> RuleOutput {
         RuleOutput {
@@ -236,7 +236,7 @@ impl PipelineExecutor {
 
             // Execute rule with context
             let violations = rule.check_with_context(ast, &context);
-            
+
             // Generate output for dependent rules
             let output = rule.generate_output(&violations);
             context.insert(rule_id, output);

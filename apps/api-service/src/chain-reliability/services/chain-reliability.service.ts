@@ -1,16 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ChainPerformanceMetric, MetricTimeWindow } from '../entities/chain-performance-metric.entity';
-import { Chain } from '../../database/entities/chain.entity';
-import { Transaction } from '../../database/entities/transaction.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import {
+  ChainPerformanceMetric,
+  MetricTimeWindow,
+} from "../entities/chain-performance-metric.entity";
+import { Chain } from "../../database/entities/chain.entity";
+import { Transaction } from "../../database/entities/transaction.entity";
 import {
   LeaderboardEntry,
   LeaderboardQuery,
   ReliabilityScores,
   ChainPerformanceData,
   MetricsCollectionOptions,
-} from '../interfaces/chain-reliability.interface';
+} from "../interfaces/chain-reliability.interface";
 
 @Injectable()
 export class ChainReliabilityService {
@@ -40,15 +43,18 @@ export class ChainReliabilityService {
   ): ReliabilityScores {
     // Calculate stability score (60% success rate, 40% latency)
     const latencyScore = this.calculateLatencyScore(averageLatency);
-    const stabilityScore = (successRate * 0.6) + (latencyScore * 0.4);
+    const stabilityScore = successRate * 0.6 + latencyScore * 0.4;
 
     // Calculate cost efficiency score (based on gas price and volatility)
-    const costEfficiencyScore = this.calculateCostEfficiencyScore(averageGasPrice, gasPriceVolatility);
+    const costEfficiencyScore = this.calculateCostEfficiencyScore(
+      averageGasPrice,
+      gasPriceVolatility,
+    );
 
     // Calculate overall reliability score
-    const overallReliabilityScore = 
-      (stabilityScore * this.STABILITY_WEIGHT) + 
-      (costEfficiencyScore * this.COST_EFFICIENCY_WEIGHT);
+    const overallReliabilityScore =
+      stabilityScore * this.STABILITY_WEIGHT +
+      costEfficiencyScore * this.COST_EFFICIENCY_WEIGHT;
 
     return {
       stabilityScore: Math.round(stabilityScore * 100) / 100,
@@ -71,21 +77,27 @@ export class ChainReliabilityService {
   /**
    * Calculate cost efficiency score (0-100) - lower gas price and volatility is better
    */
-  private calculateCostEfficiencyScore(averageGasPrice: number, gasVolatility: number): number {
+  private calculateCostEfficiencyScore(
+    averageGasPrice: number,
+    gasVolatility: number,
+  ): number {
     // Normalize gas price (assuming range 0.001 - 1 ETH = 0 - 100 score)
-    const gasPriceScore = Math.max(0, 100 - (averageGasPrice * 100));
+    const gasPriceScore = Math.max(0, 100 - averageGasPrice * 100);
 
     // Volatility score (lower volatility is better)
     // Assuming volatility range 0 - 1
-    const volatilityScore = Math.max(0, 100 - (gasVolatility * 100));
+    const volatilityScore = Math.max(0, 100 - gasVolatility * 100);
 
-    return (gasPriceScore * 0.6) + (volatilityScore * 0.4);
+    return gasPriceScore * 0.6 + volatilityScore * 0.4;
   }
 
   /**
    * Collect metrics for a specific chain and time window
    */
-  async collectMetrics(chainId: string, timeWindow: MetricTimeWindow): Promise<ChainPerformanceData> {
+  async collectMetrics(
+    chainId: string,
+    timeWindow: MetricTimeWindow,
+  ): Promise<ChainPerformanceData> {
     const chain = await this.chainRepository.findOne({ where: { chainId } });
     if (!chain) {
       throw new Error(`Chain with id ${chainId} not found`);
@@ -94,7 +106,11 @@ export class ChainReliabilityService {
     const { startDate, endDate } = this.getDateRangeForTimeWindow(timeWindow);
 
     // Get transaction metrics
-    const transactionMetrics = await this.getTransactionMetrics(chainId, startDate, endDate);
+    const transactionMetrics = await this.getTransactionMetrics(
+      chainId,
+      startDate,
+      endDate,
+    );
 
     // Get gas metrics
     const gasMetrics = await this.getGasMetrics(chainId, startDate, endDate);
@@ -165,14 +181,25 @@ export class ChainReliabilityService {
     chainId: string,
     startDate: Date,
     endDate: Date,
-  ): Promise<{ totalTransactions: number; successfulTransactions: number; failedTransactions: number; successRate: number }> {
+  ): Promise<{
+    totalTransactions: number;
+    successfulTransactions: number;
+    failedTransactions: number;
+    successRate: number;
+  }> {
     const result = await this.transactionRepository
-      .createQueryBuilder('transaction')
-      .select('COUNT(transaction.id)', 'totalTransactions')
-      .addSelect("COUNT(CASE WHEN transaction.status = 'success' THEN 1 END)", 'successfulTransactions')
-      .addSelect("COUNT(CASE WHEN transaction.status = 'failed' THEN 1 END)", 'failedTransactions')
-      .where('transaction.chainId = :chainId', { chainId })
-      .andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+      .createQueryBuilder("transaction")
+      .select("COUNT(transaction.id)", "totalTransactions")
+      .addSelect(
+        "COUNT(CASE WHEN transaction.status = 'success' THEN 1 END)",
+        "successfulTransactions",
+      )
+      .addSelect(
+        "COUNT(CASE WHEN transaction.status = 'failed' THEN 1 END)",
+        "failedTransactions",
+      )
+      .where("transaction.chainId = :chainId", { chainId })
+      .andWhere("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
       })
@@ -181,7 +208,10 @@ export class ChainReliabilityService {
     const totalTransactions = parseInt(result.totalTransactions) || 0;
     const successfulTransactions = parseInt(result.successfulTransactions) || 0;
     const failedTransactions = parseInt(result.failedTransactions) || 0;
-    const successRate = totalTransactions > 0 ? (successfulTransactions / totalTransactions) * 100 : 0;
+    const successRate =
+      totalTransactions > 0
+        ? (successfulTransactions / totalTransactions) * 100
+        : 0;
 
     return {
       totalTransactions,
@@ -206,14 +236,14 @@ export class ChainReliabilityService {
     averageTransactionFee: number;
   }> {
     const result = await this.transactionRepository
-      .createQueryBuilder('transaction')
-      .select('AVG(transaction.gasPrice)', 'avgGasPrice')
-      .addSelect('MIN(transaction.gasPrice)', 'minGasPrice')
-      .addSelect('MAX(transaction.gasPrice)', 'maxGasPrice')
-      .addSelect('AVG(transaction.transactionFee)', 'avgTransactionFee')
-      .addSelect('STDDEV(transaction.gasPrice)', 'gasPriceStdDev')
-      .where('transaction.chainId = :chainId', { chainId })
-      .andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+      .createQueryBuilder("transaction")
+      .select("AVG(transaction.gasPrice)", "avgGasPrice")
+      .addSelect("MIN(transaction.gasPrice)", "minGasPrice")
+      .addSelect("MAX(transaction.gasPrice)", "maxGasPrice")
+      .addSelect("AVG(transaction.transactionFee)", "avgTransactionFee")
+      .addSelect("STDDEV(transaction.gasPrice)", "gasPriceStdDev")
+      .where("transaction.chainId = :chainId", { chainId })
+      .andWhere("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
       })
@@ -239,7 +269,10 @@ export class ChainReliabilityService {
   /**
    * Get date range for a given time window
    */
-  private getDateRangeForTimeWindow(timeWindow: MetricTimeWindow): { startDate: Date; endDate: Date } {
+  private getDateRangeForTimeWindow(timeWindow: MetricTimeWindow): {
+    startDate: Date;
+    endDate: Date;
+  } {
     const endDate = new Date();
     const startDate = new Date();
 
@@ -275,7 +308,7 @@ export class ChainReliabilityService {
     let rank = 1;
 
     for (const metric of metrics) {
-      const chain = chains.find(c => c.chainId === metric.chainId);
+      const chain = chains.find((c) => c.chainId === metric.chainId);
       if (!chain) continue;
 
       leaderboard.push({
@@ -298,14 +331,16 @@ export class ChainReliabilityService {
   /**
    * Get latest metrics for all chains
    */
-  private async getLatestMetricsForAllChains(timeWindow: MetricTimeWindow): Promise<ChainPerformanceMetric[]> {
+  private async getLatestMetricsForAllChains(
+    timeWindow: MetricTimeWindow,
+  ): Promise<ChainPerformanceMetric[]> {
     const chains = await this.chainRepository.find();
     const latestMetrics: ChainPerformanceMetric[] = [];
 
     for (const chain of chains) {
       const metric = await this.metricRepository.findOne({
         where: { chainId: chain.chainId, timeWindow },
-        order: { recordedAt: 'DESC' },
+        order: { recordedAt: "DESC" },
       });
 
       if (metric) {
@@ -313,8 +348,9 @@ export class ChainReliabilityService {
       }
     }
 
-    return latestMetrics.sort((a, b) => 
-      Number(b.overallReliabilityScore) - Number(a.overallReliabilityScore)
+    return latestMetrics.sort(
+      (a, b) =>
+        Number(b.overallReliabilityScore) - Number(a.overallReliabilityScore),
     );
   }
 
@@ -328,7 +364,7 @@ export class ChainReliabilityService {
   ): Promise<ChainPerformanceMetric[]> {
     return this.metricRepository.find({
       where: { chainId, timeWindow },
-      order: { recordedAt: 'DESC' },
+      order: { recordedAt: "DESC" },
       take: limit,
     });
   }
@@ -337,14 +373,18 @@ export class ChainReliabilityService {
    * Trigger metrics collection for all active chains
    */
   async collectAllChainMetrics(timeWindow: MetricTimeWindow): Promise<void> {
-    const chains = await this.chainRepository.find({ where: { status: 'active' } });
+    const chains = await this.chainRepository.find({
+      where: { status: "active" },
+    });
 
     for (const chain of chains) {
       try {
         await this.collectMetrics(chain.chainId, timeWindow);
         this.logger.log(`Collected metrics for chain ${chain.chainId}`);
       } catch (error) {
-        this.logger.error(`Failed to collect metrics for chain ${chain.chainId}: ${error.message}`);
+        this.logger.error(
+          `Failed to collect metrics for chain ${chain.chainId}: ${error.message}`,
+        );
       }
     }
   }

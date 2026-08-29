@@ -4,18 +4,18 @@ import {
   ForbiddenException,
   NotFoundException,
   Logger,
-} from '@nestjs/common';
-import { UserRole } from '../rbac/enums/role.enum';
+} from "@nestjs/common";
+import { UserRole } from "../rbac/enums/role.enum";
 
-export type RefundPriority = 'low' | 'medium' | 'high' | 'critical';
-export type RefundStatus = 'queued' | 'processing' | 'completed' | 'cancelled';
+export type RefundPriority = "low" | "medium" | "high" | "critical";
+export type RefundStatus = "queued" | "processing" | "completed" | "cancelled";
 export type RefundReason =
-  | 'failed_transaction'
-  | 'dispute'
-  | 'duplicate_charge'
-  | 'vip_request'
-  | 'sla_breach'
-  | 'standard';
+  | "failed_transaction"
+  | "dispute"
+  | "duplicate_charge"
+  | "vip_request"
+  | "sla_breach"
+  | "standard";
 
 export interface RefundRequest {
   id: string;
@@ -33,12 +33,12 @@ export interface RefundRequest {
 }
 
 const AUTO_PRIORITY_RULES: Record<RefundReason, RefundPriority> = {
-  failed_transaction: 'critical',
-  dispute: 'high',
-  duplicate_charge: 'high',
-  sla_breach: 'high',
-  vip_request: 'medium',
-  standard: 'low',
+  failed_transaction: "critical",
+  dispute: "high",
+  duplicate_charge: "high",
+  sla_breach: "high",
+  vip_request: "medium",
+  standard: "low",
 };
 
 const PRIORITY_WEIGHT: Record<RefundPriority, number> = {
@@ -70,11 +70,11 @@ export class RefundPriorityService {
     reason: RefundReason,
   ): RefundRequest {
     if (amount <= 0) {
-      throw new BadRequestException('Refund amount must be greater than zero');
+      throw new BadRequestException("Refund amount must be greater than zero");
     }
 
     if (!transactionId?.trim()) {
-      throw new BadRequestException('transactionId is required');
+      throw new BadRequestException("transactionId is required");
     }
 
     const priority = AUTO_PRIORITY_RULES[reason];
@@ -88,15 +88,17 @@ export class RefundPriorityService {
       currency,
       reason,
       priority,
-      status: 'queued',
+      status: "queued",
       createdAt: new Date(),
     };
 
     this.queue.push(request);
     this.sortQueue();
 
-    this.record(request.id, 'submitted', userId, { reason, priority });
-    this.logger.log(`Refund ${request.id} queued with priority=${priority} reason=${reason}`);
+    this.record(request.id, "submitted", userId, { reason, priority });
+    this.logger.log(
+      `Refund ${request.id} queued with priority=${priority} reason=${reason}`,
+    );
 
     return { ...request };
   }
@@ -107,8 +109,13 @@ export class RefundPriorityService {
     requestedBy: string,
     requestedByRole: UserRole,
   ): RefundRequest {
-    if (requestedByRole !== UserRole.ADMIN && requestedByRole !== UserRole.OPERATOR) {
-      throw new ForbiddenException('Only ADMIN or OPERATOR can override refund priority');
+    if (
+      requestedByRole !== UserRole.ADMIN &&
+      requestedByRole !== UserRole.OPERATOR
+    ) {
+      throw new ForbiddenException(
+        "Only ADMIN or OPERATOR can override refund priority",
+      );
     }
 
     const request = this.findActive(refundId);
@@ -118,26 +125,33 @@ export class RefundPriorityService {
     request.priorityOverriddenBy = requestedBy;
 
     this.sortQueue();
-    this.record(refundId, 'priority_override', requestedBy, { from: previous, to: newPriority });
-    this.logger.warn(`Refund ${refundId} priority changed ${previous} → ${newPriority} by ${requestedBy}`);
+    this.record(refundId, "priority_override", requestedBy, {
+      from: previous,
+      to: newPriority,
+    });
+    this.logger.warn(
+      `Refund ${refundId} priority changed ${previous} → ${newPriority} by ${requestedBy}`,
+    );
 
     return { ...request };
   }
 
   processNext(): RefundRequest | null {
-    const next = this.queue.find((r) => r.status === 'queued');
+    const next = this.queue.find((r) => r.status === "queued");
     if (!next) return null;
 
-    next.status = 'processing';
+    next.status = "processing";
 
     // Simulate synchronous completion; real implementation hooks into payment processor
-    next.status = 'completed';
+    next.status = "completed";
     next.processedAt = new Date();
 
     const idx = this.queue.indexOf(next);
     if (idx !== -1) this.queue.splice(idx, 1);
 
-    this.record(next.id, 'processed', 'system', { processedAt: next.processedAt });
+    this.record(next.id, "processed", "system", {
+      processedAt: next.processedAt,
+    });
     this.logger.log(`Refund ${next.id} processed (priority=${next.priority})`);
 
     return { ...next };
@@ -155,19 +169,23 @@ export class RefundPriorityService {
 
   cancel(refundId: string, cancelledBy: string, role: UserRole): RefundRequest {
     if (role !== UserRole.ADMIN && role !== UserRole.OPERATOR) {
-      throw new ForbiddenException('Only ADMIN or OPERATOR can cancel a refund');
+      throw new ForbiddenException(
+        "Only ADMIN or OPERATOR can cancel a refund",
+      );
     }
 
     const request = this.findActive(refundId);
-    if (request.status !== 'queued') {
-      throw new BadRequestException(`Cannot cancel refund in status: ${request.status}`);
+    if (request.status !== "queued") {
+      throw new BadRequestException(
+        `Cannot cancel refund in status: ${request.status}`,
+      );
     }
 
-    request.status = 'cancelled';
+    request.status = "cancelled";
     const idx = this.queue.indexOf(request);
     if (idx !== -1) this.queue.splice(idx, 1);
 
-    this.record(refundId, 'cancelled', cancelledBy);
+    this.record(refundId, "cancelled", cancelledBy);
     return { ...request };
   }
 
@@ -185,16 +203,17 @@ export class RefundPriorityService {
 
     return {
       queueLength: this.queue.length,
-      byCritical: byPriority('critical'),
-      byHigh: byPriority('high'),
-      byMedium: byPriority('medium'),
-      byLow: byPriority('low'),
+      byCritical: byPriority("critical"),
+      byHigh: byPriority("high"),
+      byMedium: byPriority("medium"),
+      byLow: byPriority("low"),
     };
   }
 
   private findActive(refundId: string): RefundRequest {
     const r = this.queue.find((x) => x.id === refundId);
-    if (!r) throw new NotFoundException(`Refund ${refundId} not found in queue`);
+    if (!r)
+      throw new NotFoundException(`Refund ${refundId} not found in queue`);
     return r;
   }
 

@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { TransactionRepository } from '../repositories/transaction.repository';
-import { MerchantRepository } from '../repositories/merchant.repository';
-import { ChainRepository } from '../repositories/chain.repository';
-import { AnalysisResultRepository } from '../repositories/analysis-result.repository';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { TransactionRepository } from "../repositories/transaction.repository";
+import { MerchantRepository } from "../repositories/merchant.repository";
+import { ChainRepository } from "../repositories/chain.repository";
+import { AnalysisResultRepository } from "../repositories/analysis-result.repository";
 
 @Injectable()
 export class DatabaseAnalyticsService {
@@ -23,28 +23,34 @@ export class DatabaseAnalyticsService {
   /**
    * Get comprehensive dashboard analytics
    */
-  async getDashboardAnalytics(timeRange: '24h' | '7d' | '30d' = '7d'): Promise<any> {
+  async getDashboardAnalytics(
+    timeRange: "24h" | "7d" | "30d" = "7d",
+  ): Promise<any> {
     const endDate = new Date();
     const startDate = this.getDateFromTimeRange(timeRange, endDate);
 
     try {
-      const [transactionMetrics, merchantAnalytics, chainMetrics, analysisSummary] =
-        await Promise.all([
-          this.transactionRepository.getTransactionSuccessMetrics(
-            undefined,
-            undefined,
-            startDate,
-            endDate
-          ),
-          this.merchantRepository.getMerchantAnalytics(startDate, endDate),
-          this.chainRepository.getChainReliabilityMetrics(startDate, endDate),
-          this.analysisResultRepository.getAnalysisSummary(
-            undefined,
-            undefined,
-            startDate,
-            endDate
-          ),
-        ]);
+      const [
+        transactionMetrics,
+        merchantAnalytics,
+        chainMetrics,
+        analysisSummary,
+      ] = await Promise.all([
+        this.transactionRepository.getTransactionSuccessMetrics(
+          undefined,
+          undefined,
+          startDate,
+          endDate,
+        ),
+        this.merchantRepository.getMerchantAnalytics(startDate, endDate),
+        this.chainRepository.getChainReliabilityMetrics(startDate, endDate),
+        this.analysisResultRepository.getAnalysisSummary(
+          undefined,
+          undefined,
+          startDate,
+          endDate,
+        ),
+      ]);
 
       return {
         timeRange,
@@ -59,7 +65,7 @@ export class DatabaseAnalyticsService {
         updatedAt: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('Failed to get dashboard analytics', error);
+      this.logger.error("Failed to get dashboard analytics", error);
       throw error;
     }
   }
@@ -69,33 +75,37 @@ export class DatabaseAnalyticsService {
    */
   async getMerchantAnalytics(
     merchantId: string,
-    timeRange: '24h' | '7d' | '30d' = '7d'
+    timeRange: "24h" | "7d" | "30d" = "7d",
   ): Promise<any> {
     const endDate = new Date();
     const startDate = this.getDateFromTimeRange(timeRange, endDate);
 
     try {
-      const [gasUsage, transactionMetrics, analysisSummary, highGasTransactions] =
-        await Promise.all([
-          this.transactionRepository.getGasUsageByMerchant(
-            merchantId,
-            startDate,
-            endDate
-          ),
-          this.transactionRepository.getTransactionSuccessMetrics(
-            merchantId,
-            undefined,
-            startDate,
-            endDate
-          ),
-          this.analysisResultRepository.getAnalysisSummary(
-            merchantId,
-            undefined,
-            startDate,
-            endDate
-          ),
-          this.transactionRepository.getHighGasTransactions(10),
-        ]);
+      const [
+        gasUsage,
+        transactionMetrics,
+        analysisSummary,
+        highGasTransactions,
+      ] = await Promise.all([
+        this.transactionRepository.getGasUsageByMerchant(
+          merchantId,
+          startDate,
+          endDate,
+        ),
+        this.transactionRepository.getTransactionSuccessMetrics(
+          merchantId,
+          undefined,
+          startDate,
+          endDate,
+        ),
+        this.analysisResultRepository.getAnalysisSummary(
+          merchantId,
+          undefined,
+          startDate,
+          endDate,
+        ),
+        this.transactionRepository.getHighGasTransactions(10),
+      ]);
 
       return {
         merchantId,
@@ -113,7 +123,7 @@ export class DatabaseAnalyticsService {
     } catch (error) {
       this.logger.error(
         `Failed to get merchant analytics for ${merchantId}`,
-        error
+        error,
       );
       throw error;
     }
@@ -124,29 +134,35 @@ export class DatabaseAnalyticsService {
    */
   async getChainAnalytics(
     chainId: string,
-    timeRange: '24h' | '7d' | '30d' = '7d'
+    timeRange: "24h" | "7d" | "30d" = "7d",
   ): Promise<any> {
     const endDate = new Date();
     const startDate = this.getDateFromTimeRange(timeRange, endDate);
 
     try {
-      const [transactionVolume, reliabilityMetrics, gasVolatility, failedAnalysis] =
-        await Promise.all([
-          this.transactionRepository.getTransactionVolumeByChain(
-            startDate,
-            endDate
-          ),
-          this.chainRepository.getChainReliabilityMetrics(startDate, endDate),
-          this.chainRepository.getGasVolatilityMetrics(30),
-          this.transactionRepository.getFailedTransactionAnalysis(
-            startDate,
-            endDate
-          ),
-        ]);
+      const [
+        transactionVolume,
+        reliabilityMetrics,
+        gasVolatility,
+        failedAnalysis,
+      ] = await Promise.all([
+        this.transactionRepository.getTransactionVolumeByChain(
+          startDate,
+          endDate,
+        ),
+        this.chainRepository.getChainReliabilityMetrics(startDate, endDate),
+        this.chainRepository.getGasVolatilityMetrics(30),
+        this.transactionRepository.getFailedTransactionAnalysis(
+          startDate,
+          endDate,
+        ),
+      ]);
 
-      const chainData = transactionVolume.find(t => t.chainId === chainId);
-      const reliabilityData = reliabilityMetrics.find(c => c.chainId === chainId);
-      const volatilityData = gasVolatility.find(c => c.chainId === chainId);
+      const chainData = transactionVolume.find((t) => t.chainId === chainId);
+      const reliabilityData = reliabilityMetrics.find(
+        (c) => c.chainId === chainId,
+      );
+      const volatilityData = gasVolatility.find((c) => c.chainId === chainId);
 
       return {
         chainId,
@@ -159,7 +175,7 @@ export class DatabaseAnalyticsService {
         reliabilityMetrics: reliabilityData,
         gasVolatility: volatilityData,
         failedTransactionAnalysis: failedAnalysis.filter(
-          f => f.chainId === chainId
+          (f) => f.chainId === chainId,
         ),
         updatedAt: new Date().toISOString(),
       };
@@ -173,7 +189,7 @@ export class DatabaseAnalyticsService {
    * Get analysis performance metrics
    */
   async getAnalysisMetrics(
-    timeRange: '24h' | '7d' | '30d' = '7d'
+    timeRange: "24h" | "7d" | "30d" = "7d",
   ): Promise<any> {
     const endDate = new Date();
     const startDate = this.getDateFromTimeRange(timeRange, endDate);
@@ -185,12 +201,16 @@ export class DatabaseAnalyticsService {
             undefined,
             undefined,
             startDate,
-            endDate
+            endDate,
           ),
-          this.analysisResultRepository.getTopRuleViolations(10, startDate, endDate),
+          this.analysisResultRepository.getTopRuleViolations(
+            10,
+            startDate,
+            endDate,
+          ),
           this.analysisResultRepository.getLanguageDistribution(
             startDate,
-            endDate
+            endDate,
           ),
           this.analysisResultRepository.getAnalysisTrend(30),
         ]);
@@ -208,7 +228,7 @@ export class DatabaseAnalyticsService {
         updatedAt: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('Failed to get analysis metrics', error);
+      this.logger.error("Failed to get analysis metrics", error);
       throw error;
     }
   }
@@ -243,7 +263,7 @@ export class DatabaseAnalyticsService {
         updatedAt: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('Failed to get performance metrics', error);
+      this.logger.error("Failed to get performance metrics", error);
       throw error;
     }
   }
@@ -252,18 +272,18 @@ export class DatabaseAnalyticsService {
    * Helper method to calculate date based on time range
    */
   private getDateFromTimeRange(
-    timeRange: '24h' | '7d' | '30d',
-    endDate: Date
+    timeRange: "24h" | "7d" | "30d",
+    endDate: Date,
   ): Date {
     const startDate = new Date(endDate);
     switch (timeRange) {
-      case '24h':
+      case "24h":
         startDate.setHours(startDate.getHours() - 24);
         break;
-      case '7d':
+      case "7d":
         startDate.setDate(startDate.getDate() - 7);
         break;
-      case '30d':
+      case "30d":
         startDate.setDate(startDate.getDate() - 30);
         break;
     }

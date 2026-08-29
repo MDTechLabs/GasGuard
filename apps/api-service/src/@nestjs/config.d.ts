@@ -1,4 +1,4 @@
-declare module '@nestjs/config' {
+declare module "@nestjs/config" {
   export function ConfigModule(options?: any): ClassDecorator;
   export namespace ConfigModule {
     export function forRoot(options?: any): any;

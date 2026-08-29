@@ -5,3 +5,9 @@ edition = "2021"
 
 [dependencies]
 walkdir = "2.0"
+anyhow = "1.0"
+colored = "2.0"
+dialoguer = "0.11"
+similar = "2.6"
+gasguard-auto-fix = { path = "../../libs/auto-fix" }
+gasguard-engine = { path = "../../libs/engine" }

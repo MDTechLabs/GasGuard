@@ -1,13 +1,19 @@
 /**
  * Redis Service
- * 
+ *
  * Manages Redis connection with health checks, reconnection logic,
  * and graceful fallback handling for outages.
  */
 
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject } from '@nestjs/common';
-import Redis from 'ioredis';
-import { RateLimitConfig } from '../config/rate-limit.config';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+  Inject,
+} from "@nestjs/common";
+import Redis from "ioredis";
+import { RateLimitConfig } from "../config/rate-limit.config";
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -19,7 +25,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private reconnectTimer: NodeJS.Timeout | null = null;
 
   constructor(
-    @Inject('RATE_LIMIT_CONFIG')
+    @Inject("RATE_LIMIT_CONFIG")
     private readonly config: RateLimitConfig,
   ) {}
 
@@ -52,36 +58,36 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       });
 
       // Set up event handlers
-      this.client.on('connect', () => {
-        this.logger.log('Redis client connecting...');
+      this.client.on("connect", () => {
+        this.logger.log("Redis client connecting...");
       });
 
-      this.client.on('ready', () => {
+      this.client.on("ready", () => {
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        this.logger.log('Redis client ready and connected');
+        this.logger.log("Redis client ready and connected");
       });
 
-      this.client.on('error', (error) => {
-        this.logger.error('Redis client error:', error.message);
+      this.client.on("error", (error) => {
+        this.logger.error("Redis client error:", error.message);
         this.isConnected = false;
       });
 
-      this.client.on('close', () => {
-        this.logger.warn('Redis connection closed');
+      this.client.on("close", () => {
+        this.logger.warn("Redis connection closed");
         this.isConnected = false;
         this.scheduleReconnect();
       });
 
-      this.client.on('reconnecting', () => {
-        this.logger.log('Redis client reconnecting...');
+      this.client.on("reconnecting", () => {
+        this.logger.log("Redis client reconnecting...");
       });
 
       // Initial connection
       await this.client.connect();
       this.isConnected = true;
     } catch (error) {
-      this.logger.error('Failed to connect to Redis:', error.message);
+      this.logger.error("Failed to connect to Redis:", error.message);
       this.isConnected = false;
       this.scheduleReconnect();
     }
@@ -96,17 +102,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.logger.error(`Max reconnection attempts (${this.maxReconnectAttempts}) reached. Giving up.`);
+      this.logger.error(
+        `Max reconnection attempts (${this.maxReconnectAttempts}) reached. Giving up.`,
+      );
       return;
     }
 
     this.reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-    
-    this.logger.log(`Scheduling Redis reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
-    
+
+    this.logger.log(
+      `Scheduling Redis reconnect attempt ${this.reconnectAttempts} in ${delay}ms`,
+    );
+
     this.reconnectTimer = setTimeout(() => {
-      this.logger.log(`Attempting Redis reconnect ${this.reconnectAttempts}...`);
+      this.logger.log(
+        `Attempting Redis reconnect ${this.reconnectAttempts}...`,
+      );
       this.connect();
     }, delay);
   }
@@ -124,7 +136,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       await this.client.quit();
       this.client = null;
       this.isConnected = false;
-      this.logger.log('Redis client disconnected');
+      this.logger.log("Redis client disconnected");
     }
   }
 
@@ -132,7 +144,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Check if Redis is connected and ready
    */
   isReady(): boolean {
-    return this.isConnected && this.client !== null && this.client.status === 'ready';
+    return (
+      this.isConnected && this.client !== null && this.client.status === "ready"
+    );
   }
 
   /**
@@ -147,16 +161,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Execute a Redis command with fallback handling
    * Returns null if Redis is unavailable and fallback is permissive
    */
-  async execute<T>(operation: (client: Redis) => Promise<T>): Promise<T | null> {
+  async execute<T>(
+    operation: (client: Redis) => Promise<T>,
+  ): Promise<T | null> {
     if (!this.isReady()) {
-      this.logger.warn('Redis not available, operation skipped');
+      this.logger.warn("Redis not available, operation skipped");
       return null;
     }
 
     try {
       return await operation(this.client!);
     } catch (error) {
-      this.logger.error('Redis operation failed:', error.message);
+      this.logger.error("Redis operation failed:", error.message);
       return null;
     }
   }
@@ -164,18 +180,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Health check for Redis connection
    */
-  async healthCheck(): Promise<{ status: string; connected: boolean; latency?: number }> {
+  async healthCheck(): Promise<{
+    status: string;
+    connected: boolean;
+    latency?: number;
+  }> {
     if (!this.isReady()) {
-      return { status: 'disconnected', connected: false };
+      return { status: "disconnected", connected: false };
     }
 
     const start = Date.now();
     try {
       await this.client!.ping();
       const latency = Date.now() - start;
-      return { status: 'healthy', connected: true, latency };
+      return { status: "healthy", connected: true, latency };
     } catch (error) {
-      return { status: 'unhealthy', connected: false };
+      return { status: "unhealthy", connected: false };
     }
   }
 }

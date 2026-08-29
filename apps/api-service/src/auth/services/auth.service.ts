@@ -1,10 +1,14 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
-import { User } from '../../database/entities/user.entity';
-import { UserRole } from '../../rbac/enums/role.enum';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import * as bcrypt from "bcrypt";
+import { User } from "../../database/entities/user.entity";
+import { UserRole } from "../../rbac/enums/role.enum";
 
 /**
  * DTO for login request
@@ -56,9 +60,9 @@ export class AuthService {
    */
   async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.userRepository
-      .createQueryBuilder('user')
-      .addSelect('user.passwordHash')
-      .where('user.email = :email', { email })
+      .createQueryBuilder("user")
+      .addSelect("user.passwordHash")
+      .where("user.email = :email", { email })
       .getOne();
 
     if (!user) {
@@ -67,7 +71,7 @@ export class AuthService {
 
     // Check if user can authenticate
     if (!user.canAuthenticate()) {
-      throw new UnauthorizedException('Account is not active or is locked');
+      throw new UnauthorizedException("Account is not active or is locked");
     }
 
     // Verify password
@@ -89,7 +93,7 @@ export class AuthService {
     const user = await this.validateUser(dto.email, dto.password);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     // Record successful login
@@ -145,14 +149,20 @@ export class AuthService {
   /**
    * Verify password
    */
-  async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  async verifyPassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 
   /**
    * Record successful login
    */
-  private async recordSuccessfulLogin(userId: string, ipAddress?: string): Promise<void> {
+  private async recordSuccessfulLogin(
+    userId: string,
+    ipAddress?: string,
+  ): Promise<void> {
     await this.userRepository.update(userId, {
       lastLoginAt: new Date(),
       lastLoginIp: ipAddress,
@@ -186,8 +196,8 @@ export class AuthService {
    */
   generatePasswordResetToken(userId: string): string {
     return this.jwtService.sign(
-      { sub: userId, type: 'password_reset' },
-      { expiresIn: '1h' },
+      { sub: userId, type: "password_reset" },
+      { expiresIn: "1h" },
     );
   }
 
@@ -198,7 +208,7 @@ export class AuthService {
     try {
       return this.jwtService.verify(token);
     } catch (error) {
-      throw new BadRequestException('Invalid or expired token');
+      throw new BadRequestException("Invalid or expired token");
     }
   }
 }

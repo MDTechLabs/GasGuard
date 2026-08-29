@@ -1,7 +1,7 @@
 export enum HealthStatus {
-  HEALTHY = 'healthy',
-  UNHEALTHY = 'unhealthy',
-  DEGRADED = 'degraded',
+  HEALTHY = "healthy",
+  UNHEALTHY = "unhealthy",
+  DEGRADED = "degraded",
 }
 
 export interface HealthCheckResponse {

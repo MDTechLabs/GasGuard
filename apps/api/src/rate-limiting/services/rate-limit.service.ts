@@ -1,12 +1,12 @@
 /**
  * Rate Limit Service
- * 
+ *
  * Core rate limiting logic using sliding window algorithm.
  * Tracks per-API key request counts across minute, hour, and day windows.
  */
 
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { RedisService } from './redis.service';
+import { Injectable, Logger, Inject } from "@nestjs/common";
+import { RedisService } from "./redis.service";
 import {
   TierPlan,
   QuotaConfig,
@@ -16,11 +16,11 @@ import {
   DEFAULT_TIER_QUOTAS,
   WINDOW_DURATIONS,
   REDIS_KEY_PREFIXES,
-} from '../schemas/rate-limit.schema';
-import { RateLimitConfig } from '../config/rate-limit.config';
+} from "../schemas/rate-limit.schema";
+import { RateLimitConfig } from "../config/rate-limit.config";
 
 interface WindowCheck {
-  window: 'minute' | 'hour' | 'day';
+  window: "minute" | "hour" | "day";
   limit: number;
   duration: number;
 }
@@ -31,7 +31,7 @@ export class RateLimitService {
 
   constructor(
     private readonly redisService: RedisService,
-    @Inject('RATE_LIMIT_CONFIG')
+    @Inject("RATE_LIMIT_CONFIG")
     private readonly config: RateLimitConfig,
   ) {}
 
@@ -41,14 +41,32 @@ export class RateLimitService {
    */
   async checkLimit(apiKey: string): Promise<RateLimitStatus> {
     if (!this.config.enabled) {
-      return { allowed: true, limit: Infinity, remaining: Infinity, resetTime: 0, window: 'minute' };
+      return {
+        allowed: true,
+        limit: Infinity,
+        remaining: Infinity,
+        resetTime: 0,
+        window: "minute",
+      };
     }
 
     const quota = await this.getQuotaForKey(apiKey);
     const windows: WindowCheck[] = [
-      { window: 'minute', limit: quota.requestsPerMinute, duration: WINDOW_DURATIONS.minute },
-      { window: 'hour', limit: quota.requestsPerHour, duration: WINDOW_DURATIONS.hour },
-      { window: 'day', limit: quota.requestsPerDay, duration: WINDOW_DURATIONS.day },
+      {
+        window: "minute",
+        limit: quota.requestsPerMinute,
+        duration: WINDOW_DURATIONS.minute,
+      },
+      {
+        window: "hour",
+        limit: quota.requestsPerHour,
+        duration: WINDOW_DURATIONS.hour,
+      },
+      {
+        window: "day",
+        limit: quota.requestsPerDay,
+        duration: WINDOW_DURATIONS.day,
+      },
     ];
 
     // Check all windows and find the most restrictive
@@ -69,8 +87,12 @@ export class RateLimitService {
 
     // All windows have capacity - return the most restrictive remaining
     const mostRestrictive = windows[0]; // minute window
-    const count = await this.getWindowCount(apiKey, mostRestrictive.window, mostRestrictive.duration);
-    
+    const count = await this.getWindowCount(
+      apiKey,
+      mostRestrictive.window,
+      mostRestrictive.duration,
+    );
+
     return {
       allowed: true,
       limit: mostRestrictive.limit,
@@ -85,14 +107,14 @@ export class RateLimitService {
    */
   async incrementCounter(apiKey: string): Promise<void> {
     if (!this.redisService.isReady()) {
-      this.logger.warn('Redis unavailable, skipping counter increment');
+      this.logger.warn("Redis unavailable, skipping counter increment");
       return;
     }
 
-    const windows: { window: 'minute' | 'hour' | 'day'; duration: number }[] = [
-      { window: 'minute', duration: WINDOW_DURATIONS.minute },
-      { window: 'hour', duration: WINDOW_DURATIONS.hour },
-      { window: 'day', duration: WINDOW_DURATIONS.day },
+    const windows: { window: "minute" | "hour" | "day"; duration: number }[] = [
+      { window: "minute", duration: WINDOW_DURATIONS.minute },
+      { window: "hour", duration: WINDOW_DURATIONS.hour },
+      { window: "day", duration: WINDOW_DURATIONS.day },
     ];
 
     const client = this.redisService.getClient()!;
@@ -106,12 +128,12 @@ export class RateLimitService {
 
     // Update last request timestamp
     const configKey = `${REDIS_KEY_PREFIXES.apiKeyConfig}:${apiKey}`;
-    pipeline.hset(configKey, 'lastRequestAt', new Date().toISOString());
+    pipeline.hset(configKey, "lastRequestAt", new Date().toISOString());
 
     try {
       await pipeline.exec();
     } catch (error) {
-      this.logger.error('Failed to increment counters:', error.message);
+      this.logger.error("Failed to increment counters:", error.message);
     }
   }
 
@@ -127,9 +149,9 @@ export class RateLimitService {
     const quota = config.customQuota || DEFAULT_TIER_QUOTAS[config.tier];
 
     const [minuteCount, hourCount, dayCount] = await Promise.all([
-      this.getWindowCount(apiKey, 'minute', WINDOW_DURATIONS.minute),
-      this.getWindowCount(apiKey, 'hour', WINDOW_DURATIONS.hour),
-      this.getWindowCount(apiKey, 'day', WINDOW_DURATIONS.day),
+      this.getWindowCount(apiKey, "minute", WINDOW_DURATIONS.minute),
+      this.getWindowCount(apiKey, "hour", WINDOW_DURATIONS.hour),
+      this.getWindowCount(apiKey, "day", WINDOW_DURATIONS.day),
     ]);
 
     return {
@@ -159,14 +181,14 @@ export class RateLimitService {
    */
   async resetCounter(apiKey: string): Promise<void> {
     if (!this.redisService.isReady()) {
-      throw new Error('Redis unavailable');
+      throw new Error("Redis unavailable");
     }
 
     const client = this.redisService.getClient()!;
-    const windows: ('minute' | 'hour' | 'day')[] = ['minute', 'hour', 'day'];
+    const windows: ("minute" | "hour" | "day")[] = ["minute", "hour", "day"];
 
     const keysToDelete: string[] = [];
-    
+
     for (const window of windows) {
       const duration = WINDOW_DURATIONS[window];
       const key = this.getWindowKey(apiKey, window, duration);
@@ -183,9 +205,12 @@ export class RateLimitService {
   /**
    * Update quota configuration for an API key
    */
-  async updateQuota(apiKey: string, quota: Partial<QuotaConfig>): Promise<void> {
+  async updateQuota(
+    apiKey: string,
+    quota: Partial<QuotaConfig>,
+  ): Promise<void> {
     if (!this.redisService.isReady()) {
-      throw new Error('Redis unavailable');
+      throw new Error("Redis unavailable");
     }
 
     const client = this.redisService.getClient()!;
@@ -194,9 +219,18 @@ export class RateLimitService {
     // Get existing config or create new
     const existing = await this.getApiKeyConfig(apiKey);
     const updatedQuota: QuotaConfig = {
-      requestsPerMinute: quota.requestsPerMinute ?? existing?.customQuota?.requestsPerMinute ?? DEFAULT_TIER_QUOTAS[TierPlan.FREE].requestsPerMinute,
-      requestsPerHour: quota.requestsPerHour ?? existing?.customQuota?.requestsPerHour ?? DEFAULT_TIER_QUOTAS[TierPlan.FREE].requestsPerHour,
-      requestsPerDay: quota.requestsPerDay ?? existing?.customQuota?.requestsPerDay ?? DEFAULT_TIER_QUOTAS[TierPlan.FREE].requestsPerDay,
+      requestsPerMinute:
+        quota.requestsPerMinute ??
+        existing?.customQuota?.requestsPerMinute ??
+        DEFAULT_TIER_QUOTAS[TierPlan.FREE].requestsPerMinute,
+      requestsPerHour:
+        quota.requestsPerHour ??
+        existing?.customQuota?.requestsPerHour ??
+        DEFAULT_TIER_QUOTAS[TierPlan.FREE].requestsPerHour,
+      requestsPerDay:
+        quota.requestsPerDay ??
+        existing?.customQuota?.requestsPerDay ??
+        DEFAULT_TIER_QUOTAS[TierPlan.FREE].requestsPerDay,
     };
 
     const config: ApiKeyConfig = {
@@ -223,7 +257,7 @@ export class RateLimitService {
    */
   async setTier(apiKey: string, tier: TierPlan): Promise<void> {
     if (!this.redisService.isReady()) {
-      throw new Error('Redis unavailable');
+      throw new Error("Redis unavailable");
     }
 
     const client = this.redisService.getClient()!;
@@ -241,7 +275,7 @@ export class RateLimitService {
     await client.hset(configKey, {
       apiKey: config.apiKey,
       tier: config.tier,
-      customQuota: config.customQuota ? JSON.stringify(config.customQuota) : '',
+      customQuota: config.customQuota ? JSON.stringify(config.customQuota) : "",
       createdAt: config.createdAt,
       updatedAt: config.updatedAt,
     });
@@ -254,7 +288,7 @@ export class RateLimitService {
    */
   private async getQuotaForKey(apiKey: string): Promise<QuotaConfig> {
     const config = await this.getApiKeyConfig(apiKey);
-    
+
     if (config?.customQuota) {
       return config.customQuota;
     }
@@ -266,16 +300,18 @@ export class RateLimitService {
   /**
    * Get API key configuration from Redis
    */
-  private async getApiKeyConfig(apiKey: string): Promise<(ApiKeyConfig & { lastRequestAt?: string }) | null> {
+  private async getApiKeyConfig(
+    apiKey: string,
+  ): Promise<(ApiKeyConfig & { lastRequestAt?: string }) | null> {
     if (!this.redisService.isReady()) {
       return null;
     }
 
     const client = this.redisService.getClient()!;
     const configKey = `${REDIS_KEY_PREFIXES.apiKeyConfig}:${apiKey}`;
-    
+
     const data = await client.hgetall(configKey);
-    
+
     if (!data || Object.keys(data).length === 0) {
       return null;
     }
@@ -295,7 +331,7 @@ export class RateLimitService {
    */
   private async getWindowCount(
     apiKey: string,
-    window: 'minute' | 'hour' | 'day',
+    window: "minute" | "hour" | "day",
     duration: number,
   ): Promise<number> {
     if (!this.redisService.isReady()) {
@@ -304,15 +340,19 @@ export class RateLimitService {
 
     const key = this.getWindowKey(apiKey, window, duration);
     const client = this.redisService.getClient()!;
-    
+
     const count = await client.get(key);
-    return parseInt(count || '0', 10);
+    return parseInt(count || "0", 10);
   }
 
   /**
    * Generate Redis key for a specific window
    */
-  private getWindowKey(apiKey: string, window: string, duration: number): string {
+  private getWindowKey(
+    apiKey: string,
+    window: string,
+    duration: number,
+  ): string {
     // Use current timestamp rounded to window boundary for sliding window effect
     const now = Math.floor(Date.now() / 1000);
     const windowStart = Math.floor(now / duration) * duration;

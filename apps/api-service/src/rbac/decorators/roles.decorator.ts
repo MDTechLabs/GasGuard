@@ -1,10 +1,10 @@
-import { SetMetadata } from '@nestjs/common';
-import { UserRole } from '../enums/role.enum';
+import { SetMetadata } from "@nestjs/common";
+import { UserRole } from "../enums/role.enum";
 
 /**
  * Metadata key for roles
  */
-export const ROLES_KEY = 'roles';
+export const ROLES_KEY = "roles";
 
 /**
  * Decorator to specify required roles for accessing a route
@@ -50,4 +50,5 @@ export const OperatorAndAbove = () => Roles(UserRole.OPERATOR, UserRole.ADMIN);
  * getReports() { ... }
  * ```
  */
-export const ViewerAndAbove = () => Roles(UserRole.VIEWER, UserRole.OPERATOR, UserRole.ADMIN);
+export const ViewerAndAbove = () =>
+  Roles(UserRole.VIEWER, UserRole.OPERATOR, UserRole.ADMIN);

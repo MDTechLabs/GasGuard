@@ -2,8 +2,8 @@
  * Custom assertion helpers for rule testing
  */
 
-import { Finding, Severity } from '../../../engine/core/analyzer-interface';
-import { ExpectedFinding } from './types';
+import { Finding, Severity } from "../../../engine/core/analyzer-interface";
+import { ExpectedFinding } from "./types";
 
 export class RuleAssertions {
   /**
@@ -12,15 +12,15 @@ export class RuleAssertions {
   static assertHasFinding(
     findings: Finding[],
     ruleId: string,
-    message?: string
+    message?: string,
   ): void {
-    const found = findings.find(f => f.ruleId === ruleId);
-    
+    const found = findings.find((f) => f.ruleId === ruleId);
+
     if (!found) {
-      const availableRules = findings.map(f => f.ruleId).join(', ');
+      const availableRules = findings.map((f) => f.ruleId).join(", ");
       throw new Error(
-        message || 
-        `Expected finding with ruleId "${ruleId}" but it was not found. Available: ${availableRules}`
+        message ||
+          `Expected finding with ruleId "${ruleId}" but it was not found. Available: ${availableRules}`,
       );
     }
   }
@@ -31,14 +31,14 @@ export class RuleAssertions {
   static assertNotHasFinding(
     findings: Finding[],
     ruleId: string,
-    message?: string
+    message?: string,
   ): void {
-    const found = findings.find(f => f.ruleId === ruleId);
-    
+    const found = findings.find((f) => f.ruleId === ruleId);
+
     if (found) {
       throw new Error(
-        message || 
-        `Expected NOT to find ruleId "${ruleId}" but it was found at line ${found.location.startLine}`
+        message ||
+          `Expected NOT to find ruleId "${ruleId}" but it was found at line ${found.location.startLine}`,
       );
     }
   }
@@ -49,12 +49,12 @@ export class RuleAssertions {
   static assertFindingCount(
     findings: Finding[],
     expectedCount: number,
-    message?: string
+    message?: string,
   ): void {
     if (findings.length !== expectedCount) {
       throw new Error(
         message ||
-        `Expected ${expectedCount} finding(s) but got ${findings.length}`
+          `Expected ${expectedCount} finding(s) but got ${findings.length}`,
       );
     }
   }
@@ -65,17 +65,17 @@ export class RuleAssertions {
   static assertFindingSeverity(
     findings: Finding[],
     ruleId: string,
-    expectedSeverity: Severity
+    expectedSeverity: Severity,
   ): void {
-    const finding = findings.find(f => f.ruleId === ruleId);
-    
+    const finding = findings.find((f) => f.ruleId === ruleId);
+
     if (!finding) {
       throw new Error(`Finding with ruleId "${ruleId}" not found`);
     }
-    
+
     if (finding.severity !== expectedSeverity) {
       throw new Error(
-        `Expected severity "${expectedSeverity}" for rule "${ruleId}" but got "${finding.severity}"`
+        `Expected severity "${expectedSeverity}" for rule "${ruleId}" but got "${finding.severity}"`,
       );
     }
   }
@@ -87,20 +87,20 @@ export class RuleAssertions {
     findings: Finding[],
     ruleId: string,
     expectedLine: number,
-    tolerance: number = 0
+    tolerance: number = 0,
   ): void {
-    const finding = findings.find(f => f.ruleId === ruleId);
-    
+    const finding = findings.find((f) => f.ruleId === ruleId);
+
     if (!finding) {
       throw new Error(`Finding with ruleId "${ruleId}" not found`);
     }
-    
+
     const actualLine = finding.location.startLine;
     const diff = Math.abs(actualLine - expectedLine);
-    
+
     if (diff > tolerance) {
       throw new Error(
-        `Expected rule "${ruleId}" at line ${expectedLine} (±${tolerance}) but found at line ${actualLine}`
+        `Expected rule "${ruleId}" at line ${expectedLine} (±${tolerance}) but found at line ${actualLine}`,
       );
     }
   }
@@ -111,24 +111,24 @@ export class RuleAssertions {
   static assertFindingMessage(
     findings: Finding[],
     ruleId: string,
-    pattern: string | RegExp
+    pattern: string | RegExp,
   ): void {
-    const finding = findings.find(f => f.ruleId === ruleId);
-    
+    const finding = findings.find((f) => f.ruleId === ruleId);
+
     if (!finding) {
       throw new Error(`Finding with ruleId "${ruleId}" not found`);
     }
-    
+
     if (pattern instanceof RegExp) {
       if (!pattern.test(finding.message)) {
         throw new Error(
-          `Expected message matching ${pattern} but got "${finding.message}"`
+          `Expected message matching ${pattern} but got "${finding.message}"`,
         );
       }
     } else {
       if (!finding.message.includes(pattern)) {
         throw new Error(
-          `Expected message containing "${pattern}" but got "${finding.message}"`
+          `Expected message containing "${pattern}" but got "${finding.message}"`,
         );
       }
     }
@@ -137,18 +137,15 @@ export class RuleAssertions {
   /**
    * Assert minimum gas savings
    */
-  static assertMinGasSavings(
-    findings: Finding[],
-    minSavings: number
-  ): void {
+  static assertMinGasSavings(findings: Finding[], minSavings: number): void {
     const totalSavings = findings.reduce(
       (sum, f) => sum + (f.estimatedGasSavings || 0),
-      0
+      0,
     );
-    
+
     if (totalSavings < minSavings) {
       throw new Error(
-        `Expected minimum gas savings of ${minSavings} but got ${totalSavings}`
+        `Expected minimum gas savings of ${minSavings} but got ${totalSavings}`,
       );
     }
   }
@@ -159,13 +156,13 @@ export class RuleAssertions {
   static assertSeverityCount(
     findings: Finding[],
     severity: Severity,
-    expectedCount: number
+    expectedCount: number,
   ): void {
-    const count = findings.filter(f => f.severity === severity).length;
-    
+    const count = findings.filter((f) => f.severity === severity).length;
+
     if (count !== expectedCount) {
       throw new Error(
-        `Expected ${expectedCount} ${severity} finding(s) but got ${count}`
+        `Expected ${expectedCount} ${severity} finding(s) but got ${count}`,
       );
     }
   }
@@ -175,15 +172,15 @@ export class RuleAssertions {
    */
   static assertMatchExpected(
     actual: Finding[],
-    expected: ExpectedFinding[]
+    expected: ExpectedFinding[],
   ): void {
     const errors: string[] = [];
 
     for (const exp of expected) {
-      const matched = actual.find(act => {
+      const matched = actual.find((act) => {
         if (act.ruleId !== exp.ruleId) return false;
         if (act.severity !== exp.severity) return false;
-        
+
         if (exp.messagePattern) {
           if (exp.messagePattern instanceof RegExp) {
             if (!exp.messagePattern.test(act.message)) return false;
@@ -191,27 +188,25 @@ export class RuleAssertions {
             if (!act.message.includes(exp.messagePattern)) return false;
           }
         }
-        
+
         if (exp.line !== undefined) {
           if (Math.abs(act.location.startLine - exp.line) > 1) return false;
         }
-        
+
         return true;
       });
 
       if (!matched) {
         errors.push(
           `Missing expected finding: ${exp.ruleId} (${exp.severity})${
-            exp.line ? ` at line ~${exp.line}` : ''
-          }`
+            exp.line ? ` at line ~${exp.line}` : ""
+          }`,
         );
       }
     }
 
     if (errors.length > 0) {
-      throw new Error(
-        `Expected findings not matched:\n${errors.join('\n')}`
-      );
+      throw new Error(`Expected findings not matched:\n${errors.join("\n")}`);
     }
   }
 }

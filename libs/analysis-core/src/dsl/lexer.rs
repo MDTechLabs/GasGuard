@@ -245,7 +245,9 @@ impl<'src> Lexer<'src> {
             '"' => self.lex_string(start, start_line, start_col)?,
 
             // Number literal
-            c if c.is_ascii_digit() || (c == '-' && self.peek_char().map_or(false, |p| p.is_ascii_digit())) => {
+            c if c.is_ascii_digit()
+                || (c == '-' && self.peek_char().map_or(false, |p| p.is_ascii_digit())) =>
+            {
                 self.lex_number(c, start, start_line, start_col)?
             }
 
@@ -262,7 +264,10 @@ impl<'src> Lexer<'src> {
             }
         };
 
-        Ok(Token::new(kind, self.current_span(start, start_line, start_col)))
+        Ok(Token::new(
+            kind,
+            self.current_span(start, start_line, start_col),
+        ))
     }
 
     fn lex_string(&mut self, start: usize, line: usize, col: usize) -> DslResult<TokenKind> {
@@ -300,7 +305,13 @@ impl<'src> Lexer<'src> {
         Ok(TokenKind::StringLit(s))
     }
 
-    fn lex_number(&mut self, first: char, start: usize, line: usize, col: usize) -> DslResult<TokenKind> {
+    fn lex_number(
+        &mut self,
+        first: char,
+        start: usize,
+        line: usize,
+        col: usize,
+    ) -> DslResult<TokenKind> {
         let mut raw = String::from(first);
         let mut is_float = false;
 
@@ -320,15 +331,27 @@ impl<'src> Lexer<'src> {
         if is_float {
             raw.parse::<f64>()
                 .map(TokenKind::FloatLit)
-                .map_err(|_| DslError::UnexpectedChar { ch: '.', span: Span::new(start, self.pos, line, col) })
+                .map_err(|_| DslError::UnexpectedChar {
+                    ch: '.',
+                    span: Span::new(start, self.pos, line, col),
+                })
         } else {
             raw.parse::<i64>()
                 .map(TokenKind::IntLit)
-                .map_err(|_| DslError::UnexpectedChar { ch: first, span: Span::new(start, self.pos, line, col) })
+                .map_err(|_| DslError::UnexpectedChar {
+                    ch: first,
+                    span: Span::new(start, self.pos, line, col),
+                })
         }
     }
 
-    fn lex_ident_or_keyword(&mut self, first: char, _start: usize, _line: usize, _col: usize) -> TokenKind {
+    fn lex_ident_or_keyword(
+        &mut self,
+        first: char,
+        _start: usize,
+        _line: usize,
+        _col: usize,
+    ) -> TokenKind {
         let mut ident = String::from(first);
         while let Some(c) = self.peek_char() {
             if c.is_alphanumeric() || c == '_' || c == '-' {
@@ -422,7 +445,11 @@ mod tests {
         let toks = kinds("true false");
         assert_eq!(
             toks,
-            vec![TokenKind::BoolLit(true), TokenKind::BoolLit(false), TokenKind::Eof]
+            vec![
+                TokenKind::BoolLit(true),
+                TokenKind::BoolLit(false),
+                TokenKind::Eof
+            ]
         );
     }
 

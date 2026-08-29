@@ -1,9 +1,9 @@
 /**
  * Integration Example: Gas Endpoints with Caching
  */
-import { Injectable } from '@nestjs/common';
-import { CacheService, cacheKeys, cacheKeyBuilders } from './index';
-import { Cacheable } from './cache.decorator';
+import { Injectable } from "@nestjs/common";
+import { CacheService, cacheKeys, cacheKeyBuilders } from "./index";
+import { Cacheable } from "./cache.decorator";
 
 /**
  * Example RPC Client (placeholder)
@@ -11,7 +11,7 @@ import { Cacheable } from './cache.decorator';
 class RPCClient {
   async call(chainId: number, method: string, params: any[]): Promise<any> {
     // Simulated RPC call
-    return { result: 'mock_value' };
+    return { result: "mock_value" };
   }
 }
 
@@ -33,7 +33,7 @@ export class GasServiceWithCaching {
 
     return this.cache.getOrFetch(
       key,
-      'baseFee',
+      "baseFee",
       () => this.fetchBaseFeeFromRPC(chainId),
       chainId,
     );
@@ -47,7 +47,7 @@ export class GasServiceWithCaching {
 
     return this.cache.getOrFetch(
       key,
-      'priorityFee',
+      "priorityFee",
       () => this.fetchPriorityFeeFromRPC(chainId),
       chainId,
     );
@@ -66,7 +66,7 @@ export class GasServiceWithCaching {
 
     return this.cache.getOrFetch(
       key,
-      'gasEstimate',
+      "gasEstimate",
       () => this.estimateGasFromRPC(chainId, toAddress, data),
       chainId,
     );
@@ -80,7 +80,7 @@ export class GasServiceWithCaching {
 
     return this.cache.getOrFetch(
       key,
-      'chainMetrics',
+      "chainMetrics",
       () => this.fetchChainMetricsFromRPC(chainId),
       chainId,
     );
@@ -91,13 +91,13 @@ export class GasServiceWithCaching {
    */
   async getVolatilityData(
     chainId: number,
-    period: string = '1h',
+    period: string = "1h",
   ): Promise<object> {
     const key = cacheKeys.volatility(chainId, period);
 
     return this.cache.getOrFetch(
       key,
-      'volatilityData',
+      "volatilityData",
       () => this.fetchVolatilityDataFromRPC(chainId, period),
       chainId,
     );
@@ -123,7 +123,7 @@ export class GasServiceWithCaching {
   private async fetchBaseFeeFromRPC(chainId: number): Promise<string> {
     const response = await this.rpcClient.call(
       chainId,
-      'eth_baseFeePerGas',
+      "eth_baseFeePerGas",
       [],
     );
     return response.result;
@@ -132,7 +132,7 @@ export class GasServiceWithCaching {
   private async fetchPriorityFeeFromRPC(chainId: number): Promise<string> {
     const response = await this.rpcClient.call(
       chainId,
-      'eth_maxPriorityFeePerGas',
+      "eth_maxPriorityFeePerGas",
       [],
     );
     return response.result;
@@ -143,16 +143,12 @@ export class GasServiceWithCaching {
     toAddress: string,
     data?: string,
   ): Promise<number> {
-    const response = await this.rpcClient.call(
-      chainId,
-      'eth_estimateGas',
-      [
-        {
-          to: toAddress,
-          data,
-        },
-      ],
-    );
+    const response = await this.rpcClient.call(chainId, "eth_estimateGas", [
+      {
+        to: toAddress,
+        data,
+      },
+    ]);
     return parseInt(response.result, 16);
   }
 
@@ -162,7 +158,7 @@ export class GasServiceWithCaching {
       chainId,
       avgBlockTime: 12.5,
       txPerSecond: 100.5,
-      avgGasPrice: '50 gwei',
+      avgGasPrice: "50 gwei",
     };
   }
 
@@ -175,8 +171,8 @@ export class GasServiceWithCaching {
       chainId,
       period,
       volatility: 15.2,
-      minGasPrice: '20 gwei',
-      maxGasPrice: '200 gwei',
+      minGasPrice: "20 gwei",
+      maxGasPrice: "200 gwei",
     };
   }
 }
@@ -203,11 +199,7 @@ export class GasControllerCachingExample {
   }
 
   // GET /gas/estimate/1?to=0x1234&data=0x5678
-  async getGasEstimate(
-    chainId: number,
-    toAddress: string,
-    data?: string,
-  ) {
+  async getGasEstimate(chainId: number, toAddress: string, data?: string) {
     const gas = await this.gasService.getGasEstimate(chainId, toAddress, data);
     return { chainId, gas };
   }
@@ -219,7 +211,7 @@ export class GasControllerCachingExample {
   }
 
   // GET /gas/volatility/1?period=1h
-  async getVolatility(chainId: number, period: string = '1h') {
+  async getVolatility(chainId: number, period: string = "1h") {
     const volatility = await this.gasService.getVolatilityData(chainId, period);
     return { chainId, period, volatility };
   }
@@ -248,7 +240,7 @@ export class GasControllerCachingExample {
   // DELETE /cache (admin only)
   async clearCache() {
     await this.cache.clearAll();
-    return { message: 'Cache cleared' };
+    return { message: "Cache cleared" };
   }
 }
 

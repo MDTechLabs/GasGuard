@@ -4,10 +4,10 @@
  */
 
 export enum UsageTier {
-  STARTER = 'starter',
-  DEVELOPER = 'developer', 
-  PROFESSIONAL = 'professional',
-  ENTERPRISE = 'enterprise',
+  STARTER = "starter",
+  DEVELOPER = "developer",
+  PROFESSIONAL = "professional",
+  ENTERPRISE = "enterprise",
 }
 
 export interface TierConfig {
@@ -92,7 +92,12 @@ export interface TierTransition {
   fromTier: UsageTier;
   toTier: UsageTier;
   effectiveDate: Date;
-  reason: 'usage_upgrade' | 'usage_downgrade' | 'manual_upgrade' | 'manual_downgrade' | 'admin_change';
+  reason:
+    | "usage_upgrade"
+    | "usage_downgrade"
+    | "manual_upgrade"
+    | "manual_downgrade"
+    | "admin_change";
   prorationRequired: boolean;
   notificationRequired: boolean;
 }
@@ -102,6 +107,6 @@ export interface TierValidationResult {
   currentTier: UsageTier;
   canProceed: boolean;
   message: string;
-  suggestedAction?: 'upgrade' | 'downgrade' | 'continue' | 'contact_support';
+  suggestedAction?: "upgrade" | "downgrade" | "continue" | "contact_support";
   nextAvailableTier?: UsageTier;
 }

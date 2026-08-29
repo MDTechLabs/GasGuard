@@ -1,0 +1,8 @@
+{
+  "name": "storage-optimization",
+  "description": "A simple fixture that compares a storage-heavy contract against a reduced version.",
+  "originalContract": "fn transfer() { storage.set('admin'); storage.set('value'); }",
+  "refactoredContract": "fn transfer() { storage.set('value'); }",
+  "method": "transfer",
+  "estimatedGasDelta": 4000
+}

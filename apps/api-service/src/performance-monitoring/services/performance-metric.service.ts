@@ -1,7 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ApiPerformanceMetric, ApiPerformanceAggregate, MetricAggregationWindow } from '../entities/api-performance-metric.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import {
+  ApiPerformanceMetric,
+  ApiPerformanceAggregate,
+  MetricAggregationWindow,
+} from "../entities/api-performance-metric.entity";
 
 export interface MetricRecord {
   endpoint: string;
@@ -31,9 +35,12 @@ export class PerformanceMetricService {
     return this.metricRepository.save(newMetric);
   }
 
-  async getRecentMetrics(limit: number = 100, endpoint?: string): Promise<ApiPerformanceMetric[]> {
+  async getRecentMetrics(
+    limit: number = 100,
+    endpoint?: string,
+  ): Promise<ApiPerformanceMetric[]> {
     return this.metricRepository.find({
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
       take: limit,
       where: endpoint ? { endpoint } : undefined,
     });
@@ -52,7 +59,7 @@ export class PerformanceMetricService {
         } as any,
         ...(endpoint ? { endpoint } : {}),
       },
-      order: { timestamp: 'ASC' },
+      order: { timestamp: "ASC" },
     });
   }
 
@@ -71,7 +78,7 @@ export class PerformanceMetricService {
           $lte: endTime,
         } as any,
       },
-      order: { timestamp: 'ASC' },
+      order: { timestamp: "ASC" },
     });
   }
 
@@ -81,7 +88,7 @@ export class PerformanceMetricService {
   ): Promise<ApiPerformanceAggregate | null> {
     return this.aggregateRepository.findOne({
       where: { endpoint, aggregationWindow: window },
-      order: { timestamp: 'DESC' },
+      order: { timestamp: "DESC" },
     });
   }
 
@@ -97,8 +104,9 @@ export class PerformanceMetricService {
     const upper = Math.ceil(index);
     const weight = index - lower;
 
-    if (upper >= sortedValues.length) return sortedValues[sortedValues.length - 1];
-    
+    if (upper >= sortedValues.length)
+      return sortedValues[sortedValues.length - 1];
+
     return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
   }
 
@@ -107,8 +115,9 @@ export class PerformanceMetricService {
    */
   calculateStdDev(values: number[], mean: number): number {
     if (values.length === 0) return 0;
-    const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
-    const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+    const squaredDiffs = values.map((v) => Math.pow(v - mean, 2));
+    const avgSquaredDiff =
+      squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
     return Math.sqrt(avgSquaredDiff);
   }
 
@@ -134,23 +143,33 @@ export class PerformanceMetricService {
     });
 
     if (metrics.length === 0) {
-      throw new Error(`No metrics found for endpoint ${endpoint} in the specified time range`);
+      throw new Error(
+        `No metrics found for endpoint ${endpoint} in the specified time range`,
+      );
     }
 
-    const responseTimes = metrics.map(m => Number(m.responseTime)).sort((a, b) => a - b);
+    const responseTimes = metrics
+      .map((m) => Number(m.responseTime))
+      .sort((a, b) => a - b);
     const totalRequests = metrics.length;
-    const successfulRequests = metrics.filter(m => m.statusCode >= 200 && m.statusCode < 400).length;
+    const successfulRequests = metrics.filter(
+      (m) => m.statusCode >= 200 && m.statusCode < 400,
+    ).length;
     const failedRequests = totalRequests - successfulRequests;
     const successRate = (successfulRequests / totalRequests) * 100;
 
     const minResponseTime = responseTimes[0];
     const maxResponseTime = responseTimes[responseTimes.length - 1];
-    const avgResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+    const avgResponseTime =
+      responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
     const p50ResponseTime = this.calculatePercentile(responseTimes, 50);
     const p90ResponseTime = this.calculatePercentile(responseTimes, 90);
     const p95ResponseTime = this.calculatePercentile(responseTimes, 95);
     const p99ResponseTime = this.calculatePercentile(responseTimes, 99);
-    const stdDevResponseTime = this.calculateStdDev(responseTimes, avgResponseTime);
+    const stdDevResponseTime = this.calculateStdDev(
+      responseTimes,
+      avgResponseTime,
+    );
 
     const aggregate = this.aggregateRepository.create({
       endpoint,
@@ -210,8 +229,10 @@ export class PerformanceMetricService {
       };
     }
 
-    const responseTimes = metrics.map(m => Number(m.responseTime)).sort((a, b) => a - b);
-    const errors = metrics.filter(m => m.statusCode >= 400).length;
+    const responseTimes = metrics
+      .map((m) => Number(m.responseTime))
+      .sort((a, b) => a - b);
+    const errors = metrics.filter((m) => m.statusCode >= 400).length;
 
     // Group by endpoint
     const endpointMap = new Map<string, ApiPerformanceMetric[]>();
@@ -221,19 +242,24 @@ export class PerformanceMetricService {
       endpointMap.set(metric.endpoint, existing);
     }
 
-    const endpoints = Array.from(endpointMap.entries()).map(([endpoint, endpointMetrics]) => {
-      const times = endpointMetrics.map(m => Number(m.responseTime)).sort((a, b) => a - b);
-      return {
-        endpoint,
-        requests: endpointMetrics.length,
-        avgResponseTime: times.reduce((a, b) => a + b, 0) / times.length,
-        p95ResponseTime: this.calculatePercentile(times, 95),
-      };
-    });
+    const endpoints = Array.from(endpointMap.entries()).map(
+      ([endpoint, endpointMetrics]) => {
+        const times = endpointMetrics
+          .map((m) => Number(m.responseTime))
+          .sort((a, b) => a - b);
+        return {
+          endpoint,
+          requests: endpointMetrics.length,
+          avgResponseTime: times.reduce((a, b) => a + b, 0) / times.length,
+          p95ResponseTime: this.calculatePercentile(times, 95),
+        };
+      },
+    );
 
     return {
       totalRequests: metrics.length,
-      avgResponseTime: responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
+      avgResponseTime:
+        responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
       p95ResponseTime: this.calculatePercentile(responseTimes, 95),
       errorRate: (errors / metrics.length) * 100,
       endpoints,
@@ -249,7 +275,9 @@ export class PerformanceMetricService {
 
     // Note: In a real implementation, this would use a proper delete query
     // For now, we'll return 0 as a placeholder
-    this.logger.log(`Would delete metrics older than ${cutoffDate.toISOString()}`);
+    this.logger.log(
+      `Would delete metrics older than ${cutoffDate.toISOString()}`,
+    );
     return 0;
   }
 }

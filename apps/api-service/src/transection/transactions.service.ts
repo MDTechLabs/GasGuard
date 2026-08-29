@@ -3,9 +3,17 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Transaction, TxStatus } from "./transaction.entity";
 import { RecordTransactionDto } from "./dto/record-transaction.entity";
-import { AlertQueryDto, Granularity, MetricsQueryDto, TimeSeriesQueryDto } from "./metrics-query.dto";
+import {
+  AlertQueryDto,
+  Granularity,
+  MetricsQueryDto,
+  TimeSeriesQueryDto,
+} from "./metrics-query.dto";
 import { RateLimitService, RateLimitStatus } from "./rate-limit.service";
-import { SuspiciousActivityService, SuspiciousActivityAlert } from "./suspicious-activity.service";
+import {
+  SuspiciousActivityService,
+  SuspiciousActivityAlert,
+} from "./suspicious-activity.service";
 import { AuditLogService } from "../audit";
 
 function parsePeriod(period: string): { start: Date; end: Date } {
@@ -141,13 +149,19 @@ export class TransactionsService {
     const txs = await qb.orderBy("tx.timestamp", "ASC").getMany();
 
     const total = txs.length;
-    const successful = txs.filter((t: any) => t.status === TxStatus.SUCCESS).length;
+    const successful = txs.filter(
+      (t: any) => t.status === TxStatus.SUCCESS,
+    ).length;
     const failed = txs.filter((t: any) => t.status === TxStatus.FAILURE).length;
-    const reverted = txs.filter((t: any) => t.status === TxStatus.REVERTED).length;
+    const reverted = txs.filter(
+      (t: any) => t.status === TxStatus.REVERTED,
+    ).length;
     const avgGas =
       total === 0
         ? null
-        : Math.round(txs.reduce((s: any, t: any) => s + Number(t.gasUsed), 0) / total);
+        : Math.round(
+            txs.reduce((s: any, t: any) => s + Number(t.gasUsed), 0) / total,
+          );
 
     return { txs, total, successful, failed, reverted, avgGas };
   }

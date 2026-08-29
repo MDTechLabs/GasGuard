@@ -2,13 +2,13 @@
  * Redis Client Manager
  * Handles Redis connection, reconnection, and error handling
  */
-import { Logger } from '@nestjs/common';
-import { CacheConfig, defaultCacheConfig } from './cache-config';
+import { Logger } from "@nestjs/common";
+import { CacheConfig, defaultCacheConfig } from "./cache-config";
 
 export class RedisClient {
   private static instance: RedisClient;
   private redis: any = null;
-  private logger = new Logger('RedisClient');
+  private logger = new Logger("RedisClient");
   private connected = false;
   private retryCount = 0;
   private config: CacheConfig;
@@ -43,7 +43,7 @@ export class RedisClient {
         const ioredis = eval("require('ioredis')");
         Redis = ioredis.default || ioredis;
       } catch {
-        this.logger.warn('ioredis not available, using in-memory fallback');
+        this.logger.warn("ioredis not available, using in-memory fallback");
         this.redis = new InMemoryRedis();
         this.connected = true;
         return;
@@ -51,21 +51,23 @@ export class RedisClient {
 
       this.redis = new Redis(this.config.redis);
 
-      this.redis.on('connect', () => {
-        this.logger.log('Redis connected successfully');
+      this.redis.on("connect", () => {
+        this.logger.log("Redis connected successfully");
         this.connected = true;
         this.retryCount = 0;
       });
 
-      this.redis.on('error', (err: Error) => {
+      this.redis.on("error", (err: Error) => {
         this.logger.error(`Redis error: ${err.message}`);
         this.connected = false;
       });
 
-      this.redis.on('reconnecting', () => {
+      this.redis.on("reconnecting", () => {
         this.retryCount++;
         if (this.retryCount > (this.config.behavior.maxRetries || 3)) {
-          this.logger.warn('Max Redis retries exceeded, falling back to in-memory cache');
+          this.logger.warn(
+            "Max Redis retries exceeded, falling back to in-memory cache",
+          );
           this.redis = new InMemoryRedis();
           this.connected = true;
         }
@@ -75,7 +77,7 @@ export class RedisClient {
       this.connected = true;
     } catch (error) {
       this.logger.error(`Failed to connect to Redis: ${error.message}`);
-      this.logger.warn('Falling back to in-memory cache');
+      this.logger.warn("Falling back to in-memory cache");
       this.redis = new InMemoryRedis();
       this.connected = true;
     }
@@ -128,7 +130,9 @@ export class RedisClient {
       if (keys.length === 0) return 0;
       return await this.redis.del(...keys);
     } catch (error) {
-      this.logger.error(`Cache DELETE pattern failed for ${pattern}: ${error.message}`);
+      this.logger.error(
+        `Cache DELETE pattern failed for ${pattern}: ${error.message}`,
+      );
       return 0;
     }
   }
@@ -141,7 +145,9 @@ export class RedisClient {
       const result = await this.redis.exists(key);
       return result > 0;
     } catch (error) {
-      this.logger.error(`Cache EXISTS check failed for key ${key}: ${error.message}`);
+      this.logger.error(
+        `Cache EXISTS check failed for key ${key}: ${error.message}`,
+      );
       return false;
     }
   }
@@ -153,7 +159,9 @@ export class RedisClient {
     try {
       return await this.redis.ttl(key);
     } catch (error) {
-      this.logger.error(`Cache TTL check failed for key ${key}: ${error.message}`);
+      this.logger.error(
+        `Cache TTL check failed for key ${key}: ${error.message}`,
+      );
       return -1;
     }
   }
@@ -238,8 +246,8 @@ class InMemoryRedis {
   }
 
   async keys(pattern: string): Promise<string[]> {
-    const regex = new RegExp(pattern.replace(/\*/g, '.*'));
-    return Array.from(this.store.keys()).filter(k => regex.test(k));
+    const regex = new RegExp(pattern.replace(/\*/g, ".*"));
+    return Array.from(this.store.keys()).filter((k) => regex.test(k));
   }
 
   async exists(key: string): Promise<number> {
@@ -255,7 +263,7 @@ class InMemoryRedis {
   }
 
   async flushdb(): Promise<void> {
-    this.timers.forEach(timer => clearTimeout(timer));
+    this.timers.forEach((timer) => clearTimeout(timer));
     this.store.clear();
     this.timers.clear();
   }

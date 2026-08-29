@@ -13,83 +13,89 @@ impl SorobanAnalyzer {
     /// Analyze a parsed Soroban contract
     pub fn analyze_contract(contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         // Analyze contract types (structs)
         for contract_type in &contract.contract_types {
             violations.extend(Self::analyze_contract_type(contract_type, &contract.source));
         }
-        
+
         // Analyze implementations
         for implementation in &contract.implementations {
-            violations.extend(Self::analyze_implementation(implementation, &contract.source));
+            violations.extend(Self::analyze_implementation(
+                implementation,
+                &contract.source,
+            ));
         }
-        
+
         // Analyze overall contract structure
         violations.extend(Self::analyze_contract_structure(contract));
-        
+
         violations
     }
-    
+
     /// Analyze a contract type (struct) for issues
     fn analyze_contract_type(contract_type: &SorobanStruct, source: &str) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         // Check for unused state variables
         violations.extend(Self::check_unused_state_variables(contract_type, source));
-        
+
         // Check for inefficient field types
         violations.extend(Self::check_inefficient_field_types(contract_type));
-        
+
         // Check for missing pub fields in contract types
         violations.extend(Self::check_missing_pub_fields(contract_type));
-        
+
         violations
     }
-    
+
     /// Analyze an implementation block for issues
     fn analyze_implementation(implementation: &SorobanImpl, source: &str) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for function in &implementation.functions {
             violations.extend(Self::analyze_function(function, source));
         }
-        
+
         // Check for unbounded loops
         violations.extend(Self::check_unbounded_loops(implementation, source));
-        
+
         // Check for inefficient storage patterns
         violations.extend(Self::check_storage_patterns(implementation, source));
-        
+
         violations
     }
-    
+
     /// Analyze a function for issues
     fn analyze_function(function: &SorobanFunction, source: &str) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         // Check for expensive operations
         violations.extend(Self::check_expensive_operations(function, source));
-        
+
         // Check parameter validation
         violations.extend(Self::check_parameter_validation(function));
-        
+
         // Check return value handling
         violations.extend(Self::check_return_values(function));
-        
+
         violations
     }
-    
+
     /// Analyze overall contract structure
     fn analyze_contract_structure(contract: &SorobanContract) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         // Check for missing constructor
-        if !contract.implementations.iter().any(|imp| {
-            imp.functions.iter().any(|f| f.is_constructor)
-        }) {
+        if !contract
+            .implementations
+            .iter()
+            .any(|imp| imp.functions.iter().any(|f| f.is_constructor))
+        {
             violations.push(RuleViolation {
                 rule_name: "missing-constructor".to_string(),
-                description: "Contract should have a constructor function for initialization".to_string(),
+                description: "Contract should have a constructor function for initialization"
+                    .to_string(),
                 suggestion: "Add a 'new' function that initializes the contract state".to_string(),
                 line_number: 1,
                 column_number: 0,
@@ -97,16 +103,16 @@ impl SorobanAnalyzer {
                 severity: ViolationSeverity::Warning,
             });
         }
-        
+
         // Check for admin pattern
         let has_admin = contract.contract_types.iter().any(|ct| {
-            ct.fields.iter().any(|f| 
-                f.name.contains("admin") || 
-                f.name.contains("owner") ||
-                f.type_name.contains("Address")
-            )
+            ct.fields.iter().any(|f| {
+                f.name.contains("admin")
+                    || f.name.contains("owner")
+                    || f.type_name.contains("Address")
+            })
         });
-        
+
         if !has_admin {
             violations.push(RuleViolation {
                 rule_name: "missing-admin-pattern".to_string(),
@@ -118,25 +124,31 @@ impl SorobanAnalyzer {
                 severity: ViolationSeverity::Info,
             });
         }
-        
+
         violations
     }
-    
+
     /// Check for unused state variables
-    fn check_unused_state_variables(contract_type: &SorobanStruct, source: &str) -> Vec<RuleViolation> {
+    fn check_unused_state_variables(
+        contract_type: &SorobanStruct,
+        source: &str,
+    ) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for field in &contract_type.fields {
             // Count occurrences of field name in the source (excluding struct definition)
             let field_usage_count = source.matches(&field.name).count();
-            
+
             // Heuristic: Definition + Initialization = 2 occurrences.
             // If it's <= 2, it's likely defined and initialized but never accessed again.
             if field_usage_count <= 2 {
                 violations.push(RuleViolation {
                     rule_name: "unused-state-variable".to_string(),
                     description: format!("State variable '{}' appears to be unused", field.name),
-                    suggestion: format!("Remove unused state variable '{}' to save ledger storage", field.name),
+                    suggestion: format!(
+                        "Remove unused state variable '{}' to save ledger storage",
+                        field.name
+                    ),
                     line_number: field.line_number,
                     column_number: 0,
                     variable_name: field.name.clone(),
@@ -144,14 +156,14 @@ impl SorobanAnalyzer {
                 });
             }
         }
-        
+
         violations
     }
-    
+
     /// Check for inefficient field types
     fn check_inefficient_field_types(contract_type: &SorobanStruct) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for field in &contract_type.fields {
             // Check for overly large integer types
             if field.type_name == "u128" || field.type_name == "i128" {
@@ -165,13 +177,15 @@ impl SorobanAnalyzer {
                     severity: ViolationSeverity::Info,
                 });
             }
-            
+
             // Check for String usage (prefer Symbol for known values)
             if field.type_name == "String" {
                 violations.push(RuleViolation {
                     rule_name: "string-instead-of-symbol".to_string(),
                     description: format!("Field '{}' uses String type", field.name),
-                    suggestion: "Consider using Symbol for fixed string values to save storage costs".to_string(),
+                    suggestion:
+                        "Consider using Symbol for fixed string values to save storage costs"
+                            .to_string(),
                     line_number: field.line_number,
                     column_number: 0,
                     variable_name: field.name.clone(),
@@ -179,20 +193,26 @@ impl SorobanAnalyzer {
                 });
             }
         }
-        
+
         violations
     }
-    
+
     /// Check for missing pub fields in contract types
     fn check_missing_pub_fields(contract_type: &SorobanStruct) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for field in &contract_type.fields {
             if matches!(field.visibility, FieldVisibility::Private) {
                 violations.push(RuleViolation {
                     rule_name: "private-contract-field".to_string(),
-                    description: format!("Field '{}' is private but contract fields should typically be public", field.name),
-                    suggestion: format!("Change '{}' to 'pub {}' to make it accessible", field.name, field.name),
+                    description: format!(
+                        "Field '{}' is private but contract fields should typically be public",
+                        field.name
+                    ),
+                    suggestion: format!(
+                        "Change '{}' to 'pub {}' to make it accessible",
+                        field.name, field.name
+                    ),
                     line_number: field.line_number,
                     column_number: 0,
                     variable_name: field.name.clone(),
@@ -200,41 +220,46 @@ impl SorobanAnalyzer {
                 });
             }
         }
-        
+
         violations
     }
-    
+
     /// Check for expensive operations in functions
     fn check_expensive_operations(function: &SorobanFunction, _source: &str) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
         let function_source = &function.raw_definition;
-        
+
         // Check for string operations
         if function_source.contains(".to_string()") || function_source.contains("String::from(") {
             violations.push(RuleViolation {
                 rule_name: "expensive-string-operation".to_string(),
-                description: "String operations can be expensive in terms of gas/storage".to_string(),
-                suggestion: "Consider using Symbol or Bytes for fixed data, or minimize string operations".to_string(),
+                description: "String operations can be expensive in terms of gas/storage"
+                    .to_string(),
+                suggestion:
+                    "Consider using Symbol or Bytes for fixed data, or minimize string operations"
+                        .to_string(),
                 line_number: function.line_number,
                 column_number: 0,
                 variable_name: function.name.clone(),
                 severity: ViolationSeverity::Medium,
             });
         }
-        
+
         // Check for vector allocations without capacity
         if function_source.contains("Vec::new()") && !function_source.contains("with_capacity") {
             violations.push(RuleViolation {
                 rule_name: "vec-without-capacity".to_string(),
-                description: "Vec::new() without capacity can cause multiple reallocations".to_string(),
-                suggestion: "Use Vec::with_capacity() to pre-allocate memory when size is known".to_string(),
+                description: "Vec::new() without capacity can cause multiple reallocations"
+                    .to_string(),
+                suggestion: "Use Vec::with_capacity() to pre-allocate memory when size is known"
+                    .to_string(),
                 line_number: function.line_number,
                 column_number: 0,
                 variable_name: function.name.clone(),
                 severity: ViolationSeverity::Medium,
             });
         }
-        
+
         // Check for clone operations
         if function_source.contains(".clone()") {
             violations.push(RuleViolation {
@@ -247,14 +272,14 @@ impl SorobanAnalyzer {
                 severity: ViolationSeverity::Medium,
             });
         }
-        
+
         violations
     }
-    
+
     /// Check parameter validation
     fn check_parameter_validation(function: &SorobanFunction) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         // Check for missing validation on Address parameters
         for param in &function.params {
             if param.type_name.contains("Address") {
@@ -262,8 +287,12 @@ impl SorobanAnalyzer {
                 if function.name.contains("set") || function.name.contains("transfer") {
                     violations.push(RuleViolation {
                         rule_name: "missing-address-validation".to_string(),
-                        description: format!("Function '{}' takes Address parameter but may lack validation", function.name),
-                        suggestion: "Validate Address parameters to prevent invalid addresses".to_string(),
+                        description: format!(
+                            "Function '{}' takes Address parameter but may lack validation",
+                            function.name
+                        ),
+                        suggestion: "Validate Address parameters to prevent invalid addresses"
+                            .to_string(),
                         line_number: function.line_number,
                         column_number: 0,
                         variable_name: function.name.clone(),
@@ -272,24 +301,30 @@ impl SorobanAnalyzer {
                 }
             }
         }
-        
+
         violations
     }
-    
+
     /// Check return value handling
     fn check_return_values(function: &SorobanFunction) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         // Check for functions that should return Result but don't
-        if function.name.contains("transfer") || 
-           function.name.contains("mint") || 
-           function.name.contains("burn") {
-            if function.return_type.is_none() || 
-               !function.return_type.as_ref().unwrap().contains("Result") {
+        if function.name.contains("transfer")
+            || function.name.contains("mint")
+            || function.name.contains("burn")
+        {
+            if function.return_type.is_none()
+                || !function.return_type.as_ref().unwrap().contains("Result")
+            {
                 violations.push(RuleViolation {
                     rule_name: "missing-error-handling".to_string(),
-                    description: format!("Function '{}' should return Result for error handling", function.name),
-                    suggestion: "Return Result<(), Error> to properly handle operation failures".to_string(),
+                    description: format!(
+                        "Function '{}' should return Result for error handling",
+                        function.name
+                    ),
+                    suggestion: "Return Result<(), Error> to properly handle operation failures"
+                        .to_string(),
                     line_number: function.line_number,
                     column_number: 0,
                     variable_name: function.name.clone(),
@@ -297,21 +332,22 @@ impl SorobanAnalyzer {
                 });
             }
         }
-        
+
         violations
     }
-    
+
     /// Check for unbounded loops
     fn check_unbounded_loops(implementation: &SorobanImpl, _source: &str) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         for function in &implementation.functions {
             let func_source = &function.raw_definition;
-            
+
             // Look for loops without clear bounds
-            if (func_source.contains("for ") || func_source.contains("while ")) &&
-               !func_source.contains(".len()") && 
-               !func_source.contains("range(") {
+            if (func_source.contains("for ") || func_source.contains("while "))
+                && !func_source.contains(".len()")
+                && !func_source.contains("range(")
+            {
                 violations.push(RuleViolation {
                     rule_name: "unbounded-loop".to_string(),
                     description: format!("Function '{}' contains potentially unbounded loop", function.name),
@@ -323,22 +359,23 @@ impl SorobanAnalyzer {
                 });
             }
         }
-        
+
         violations
     }
-    
+
     /// Check for inefficient storage patterns
     fn check_storage_patterns(implementation: &SorobanImpl, _source: &str) -> Vec<RuleViolation> {
         let mut violations = Vec::new();
-        
+
         // Check for multiple storage reads of the same key
-        let storage_reads: Vec<_> = implementation.functions
+        let storage_reads: Vec<_> = implementation
+            .functions
             .iter()
             .flat_map(|f| {
                 let func_source = &f.raw_definition;
                 // Simple heuristic: count occurrences of storage access patterns
-                let read_count = func_source.matches(".get(").count() +
-                               func_source.matches(".load(").count();
+                let read_count =
+                    func_source.matches(".get(").count() + func_source.matches(".load(").count();
                 if read_count > 2 {
                     Some((f, read_count))
                 } else {
@@ -346,19 +383,23 @@ impl SorobanAnalyzer {
                 }
             })
             .collect();
-        
+
         for (function, read_count) in storage_reads {
             violations.push(RuleViolation {
                 rule_name: "inefficient-storage-access".to_string(),
-                description: format!("Function '{}' performs {} storage reads - consider caching", function.name, read_count),
-                suggestion: "Cache frequently accessed storage values in local variables".to_string(),
+                description: format!(
+                    "Function '{}' performs {} storage reads - consider caching",
+                    function.name, read_count
+                ),
+                suggestion: "Cache frequently accessed storage values in local variables"
+                    .to_string(),
                 line_number: function.line_number,
                 column_number: 0,
                 variable_name: function.name.clone(),
                 severity: ViolationSeverity::Medium,
             });
         }
-        
+
         violations
     }
 }
@@ -367,7 +408,7 @@ impl SorobanAnalyzer {
 mod tests {
     use super::*;
     use crate::soroban::parser::SorobanParser;
-    
+
     #[test]
     fn test_analyze_contract_with_issues() {
         let source = r#"
@@ -397,30 +438,30 @@ impl BadContract {
     }
 }
 "#;
-        
+
         let contract = SorobanParser::parse_contract(source, "test.rs").unwrap();
         let violations = SorobanAnalyzer::analyze_contract(&contract);
-        
+
         // Should detect several issues
         assert!(!violations.is_empty());
-        
+
         // Check for specific violations
-        let unused_var_found = violations.iter().any(|v| 
-            v.rule_name == "unused-state-variable" && v.variable_name == "unused_field"
-        );
+        let unused_var_found = violations
+            .iter()
+            .any(|v| v.rule_name == "unused-state-variable" && v.variable_name == "unused_field");
         assert!(unused_var_found);
-        
-        let inefficient_type_found = violations.iter().any(|v| 
-            v.rule_name == "inefficient-integer-type" && v.variable_name == "counter"
-        );
+
+        let inefficient_type_found = violations
+            .iter()
+            .any(|v| v.rule_name == "inefficient-integer-type" && v.variable_name == "counter");
         assert!(inefficient_type_found);
-        
-        let private_field_found = violations.iter().any(|v| 
-            v.rule_name == "private-contract-field" && v.variable_name == "admin"
-        );
+
+        let private_field_found = violations
+            .iter()
+            .any(|v| v.rule_name == "private-contract-field" && v.variable_name == "admin");
         assert!(private_field_found);
     }
-    
+
     #[test]
     fn test_analyze_well_optimized_contract() {
         let source = r#"
@@ -466,16 +507,22 @@ impl GoodContract {
     }
 }
 "#;
-        
+
         let contract = SorobanParser::parse_contract(source, "test.rs").unwrap();
         let violations = SorobanAnalyzer::analyze_contract(&contract);
-        
+
         // Well-optimized contract should have minimal violations
         // Most should be informational rather than critical
-        let critical_violations: Vec<_> = violations.iter()
-            .filter(|v| matches!(v.severity, ViolationSeverity::High | ViolationSeverity::Critical))
+        let critical_violations: Vec<_> = violations
+            .iter()
+            .filter(|v| {
+                matches!(
+                    v.severity,
+                    ViolationSeverity::High | ViolationSeverity::Critical
+                )
+            })
             .collect();
-        
+
         assert!(critical_violations.is_empty() || critical_violations.len() <= 1);
     }
 }

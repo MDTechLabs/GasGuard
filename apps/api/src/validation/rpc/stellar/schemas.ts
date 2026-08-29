@@ -29,7 +29,8 @@ export function validateBaseRpcShape(payload: any): string | null {
     if (!isObject(err)) return "Invalid error object";
 
     if (typeof err.code !== "number") return "Error code must be a number";
-    if (typeof err.message !== "string") return "Error message must be a string";
+    if (typeof err.message !== "string")
+      return "Error message must be a string";
   }
 
   return null;

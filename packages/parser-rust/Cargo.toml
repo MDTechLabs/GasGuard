@@ -1,0 +1,17 @@
+[package]
+name = "gasguard-parser"
+version = "0.1.0"
+edition = "2021"
+description = "Soroban contract event decoder and parser utilities for GasGuard"
+license = "MIT"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.22"
+hex = "0.4"
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+rstest = "0.26.1"

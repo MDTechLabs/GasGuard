@@ -1,16 +1,16 @@
 /**
  * Rate Limiting Module
- * 
+ *
  * NestJS module that provides rate limiting capabilities including
  * Redis service, rate limit service, guard, and admin controller.
  */
 
-import { Module, Global, DynamicModule } from '@nestjs/common';
-import { RateLimitService } from './services/rate-limit.service';
-import { RedisService } from './services/redis.service';
-import { RateLimitGuard } from './guards/rate-limit.guard';
-import { RateLimitAdminController } from './controllers/admin.controller';
-import { RateLimitConfig, rateLimitConfig } from './config/rate-limit.config';
+import { Module, Global, DynamicModule } from "@nestjs/common";
+import { RateLimitService } from "./services/rate-limit.service";
+import { RedisService } from "./services/redis.service";
+import { RateLimitGuard } from "./guards/rate-limit.guard";
+import { RateLimitAdminController } from "./controllers/admin.controller";
+import { RateLimitConfig, rateLimitConfig } from "./config/rate-limit.config";
 
 export interface RateLimitingModuleOptions {
   config?: Partial<RateLimitConfig>;
@@ -38,7 +38,7 @@ export class RateLimitingModule {
       controllers: [RateLimitAdminController],
       providers: [
         {
-          provide: 'RATE_LIMIT_CONFIG',
+          provide: "RATE_LIMIT_CONFIG",
           useValue: config,
         },
         RedisService,
@@ -53,7 +53,9 @@ export class RateLimitingModule {
    * Register the rate limiting module asynchronously
    */
   static forRootAsync(options: {
-    useFactory: (...args: any[]) => Promise<Partial<RateLimitConfig>> | Partial<RateLimitConfig>;
+    useFactory: (
+      ...args: any[]
+    ) => Promise<Partial<RateLimitConfig>> | Partial<RateLimitConfig>;
     inject?: any[];
   }): DynamicModule {
     return {
@@ -61,7 +63,7 @@ export class RateLimitingModule {
       controllers: [RateLimitAdminController],
       providers: [
         {
-          provide: 'RATE_LIMIT_CONFIG',
+          provide: "RATE_LIMIT_CONFIG",
           useFactory: async (...args: any[]) => {
             const defaultConfig = rateLimitConfig();
             const customConfig = await options.useFactory(...args);

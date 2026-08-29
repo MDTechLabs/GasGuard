@@ -42,18 +42,18 @@ export interface ExportMetadata {
  * Column header order – must stay in sync with ExportsService.recordToCsvRow.
  */
 export const CSV_HEADERS = [
-  'MerchantID',
-  'Wallet',
-  'Chain',
-  'ChainID',
-  'TxHash',
-  'FunctionSelector',
-  'GasUsed',
-  'GasPriceGwei',
-  'GasCostNative',
-  'GasCostUSD',
-  'Timestamp',
-  'BlockNumber',
+  "MerchantID",
+  "Wallet",
+  "Chain",
+  "ChainID",
+  "TxHash",
+  "FunctionSelector",
+  "GasUsed",
+  "GasPriceGwei",
+  "GasCostNative",
+  "GasCostUSD",
+  "Timestamp",
+  "BlockNumber",
 ] as const;
 
 export type CsvHeader = (typeof CSV_HEADERS)[number];

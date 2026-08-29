@@ -27,7 +27,10 @@ declare global {
       mockResolvedValue(value: any): this;
       mockRejectedValue(value: any): this;
     }
-    interface SpyInstance<T = any, U extends any[] = any[]> extends Mock<T, U> {}
+    interface SpyInstance<T = any, U extends any[] = any[]> extends Mock<
+      T,
+      U
+    > {}
   }
 
   function describe(name: string, fn: () => void): void;
@@ -40,11 +43,13 @@ declare global {
   function expect<T = any>(actual: T): jest.Matchers<void>;
 
   const jest: {
-    fn<T extends (...args: any[]) => any>(implementation?: T): jest.Mock<ReturnType<T>, Parameters<T>>;
+    fn<T extends (...args: any[]) => any>(
+      implementation?: T,
+    ): jest.Mock<ReturnType<T>, Parameters<T>>;
     spyOn<T, P extends PropertyKey>(
       object: T,
       method: P,
-      accessType?: 'get' | 'set'
+      accessType?: "get" | "set",
     ): jest.SpyInstance<any, any>;
     useFakeTimers(): void;
     useRealTimers(): void;

@@ -1,15 +1,15 @@
 /**
  * Rate Limiting Schemas and Types
- * 
+ *
  * Defines the data structures for rate limiting including quotas,
  * usage statistics, and tier configurations.
  */
 
 export enum TierPlan {
-  FREE = 'free',
-  STANDARD = 'standard',
-  PREMIUM = 'premium',
-  ENTERPRISE = 'enterprise',
+  FREE = "free",
+  STANDARD = "standard",
+  PREMIUM = "premium",
+  ENTERPRISE = "enterprise",
 }
 
 export interface QuotaConfig {
@@ -23,7 +23,7 @@ export interface RateLimitStatus {
   limit: number;
   remaining: number;
   resetTime: number;
-  window: 'minute' | 'hour' | 'day';
+  window: "minute" | "hour" | "day";
 }
 
 export interface UsageStats {
@@ -101,14 +101,14 @@ export const WINDOW_DURATIONS = {
 
 // Redis key prefixes
 export const REDIS_KEY_PREFIXES = {
-  rateLimit: 'ratelimit',
-  apiKeyConfig: 'apikey:config',
+  rateLimit: "ratelimit",
+  apiKeyConfig: "apikey:config",
 };
 
 // Header names
 export const RATE_LIMIT_HEADERS = {
-  limit: 'X-RateLimit-Limit',
-  remaining: 'X-RateLimit-Remaining',
-  reset: 'X-RateLimit-Reset',
-  retryAfter: 'Retry-After',
+  limit: "X-RateLimit-Limit",
+  remaining: "X-RateLimit-Remaining",
+  reset: "X-RateLimit-Reset",
+  retryAfter: "Retry-After",
 };

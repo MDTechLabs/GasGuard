@@ -1,5 +1,5 @@
-import Redis from 'ioredis';
-import { redisConfig } from '../../packages/config/redis';
+import Redis from "ioredis";
+import { redisConfig } from "../../packages/config/redis";
 
 export class CacheService {
   private redis: Redis;
@@ -24,9 +24,13 @@ export class CacheService {
     }
   }
 
-  async set(key: string, value: any, ttl: number = redisConfig.ttl): Promise<void> {
-    const data = typeof value === 'string' ? value : JSON.stringify(value);
-    await this.redis.set(key, data, 'EX', ttl);
+  async set(
+    key: string,
+    value: any,
+    ttl: number = redisConfig.ttl,
+  ): Promise<void> {
+    const data = typeof value === "string" ? value : JSON.stringify(value);
+    await this.redis.set(key, data, "EX", ttl);
   }
 
   async del(key: string): Promise<void> {

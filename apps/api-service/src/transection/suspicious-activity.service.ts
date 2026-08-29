@@ -1,16 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Transaction, TxStatus } from './transaction.entity';
+import { Injectable, Logger } from "@nestjs/common";
+import { Transaction, TxStatus } from "./transaction.entity";
 
 export enum SuspiciousActivityType {
-  HIGH_FAILURE_RATE = 'HIGH_FAILURE_RATE',
-  BURST_TRANSACTIONS = 'BURST_TRANSACTIONS',
-  GAS_SPIKE = 'GAS_SPIKE',
+  HIGH_FAILURE_RATE = "HIGH_FAILURE_RATE",
+  BURST_TRANSACTIONS = "BURST_TRANSACTIONS",
+  GAS_SPIKE = "GAS_SPIKE",
 }
 
 export enum AlertSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
 }
 
 export interface SuspiciousActivityAlert {
@@ -50,7 +50,11 @@ export class SuspiciousActivityService {
     const window = this.windows.get(key) ?? [];
 
     // Keep a rolling window of the last 50 transactions
-    window.push({ timestamp: tx.timestamp.getTime(), status: tx.status, gasUsed: Number(tx.gasUsed) });
+    window.push({
+      timestamp: tx.timestamp.getTime(),
+      status: tx.status,
+      gasUsed: Number(tx.gasUsed),
+    });
     if (window.length > 50) window.shift();
     this.windows.set(key, window);
 
@@ -69,7 +73,11 @@ export class SuspiciousActivityService {
       return burstAlert;
     }
 
-    const failureAlert = this.detectHighFailureRate(tx.merchantId, tx.chainId, window);
+    const failureAlert = this.detectHighFailureRate(
+      tx.merchantId,
+      tx.chainId,
+      window,
+    );
     if (failureAlert.detected) {
       this.emitAlert(failureAlert);
       return failureAlert;
@@ -97,9 +105,12 @@ export class SuspiciousActivityService {
     const burst = window.filter((w) => w.timestamp >= tenSecondsAgo);
 
     if (burst.length >= 5) {
-      const severity = burst.length >= 15 ? AlertSeverity.HIGH
-        : burst.length >= 8 ? AlertSeverity.MEDIUM
-        : AlertSeverity.LOW;
+      const severity =
+        burst.length >= 15
+          ? AlertSeverity.HIGH
+          : burst.length >= 8
+            ? AlertSeverity.MEDIUM
+            : AlertSeverity.LOW;
 
       return {
         detected: true,
@@ -131,9 +142,12 @@ export class SuspiciousActivityService {
     const failureRate = failures / recent.length;
 
     if (failureRate >= 0.7) {
-      const severity = failureRate >= 0.9 ? AlertSeverity.HIGH
-        : failureRate >= 0.8 ? AlertSeverity.MEDIUM
-        : AlertSeverity.LOW;
+      const severity =
+        failureRate >= 0.9
+          ? AlertSeverity.HIGH
+          : failureRate >= 0.8
+            ? AlertSeverity.MEDIUM
+            : AlertSeverity.LOW;
 
       return {
         detected: true,
@@ -172,9 +186,12 @@ export class SuspiciousActivityService {
     const ratio = latest.gasUsed / avgGas;
 
     if (ratio >= 4) {
-      const severity = ratio >= 10 ? AlertSeverity.HIGH
-        : ratio >= 6 ? AlertSeverity.MEDIUM
-        : AlertSeverity.LOW;
+      const severity =
+        ratio >= 10
+          ? AlertSeverity.HIGH
+          : ratio >= 6
+            ? AlertSeverity.MEDIUM
+            : AlertSeverity.LOW;
 
       return {
         detected: true,
@@ -198,7 +215,7 @@ export class SuspiciousActivityService {
   private emitAlert(alert: SuspiciousActivityAlert): void {
     this.logger.warn(
       `[SUSPICIOUS_ACTIVITY] merchant=${alert.merchantId} chain=${alert.chainId} ` +
-      `type=${alert.type} severity=${alert.severity} — ${alert.message}`,
+        `type=${alert.type} severity=${alert.severity} — ${alert.message}`,
       alert.metadata,
     );
   }

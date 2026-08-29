@@ -1,0 +1,8 @@
+GasBenchmarkSuite:test_gas_adminGatedCall() (gas: 23481)
+GasBenchmarkSuite:test_gas_batchWrite_10Items() (gas: 218430)
+GasBenchmarkSuite:test_gas_coldWrite() (gas: 43921)
+GasBenchmarkSuite:test_gas_coldWrite_withinCeiling() (gas: 43921)
+GasBenchmarkSuite:test_gas_deployedCodeSize() (gas: 0)
+GasBenchmarkSuite:test_gas_deployment() (gas: 187204)
+GasBenchmarkSuite:test_gas_read() (gas: 5312)
+GasBenchmarkSuite:test_gas_warmOverwrite() (gas: 26900)

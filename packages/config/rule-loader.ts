@@ -1,10 +1,10 @@
 /**
  * Dynamic Rule Loader
- * 
+ *
  * Handles dynamic loading and unloading of rules based on configuration
  */
 
-import { RuleConfiguration } from '../../src/config/config.types';
+import { RuleConfiguration } from "../../src/config/config.types";
 
 export interface RuleModule {
   id: string;
@@ -13,10 +13,10 @@ export interface RuleModule {
   description: string;
   category: string;
   language: string;
-  defaultSeverity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  defaultSeverity: "critical" | "high" | "medium" | "low" | "info";
   defaultParameters?: Record<string, any>;
   dependencies?: string[];
-  
+
   // Rule implementation
   create(config?: RuleConfiguration): RuleInstance;
 }
@@ -65,15 +65,17 @@ export class RuleLoader {
       }
 
       // Find specific version or default to latest
-      let module = modules.find(m => m.version === config.version);
-      
+      let module = modules.find((m) => m.version === config.version);
+
       if (!module && !config.version) {
         // Fallback to latest version if no version specified
         module = modules.sort((a, b) => b.version.localeCompare(a.version))[0];
       }
 
       if (!module) {
-        console.warn(`Rule version ${config.version} not found for ${config.id}`);
+        console.warn(
+          `Rule version ${config.version} not found for ${config.id}`,
+        );
         return null;
       }
 
@@ -87,7 +89,7 @@ export class RuleLoader {
       // Create new instance
       const instance = module.create(config);
       this.loadedRules.set(instanceId, instance);
-      
+
       console.log(`Loaded rule: ${instanceId}`);
       return instance;
     } catch (error) {
@@ -149,7 +151,7 @@ export class RuleLoader {
    */
   async loadRules(configs: RuleConfiguration[]): Promise<RuleInstance[]> {
     const instances: RuleInstance[] = [];
-    
+
     for (const config of configs) {
       if (config.enabled) {
         const instance = await this.loadRule(config);
@@ -158,7 +160,7 @@ export class RuleLoader {
         }
       }
     }
-    
+
     return instances;
   }
 
@@ -166,8 +168,8 @@ export class RuleLoader {
    * Unload all rules
    */
   async unloadAllRules(): Promise<void> {
-    const unloadPromises = Array.from(this.loadedRules.keys()).map(ruleId => 
-      this.unloadRule(ruleId)
+    const unloadPromises = Array.from(this.loadedRules.keys()).map((ruleId) =>
+      this.unloadRule(ruleId),
     );
     await Promise.all(unloadPromises);
   }
@@ -179,7 +181,7 @@ export class RuleLoader {
     const modules = this.ruleModules.get(ruleId);
     if (!modules) return undefined;
     if (version) {
-      return modules.find(m => m.version === version);
+      return modules.find((m) => m.version === version);
     }
     // Return latest if version not specified
     return modules.sort((a, b) => b.version.localeCompare(a.version))[0];
@@ -199,23 +201,23 @@ export class RuleLoader {
     const errors: string[] = [];
 
     if (!module.id) {
-      errors.push('Rule module ID is required');
+      errors.push("Rule module ID is required");
     }
 
     if (!module.name) {
-      errors.push('Rule module name is required');
+      errors.push("Rule module name is required");
     }
 
     if (!module.category) {
-      errors.push('Rule module category is required');
+      errors.push("Rule module category is required");
     }
 
     if (!module.language) {
-      errors.push('Rule module language is required');
+      errors.push("Rule module language is required");
     }
 
-    if (!module.create || typeof module.create !== 'function') {
-      errors.push('Rule module must have a create function');
+    if (!module.create || typeof module.create !== "function") {
+      errors.push("Rule module must have a create function");
     }
 
     return {
@@ -231,7 +233,7 @@ export class RuleLoader {
     // This would typically scan a directory for rule modules
     // For now, it's a placeholder for the implementation
     console.log(`Auto-discovering rule modules in: ${directory}`);
-    
+
     // Example of what this would do:
     // 1. Scan directory for rule files
     // 2. Import each rule module
@@ -251,14 +253,16 @@ export class RuleLoader {
     const rulesByLanguage: Record<string, number> = {};
 
     for (const instance of this.loadedRules.values()) {
-      // Try to find the module. We might need to parse the version from somewhere 
+      // Try to find the module. We might need to parse the version from somewhere
       // or store the module reference in the instance.
       // For now, we search all modules for this ID.
       const modules = this.ruleModules.get(instance.id);
       const module = modules?.[0]; // Best effort: use first version for stats if we can't distinguish
       if (module) {
-        rulesByCategory[module.category] = (rulesByCategory[module.category] || 0) + 1;
-        rulesByLanguage[module.language] = (rulesByLanguage[module.language] || 0) + 1;
+        rulesByCategory[module.category] =
+          (rulesByCategory[module.category] || 0) + 1;
+        rulesByLanguage[module.language] =
+          (rulesByLanguage[module.language] || 0) + 1;
       }
     }
 

@@ -1,0 +1,77 @@
+[
+  {
+    "id": "reg-xc-001",
+    "name": "invoke_contract without validation",
+    "description": "Positive test: cross-contract invocation without caller validation or result check",
+    "ruleId": "detect-unsafe-cross-contract-invocation",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Caller {\n    pub fn call_external(env: Env, contract_id: Address) {\n        env.invoke_contract(&contract_id, &Symbol::new(&env, \"transfer\"), ());\n    }\n}",
+    "expected": {
+      "detected": true
+    },
+    "metadata": {
+      "category": "cross-contract",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-xc-002",
+    "name": "Client::new without validation",
+    "description": "Positive test: Client-based cross-contract call without validation",
+    "ruleId": "detect-unsafe-cross-contract-invocation",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Caller {\n    pub fn call_external(env: Env, contract_id: Address) {\n        let client = OtherContractClient::new(&env, &contract_id);\n        client.transfer();\n    }\n}",
+    "expected": {
+      "detected": true
+    },
+    "metadata": {
+      "category": "cross-contract",
+      "regressionType": "positive",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-xc-003",
+    "name": "invoke_contract with require_auth and expect",
+    "description": "Negative test: cross-contract call guarded with require_auth and result handling",
+    "ruleId": "detect-unsafe-cross-contract-invocation",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Caller {\n    pub fn call_external(env: Env, caller: Address, contract_id: Address) {\n        caller.require_auth();\n        let result = env.invoke_contract(&contract_id, &Symbol::new(&env, \"transfer\"), ());\n        result.expect(\"transfer failed\");\n    }\n}",
+    "expected": {
+      "detected": false
+    },
+    "metadata": {
+      "category": "cross-contract",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-xc-004",
+    "name": "no cross-contract calls",
+    "description": "Negative test: contract with no cross-contract invocations should not flag",
+    "ruleId": "detect-unsafe-cross-contract-invocation",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Simple {\n    pub fn get_balance(env: Env, addr: Address) -> i128 {\n        env.storage().instance().get(&addr).unwrap_or(0)\n    }\n}",
+    "expected": {
+      "detected": false
+    },
+    "metadata": {
+      "category": "cross-contract",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  },
+  {
+    "id": "reg-xc-005",
+    "name": "invoke with match result handling",
+    "description": "Negative test: cross-contract call with match-based result handling",
+    "ruleId": "detect-unsafe-cross-contract-invocation",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, Env};\n\n#[contractimpl]\nimpl Caller {\n    pub fn call_external(env: Env, contract_id: Address) {\n        let result = env.invoke_contract(&contract_id, &Symbol::new(&env, \"get\"), ());\n        match result {\n            Ok(val) => {},\n            Err(e) => { panic!(\"error: {:?}\", e); }\n        };\n    }\n}",
+    "expected": {
+      "detected": false
+    },
+    "metadata": {
+      "category": "cross-contract",
+      "regressionType": "negative",
+      "language": "soroban"
+    }
+  }
+]

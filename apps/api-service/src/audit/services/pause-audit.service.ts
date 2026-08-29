@@ -3,16 +3,20 @@ import {
   ForbiddenException,
   ConflictException,
   Logger,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AuditLog, EventType, OutcomeStatus } from '../entities/audit-log.entity';
-import { UserRole } from '../../rbac/enums/role.enum';
-import { createHash } from 'crypto';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import {
+  AuditLog,
+  EventType,
+  OutcomeStatus,
+} from "../entities/audit-log.entity";
+import { UserRole } from "../../rbac/enums/role.enum";
+import { createHash } from "crypto";
 
 export interface PauseRecord {
   id: string;
-  action: 'pause' | 'unpause';
+  action: "pause" | "unpause";
   triggeredBy: string;
   triggeredByRole: UserRole;
   reason: string;
@@ -37,15 +41,22 @@ export class PauseAuditService {
 
   assertNotPaused(): void {
     if (this.paused) {
-      throw new ConflictException('System is currently paused. Critical operations are suspended.');
+      throw new ConflictException(
+        "System is currently paused. Critical operations are suspended.",
+      );
     }
   }
 
-  async pause(adminId: string, adminRole: UserRole, reason: string, durationMinutes?: number): Promise<PauseRecord> {
+  async pause(
+    adminId: string,
+    adminRole: UserRole,
+    reason: string,
+    durationMinutes?: number,
+  ): Promise<PauseRecord> {
     this.requireAdmin(adminRole);
 
     if (this.paused) {
-      throw new ConflictException('System is already paused');
+      throw new ConflictException("System is already paused");
     }
 
     const autoResumeAt = durationMinutes
@@ -54,7 +65,13 @@ export class PauseAuditService {
 
     this.paused = true;
 
-    const record = this.buildRecord('pause', adminId, adminRole, reason, autoResumeAt);
+    const record = this.buildRecord(
+      "pause",
+      adminId,
+      adminRole,
+      reason,
+      autoResumeAt,
+    );
     this.pauseLog.push(record);
 
     await this.writeAuditLog(record);
@@ -68,16 +85,26 @@ export class PauseAuditService {
     return record;
   }
 
-  async unpause(adminId: string, adminRole: UserRole, reason: string): Promise<PauseRecord> {
+  async unpause(
+    adminId: string,
+    adminRole: UserRole,
+    reason: string,
+  ): Promise<PauseRecord> {
     this.requireAdmin(adminRole);
 
     if (!this.paused) {
-      throw new ConflictException('System is not currently paused');
+      throw new ConflictException("System is not currently paused");
     }
 
     this.paused = false;
 
-    const record = this.buildRecord('unpause', adminId, adminRole, reason, null);
+    const record = this.buildRecord(
+      "unpause",
+      adminId,
+      adminRole,
+      reason,
+      null,
+    );
     this.pauseLog.push(record);
 
     await this.writeAuditLog(record);
@@ -92,21 +119,23 @@ export class PauseAuditService {
 
   private requireAdmin(role: UserRole): void {
     if (role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only ADMIN role can control system pause state');
+      throw new ForbiddenException(
+        "Only ADMIN role can control system pause state",
+      );
     }
   }
 
   private buildRecord(
-    action: 'pause' | 'unpause',
+    action: "pause" | "unpause",
     triggeredBy: string,
     triggeredByRole: UserRole,
     reason: string,
     autoResumeAt: Date | null,
   ): PauseRecord {
     return {
-      id: createHash('sha256')
+      id: createHash("sha256")
         .update(`${action}:${triggeredBy}:${Date.now()}`)
-        .digest('hex')
+        .digest("hex")
         .slice(0, 16),
       action,
       triggeredBy,
@@ -118,9 +147,9 @@ export class PauseAuditService {
   }
 
   private async writeAuditLog(record: PauseRecord): Promise<void> {
-    const integrity = createHash('sha256')
+    const integrity = createHash("sha256")
       .update(JSON.stringify(record))
-      .digest('hex');
+      .digest("hex");
 
     const log = this.auditRepo.create({
       eventType: EventType.SYSTEM_ADMIN,
@@ -139,12 +168,21 @@ export class PauseAuditService {
     await this.auditRepo.save(log);
   }
 
-  private async autoResume(adminId: string, originalReason: string): Promise<void> {
+  private async autoResume(
+    adminId: string,
+    originalReason: string,
+  ): Promise<void> {
     if (!this.paused) return;
     this.paused = false;
-    const record = this.buildRecord('unpause', 'system:auto-resume', UserRole.ADMIN, `Auto-resume after timed pause triggered by ${adminId}: ${originalReason}`, null);
+    const record = this.buildRecord(
+      "unpause",
+      "system:auto-resume",
+      UserRole.ADMIN,
+      `Auto-resume after timed pause triggered by ${adminId}: ${originalReason}`,
+      null,
+    );
     this.pauseLog.push(record);
     await this.writeAuditLog(record);
-    this.logger.log('System auto-resumed after timed pause expired');
+    this.logger.log("System auto-resumed after timed pause expired");
   }
 }

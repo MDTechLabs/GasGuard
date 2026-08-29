@@ -2,9 +2,9 @@
  * Cache Module
  * Integrates caching into the application
  */
-import { Module } from '@nestjs/common';
-import { CacheService } from './cache.service';
-import { CacheMetricsService } from './cache-metrics.service';
+import { Module } from "@nestjs/common";
+import { CacheService } from "./cache.service";
+import { CacheMetricsService } from "./cache-metrics.service";
 
 export interface OnModuleInit {
   onModuleInit(): Promise<void>;

@@ -1,9 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { GasPriceHistory as GasPriceHistoryEntity } from '../entities/gas-price-history.entity';
-import { GasPriceSnapshot, GasPriceHistory } from '../interfaces/gas-price.interface';
-import { NetworkMonitorService } from './network-monitor.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { GasPriceHistory as GasPriceHistoryEntity } from "../entities/gas-price-history.entity";
+import {
+  GasPriceSnapshot,
+  GasPriceHistory,
+} from "../interfaces/gas-price.interface";
+import { NetworkMonitorService } from "./network-monitor.service";
 
 /**
  * GasPriceHistoryService
@@ -22,7 +25,9 @@ export class GasPriceHistoryService {
   /**
    * Record current gas price snapshot to history
    */
-  async recordPriceSnapshot(snapshot: GasPriceSnapshot): Promise<GasPriceHistoryEntity> {
+  async recordPriceSnapshot(
+    snapshot: GasPriceSnapshot,
+  ): Promise<GasPriceHistoryEntity> {
     const history = this.gasPriceHistoryRepository.create({
       chainId: snapshot.chainId,
       chainName: snapshot.chainName,
@@ -55,7 +60,7 @@ export class GasPriceHistoryService {
         timestamp: { gte: startTime },
       },
       order: {
-        timestamp: 'ASC',
+        timestamp: "ASC",
       },
     });
 
@@ -107,14 +112,14 @@ export class GasPriceHistoryService {
     chainId: string,
     windowSizeHours: number = 6,
   ): Promise<{
-    trend: 'increasing' | 'decreasing' | 'stable';
+    trend: "increasing" | "decreasing" | "stable";
     percentChange: number;
     confidence: number;
   }> {
     const history = await this.getPriceHistory(chainId, windowSizeHours * 2);
 
     if (history.length < 2) {
-      return { trend: 'stable', percentChange: 0, confidence: 0 };
+      return { trend: "stable", percentChange: 0, confidence: 0 };
     }
 
     const midpoint = Math.floor(history.length / 2);
@@ -122,20 +127,24 @@ export class GasPriceHistoryService {
     const secondHalf = history.slice(midpoint);
 
     const firstAvg =
-      firstHalf.reduce((sum, h) => sum + h.effectivePrice, 0) / firstHalf.length;
+      firstHalf.reduce((sum, h) => sum + h.effectivePrice, 0) /
+      firstHalf.length;
     const secondAvg =
-      secondHalf.reduce((sum, h) => sum + h.effectivePrice, 0) / secondHalf.length;
+      secondHalf.reduce((sum, h) => sum + h.effectivePrice, 0) /
+      secondHalf.length;
 
     const percentChange = ((secondAvg - firstAvg) / firstAvg) * 100;
     const trend =
       percentChange > 2
-        ? 'increasing'
+        ? "increasing"
         : percentChange < -2
-          ? 'decreasing'
-          : 'stable';
+          ? "decreasing"
+          : "stable";
 
     // Confidence based on consistency of trend
-    const variance = this.calculateVariance(secondHalf.map((h) => h.effectivePrice));
+    const variance = this.calculateVariance(
+      secondHalf.map((h) => h.effectivePrice),
+    );
     const confidence = Math.max(0, 100 - variance * 2);
 
     return { trend, percentChange, confidence };
@@ -201,9 +210,11 @@ export class GasPriceHistoryService {
       await this.gasPriceHistoryRepository.delete({
         timestamp: { lt: cutoffDate },
       });
-      this.logger.log(`Cleaned up gas price history older than ${olderThanDays} days`);
+      this.logger.log(
+        `Cleaned up gas price history older than ${olderThanDays} days`,
+      );
     } catch (error) {
-      this.logger.error('Failed to cleanup old records', error);
+      this.logger.error("Failed to cleanup old records", error);
     }
   }
 }

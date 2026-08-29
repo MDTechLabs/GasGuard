@@ -1,8 +1,8 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { AppModule } from './app.module';
-import { AuditInterceptor } from './audit/interceptors';
-import { AuditLogService } from './audit/services';
+import { NestFactory } from "@nestjs/core";
+import { ValidationPipe } from "@nestjs/common";
+import { AppModule } from "./app.module";
+import { AuditInterceptor } from "./audit/interceptors";
+import { AuditLogService } from "./audit/services";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,7 +24,9 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`🚀 GasGuard API Service is running on: http://localhost:${port}`);
+  console.log(
+    `🚀 GasGuard API Service is running on: http://localhost:${port}`,
+  );
   console.log(`📊 Health check available at: http://localhost:${port}/health`);
 }
 

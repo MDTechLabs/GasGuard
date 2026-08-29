@@ -14,6 +14,10 @@ export interface OpcodeTrace {
 }
 
 export interface ChainAdapter {
-  simulate(code: string, method: string, params: any[]): Promise<SimulationResult>;
+  simulate(
+    code: string,
+    method: string,
+    params: any[],
+  ): Promise<SimulationResult>;
   getChainId(): string;
 }

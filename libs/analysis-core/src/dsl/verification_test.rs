@@ -24,17 +24,17 @@ mod verification_tests {
 
         // Compile DSL into executable rules
         let rules = compile_str(dsl_source).expect("DSL compilation failed");
-        
+
         // Verify rule was created
         assert_eq!(rules.len(), 1);
         assert_eq!(rules[0].meta().id, "no-unsafe");
         assert_eq!(rules[0].meta().name, "No Unsafe Blocks");
-        
+
         // Test rule fires on matching source
         let findings = rules[0].analyze("test.rs", "fn main() { unsafe { } }");
         assert!(!findings.is_empty(), "Rule should detect unsafe code");
         assert_eq!(findings[0].rule_id, "no-unsafe");
-        
+
         // Test rule is silent on clean source
         let clean_findings = rules[0].analyze("clean.rs", "fn main() { println!(\"hello\"); }");
         assert!(clean_findings.is_empty(), "Rule should not flag clean code");
@@ -58,11 +58,11 @@ mod verification_tests {
 
         let rules = compile_str(dsl_source).expect("DSL compilation failed");
         assert_eq!(rules.len(), 1);
-        
+
         // Should fire: has unsafe, no safe_wrapper
         let findings = rules[0].analyze("test.rs", "unsafe { }");
         assert!(!findings.is_empty());
-        
+
         // Should not fire: has unsafe, but also has safe_wrapper
         let findings2 = rules[0].analyze("test.rs", "unsafe { } // safe_wrapper");
         assert!(findings2.is_empty());
@@ -85,11 +85,11 @@ mod verification_tests {
 
         let rules = compile_str(dsl_source).expect("DSL compilation failed");
         assert_eq!(rules.len(), 2);
-        
+
         // Test rule-a fires
         let findings_a = rules[0].analyze("test.rs", "// TODO: fix this");
         assert!(!findings_a.is_empty());
-        
+
         // Test rule-b fires
         let findings_b = rules[1].analyze("test.rs", "// FIXME: also this");
         assert!(!findings_b.is_empty());
@@ -128,8 +128,12 @@ mod verification_tests {
             // We expect either success or a type error, but NOT "UnknownPredicate"
             if let Err(e) = result {
                 let error_str = e.to_string();
-                assert!(!error_str.contains("UnknownPredicate"), 
-                    "Predicate {} should be recognized, got error: {}", pred, error_str);
+                assert!(
+                    !error_str.contains("UnknownPredicate"),
+                    "Predicate {} should be recognized, got error: {}",
+                    pred,
+                    error_str
+                );
             }
         }
     }

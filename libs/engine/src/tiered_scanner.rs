@@ -1,4 +1,4 @@
-use crate::scanner::{ScanResult, ContractScanner};
+use crate::scanner::{ContractScanner, ScanResult};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -64,90 +64,102 @@ pub struct TieredScanner {
 impl TieredScanner {
     pub fn new() -> Self {
         let mut tier_configs = HashMap::new();
-        
+
         // Initialize default tier configurations
-        tier_configs.insert(UsageTier::Starter, TierConfig {
-            tier: UsageTier::Starter,
-            name: "Starter".to_string(),
-            description: "Perfect for individual developers and small projects".to_string(),
-            request_limit: 1000,
-            base_price_per_request: 0.00001,
-            discount_percentage: 0.0,
-            features: vec![
-                "Basic gas estimation".to_string(),
-                "Standard priority support".to_string(),
-                "Monthly usage reports".to_string(),
-                "API access (1000 requests/month)".to_string(),
-            ],
-            rate_limit_per_minute: 10,
-            priority_support: false,
-            custom_pricing: false,
-        });
-        
-        tier_configs.insert(UsageTier::Developer, TierConfig {
-            tier: UsageTier::Developer,
-            name: "Developer".to_string(),
-            description: "Ideal for active developers and growing projects".to_string(),
-            request_limit: 10000,
-            base_price_per_request: 0.000008, // 20% discount
-            discount_percentage: 20.0,
-            features: vec![
-                "Advanced gas estimation".to_string(),
-                "Priority support".to_string(),
-                "Real-time analytics".to_string(),
-                "API access (10,000 requests/month)".to_string(),
-                "Custom alerts".to_string(),
-                "Historical data access (6 months)".to_string(),
-            ],
-            rate_limit_per_minute: 30,
-            priority_support: true,
-            custom_pricing: false,
-        });
-        
-        tier_configs.insert(UsageTier::Professional, TierConfig {
-            tier: UsageTier::Professional,
-            name: "Professional".to_string(),
-            description: "For professional teams and production applications".to_string(),
-            request_limit: 100000,
-            base_price_per_request: 0.000006, // 40% discount
-            discount_percentage: 40.0,
-            features: vec![
-                "Premium gas estimation".to_string(),
-                "24/7 priority support".to_string(),
-                "Advanced analytics dashboard".to_string(),
-                "API access (100,000 requests/month)".to_string(),
-                "Custom integrations".to_string(),
-                "Historical data access (2 years)".to_string(),
-                "Custom alerts and notifications".to_string(),
-                "SLA guarantees".to_string(),
-            ],
-            rate_limit_per_minute: 100,
-            priority_support: true,
-            custom_pricing: true,
-        });
-        
-        tier_configs.insert(UsageTier::Enterprise, TierConfig {
-            tier: UsageTier::Enterprise,
-            name: "Enterprise".to_string(),
-            description: "Custom solutions for large-scale operations".to_string(),
-            request_limit: -1, // unlimited
-            base_price_per_request: 0.000004, // 60% discount
-            discount_percentage: 60.0,
-            features: vec![
-                "Enterprise-grade gas estimation".to_string(),
-                "Dedicated support team".to_string(),
-                "Custom analytics and reporting".to_string(),
-                "Unlimited API access".to_string(),
-                "White-label solutions".to_string(),
-                "Unlimited historical data".to_string(),
-                "Custom integrations and workflows".to_string(),
-                "99.9% SLA guarantee".to_string(),
-                "Custom contracts and pricing".to_string(),
-            ],
-            rate_limit_per_minute: 1000,
-            priority_support: true,
-            custom_pricing: true,
-        });
+        tier_configs.insert(
+            UsageTier::Starter,
+            TierConfig {
+                tier: UsageTier::Starter,
+                name: "Starter".to_string(),
+                description: "Perfect for individual developers and small projects".to_string(),
+                request_limit: 1000,
+                base_price_per_request: 0.00001,
+                discount_percentage: 0.0,
+                features: vec![
+                    "Basic gas estimation".to_string(),
+                    "Standard priority support".to_string(),
+                    "Monthly usage reports".to_string(),
+                    "API access (1000 requests/month)".to_string(),
+                ],
+                rate_limit_per_minute: 10,
+                priority_support: false,
+                custom_pricing: false,
+            },
+        );
+
+        tier_configs.insert(
+            UsageTier::Developer,
+            TierConfig {
+                tier: UsageTier::Developer,
+                name: "Developer".to_string(),
+                description: "Ideal for active developers and growing projects".to_string(),
+                request_limit: 10000,
+                base_price_per_request: 0.000008, // 20% discount
+                discount_percentage: 20.0,
+                features: vec![
+                    "Advanced gas estimation".to_string(),
+                    "Priority support".to_string(),
+                    "Real-time analytics".to_string(),
+                    "API access (10,000 requests/month)".to_string(),
+                    "Custom alerts".to_string(),
+                    "Historical data access (6 months)".to_string(),
+                ],
+                rate_limit_per_minute: 30,
+                priority_support: true,
+                custom_pricing: false,
+            },
+        );
+
+        tier_configs.insert(
+            UsageTier::Professional,
+            TierConfig {
+                tier: UsageTier::Professional,
+                name: "Professional".to_string(),
+                description: "For professional teams and production applications".to_string(),
+                request_limit: 100000,
+                base_price_per_request: 0.000006, // 40% discount
+                discount_percentage: 40.0,
+                features: vec![
+                    "Premium gas estimation".to_string(),
+                    "24/7 priority support".to_string(),
+                    "Advanced analytics dashboard".to_string(),
+                    "API access (100,000 requests/month)".to_string(),
+                    "Custom integrations".to_string(),
+                    "Historical data access (2 years)".to_string(),
+                    "Custom alerts and notifications".to_string(),
+                    "SLA guarantees".to_string(),
+                ],
+                rate_limit_per_minute: 100,
+                priority_support: true,
+                custom_pricing: true,
+            },
+        );
+
+        tier_configs.insert(
+            UsageTier::Enterprise,
+            TierConfig {
+                tier: UsageTier::Enterprise,
+                name: "Enterprise".to_string(),
+                description: "Custom solutions for large-scale operations".to_string(),
+                request_limit: -1,                // unlimited
+                base_price_per_request: 0.000004, // 60% discount
+                discount_percentage: 60.0,
+                features: vec![
+                    "Enterprise-grade gas estimation".to_string(),
+                    "Dedicated support team".to_string(),
+                    "Custom analytics and reporting".to_string(),
+                    "Unlimited API access".to_string(),
+                    "White-label solutions".to_string(),
+                    "Unlimited historical data".to_string(),
+                    "Custom integrations and workflows".to_string(),
+                    "99.9% SLA guarantee".to_string(),
+                    "Custom contracts and pricing".to_string(),
+                ],
+                rate_limit_per_minute: 1000,
+                priority_support: true,
+                custom_pricing: true,
+            },
+        );
 
         Self {
             base_scanner: ContractScanner::new(),
@@ -163,14 +175,16 @@ impl TieredScanner {
     ) -> anyhow::Result<TieredScanResult> {
         // First get the base scan result
         let base_result = self.base_scanner.scan_content(content, source)?;
-        
+
         // Get tier configuration
-        let tier_config = self.tier_configs.get(&user_usage.current_tier)
+        let tier_config = self
+            .tier_configs
+            .get(&user_usage.current_tier)
             .ok_or_else(|| anyhow::anyhow!("Invalid tier: {:?}", user_usage.current_tier))?;
 
         // Calculate tier discount
         let tier_discount = tier_config.discount_percentage / 100.0;
-        
+
         // Simulate base cost (in a real implementation, this would come from the scan)
         let base_cost = 0.00001; // Base cost per scan
         let discounted_price = base_cost * (1.0 - tier_discount);
@@ -181,7 +195,7 @@ impl TieredScanner {
         } else {
             (user_usage.current_month_requests as f64 / tier_config.request_limit as f64) * 100.0
         };
-        
+
         let remaining_requests = if tier_config.request_limit == -1 {
             i64::MAX // Unlimited
         } else {
@@ -201,7 +215,9 @@ impl TieredScanner {
         };
 
         // Check for downgrade warning
-        let downgrade_warning = if usage_percentage < 20.0 && user_usage.current_tier != UsageTier::Starter {
+        let downgrade_warning = if usage_percentage < 20.0
+            && user_usage.current_tier != UsageTier::Starter
+        {
             let lower_tier = self.get_lower_tier(&user_usage.current_tier);
             Some(format!(
                 "Consider downgrading to {:?} to save costs - you're only using {:.1}% of your current tier limit.",
@@ -254,7 +270,9 @@ impl TieredScanner {
         };
 
         // Check if user has exceeded their limit
-        if user_usage.current_month_requests >= tier_config.request_limit && tier_config.request_limit != -1 {
+        if user_usage.current_month_requests >= tier_config.request_limit
+            && tier_config.request_limit != -1
+        {
             let next_tier = self.get_higher_tier(&user_usage.current_tier);
             return TierValidationResult {
                 is_valid: false,
@@ -270,7 +288,8 @@ impl TieredScanner {
         }
 
         // Check if user is approaching their limit
-        let usage_percentage = (user_usage.current_month_requests as f64 / tier_config.request_limit as f64) * 100.0;
+        let usage_percentage =
+            (user_usage.current_month_requests as f64 / tier_config.request_limit as f64) * 100.0;
         if usage_percentage > 90.0 {
             let next_tier = self.get_higher_tier(&user_usage.current_tier);
             return TierValidationResult {

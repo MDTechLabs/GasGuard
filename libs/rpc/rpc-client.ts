@@ -1,7 +1,7 @@
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
-import { FailoverStrategy, RpcEndpoint } from './failover-strategy';
-import { HealthCheckService } from '@monitoring/health-check';
+import axios from "axios";
+import axiosRetry from "axios-retry";
+import { FailoverStrategy, RpcEndpoint } from "./failover-strategy";
+import { HealthCheckService } from "@monitoring/health-check";
 
 export class RpcClient {
   private strategy: FailoverStrategy;
@@ -13,8 +13,8 @@ export class RpcClient {
     this.endpoints = endpoints;
     this.strategy = new FailoverStrategy(endpoints);
     this.healthService = new HealthCheckService();
-    this.endpoints.forEach(e => this.healthyUrls.add(e.url));
-    
+    this.endpoints.forEach((e) => this.healthyUrls.add(e.url));
+
     // Initial health check
     this.checkHealth();
     // Periodically check health
@@ -35,7 +35,7 @@ export class RpcClient {
   async call(method: string, params: any[]): Promise<any> {
     const endpoint = this.strategy.getBestEndpoint(this.healthyUrls);
     if (!endpoint) {
-      throw new Error('No healthy RPC endpoints available');
+      throw new Error("No healthy RPC endpoints available");
     }
 
     const client = axios.create({
@@ -47,13 +47,16 @@ export class RpcClient {
       retries: 3,
       retryDelay: axiosRetry.exponentialDelay,
       retryCondition: (error) => {
-        return axiosRetry.isNetworkOrIdempotentRequestError(error) || error.response?.status === 429;
+        return (
+          axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+          error.response?.status === 429
+        );
       },
     });
 
     try {
-      const response = await client.post('', {
-        jsonrpc: '2.0',
+      const response = await client.post("", {
+        jsonrpc: "2.0",
         method,
         params,
         id: Date.now(),

@@ -13,29 +13,29 @@ export interface CodebaseSubmissionRequest {
 export interface FileSubmission {
   path: string;
   content: string;
-  language: 'rust' | 'typescript' | 'javascript' | 'solidity';
+  language: "rust" | "typescript" | "javascript" | "solidity";
   size: number;
   lastModified?: string;
 }
 
 export interface AnalysisOptions {
-  scanType: 'security' | 'performance' | 'gas-optimization' | 'full';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  scanType: "security" | "performance" | "gas-optimization" | "full";
+  severity: "low" | "medium" | "high" | "critical";
   includeRecommendations: boolean;
   excludePatterns?: string[];
 }
 
 export interface ProjectMetadata {
-  framework: 'soroban' | 'solidity' | 'general';
+  framework: "soroban" | "solidity" | "general";
   version?: string;
   dependencies?: Record<string, string>;
-  buildSystem?: 'cargo' | 'npm' | 'yarn' | 'hardhat';
-  network?: 'stellar' | 'ethereum' | 'polygon' | 'bsc';
+  buildSystem?: "cargo" | "npm" | "yarn" | "hardhat";
+  network?: "stellar" | "ethereum" | "polygon" | "bsc";
 }
 
 export interface AnalysisResponse {
   jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: "queued" | "processing" | "completed" | "failed";
   submittedAt: string;
   estimatedDuration?: number;
   statusUrl: string;
@@ -44,7 +44,7 @@ export interface AnalysisResponse {
 
 export interface AnalysisStatus {
   jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: "queued" | "processing" | "completed" | "failed";
   progress: number;
   currentStep?: string;
   startedAt?: string;
@@ -54,7 +54,7 @@ export interface AnalysisStatus {
 
 export interface AnalysisResult {
   jobId: string;
-  status: 'completed' | 'failed';
+  status: "completed" | "failed";
   completedAt: string;
   duration: number;
   summary: AnalysisSummary;
@@ -83,8 +83,8 @@ export interface FileAnalysisResult {
 
 export interface Issue {
   id: string;
-  type: 'security' | 'performance' | 'gas-optimization' | 'best-practice';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  type: "security" | "performance" | "gas-optimization" | "best-practice";
+  severity: "low" | "medium" | "high" | "critical";
   title: string;
   description: string;
   location: {
@@ -113,10 +113,10 @@ export interface Recommendation {
   id: string;
   title: string;
   description: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: "low" | "medium" | "high";
   estimatedImpact: string;
   implementation: {
-    difficulty: 'easy' | 'medium' | 'hard';
+    difficulty: "easy" | "medium" | "hard";
     timeEstimate: string;
     codeChanges?: CodeChange[];
   };
@@ -125,7 +125,7 @@ export interface Recommendation {
 export interface CodeChange {
   file: string;
   line: number;
-  operation: 'replace' | 'insert' | 'delete';
+  operation: "replace" | "insert" | "delete";
   content: string;
 }
 

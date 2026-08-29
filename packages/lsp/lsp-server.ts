@@ -71,7 +71,7 @@ export class GasGuardLspServer {
     line: number,
     message: string,
     code: string,
-    severity: DiagnosticSeverity = 2
+    severity: DiagnosticSeverity = 2,
   ): LspDiagnostic {
     return {
       range: {
@@ -80,7 +80,7 @@ export class GasGuardLspServer {
       },
       severity,
       code,
-      source: 'gasguard',
+      source: "gasguard",
       message,
     };
   }

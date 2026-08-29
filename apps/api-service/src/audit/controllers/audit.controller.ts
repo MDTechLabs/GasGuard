@@ -11,12 +11,12 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
+} from "@nestjs/common";
 // import type { Response } from 'express';
-import { AuditLogService } from '../services/audit-log.service';
-import { AuditLogFilterDto, ExportAuditLogsDto } from '../dto/audit-log.dto';
+import { AuditLogService } from "../services/audit-log.service";
+import { AuditLogFilterDto, ExportAuditLogsDto } from "../dto/audit-log.dto";
 
-@Controller('audit')
+@Controller("audit")
 export class AuditController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
@@ -25,7 +25,7 @@ export class AuditController {
    * Only accessible by admin users
    * GET /audit/logs?eventType=APIRequest&user=merchant-id&from=2024-01-01&to=2024-12-31
    */
-  @Get('logs')
+  @Get("logs")
   async getLogs(@Query() filters: AuditLogFilterDto) {
     // In production: Add @UseGuards(AdminGuard) to enforce admin-only access
     try {
@@ -39,8 +39,8 @@ export class AuditController {
   /**
    * Get a specific audit log by ID
    */
-  @Get('logs/:id')
-  async getLogById(@Param('id') id: string) {
+  @Get("logs/:id")
+  async getLogById(@Param("id") id: string) {
     // In production: Add @UseGuards(AdminGuard) to enforce admin-only access
     const log = await this.auditLogService.getLogById(id);
     if (!log) {
@@ -52,10 +52,10 @@ export class AuditController {
   /**
    * Get logs by event type
    */
-  @Get('logs/type/:eventType')
+  @Get("logs/type/:eventType")
   async getLogsByEventType(
-    @Param('eventType') eventType: string,
-    @Query('limit') limit?: number,
+    @Param("eventType") eventType: string,
+    @Query("limit") limit?: number,
   ) {
     // In production: Add @UseGuards(AdminGuard) to enforce admin-only access
     return this.auditLogService.getLogsByEventType(eventType as any, limit);
@@ -64,10 +64,10 @@ export class AuditController {
   /**
    * Get logs for a specific user
    */
-  @Get('logs/user/:userId')
+  @Get("logs/user/:userId")
   async getLogsByUser(
-    @Param('userId') userId: string,
-    @Query('limit') limit?: number,
+    @Param("userId") userId: string,
+    @Query("limit") limit?: number,
   ) {
     // In production: Add @UseGuards(AdminGuard) or similar to verify authorization
     return this.auditLogService.getLogsByUser(userId, limit);
@@ -76,11 +76,9 @@ export class AuditController {
   /**
    * Export audit logs in CSV or JSON format
    */
-  @Post('logs/export')
+  @Post("logs/export")
   @HttpCode(HttpStatus.OK)
-  async exportLogs(
-    @Body() exportDto: ExportAuditLogsDto,
-  ) {
+  async exportLogs(@Body() exportDto: ExportAuditLogsDto) {
     // In production: Add @UseGuards(AdminGuard) to enforce admin-only access
     try {
       const data = await this.auditLogService.exportLogs(
@@ -101,11 +99,11 @@ export class AuditController {
   /**
    * Get audit statistics
    */
-  @Get('stats')
+  @Get("stats")
   async getStats() {
     // In production: Add @UseGuards(AdminGuard) to enforce admin-only access
     const stats = {
-      message: 'Audit statistics endpoint',
+      message: "Audit statistics endpoint",
       // Implementation can include: event counts by type, user activity, etc.
     };
     return stats;

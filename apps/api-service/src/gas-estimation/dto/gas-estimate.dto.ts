@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsDate } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsDate } from "class-validator";
 
 export class GetGasEstimateDto {
   @IsString()
@@ -13,7 +13,7 @@ export class GetGasEstimateDto {
 
   @IsOptional()
   @IsString()
-  priority?: 'low' | 'normal' | 'high' | 'critical';
+  priority?: "low" | "normal" | "high" | "critical";
 }
 
 export class GasEstimateResponseDto {

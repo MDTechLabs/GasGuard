@@ -5,7 +5,7 @@ export interface ChainGasMetrics {
   priorityFee?: string;
   averageGasUsed: {
     transfer: number;
-    'contract-call': number;
+    "contract-call": number;
     swap: number;
   };
   nativeTokenPriceUSD: number;
@@ -22,7 +22,7 @@ export interface TransactionCost {
 }
 
 export interface CrossChainGasRequest {
-  txType: 'transfer' | 'contract-call' | 'swap';
+  txType: "transfer" | "contract-call" | "swap";
 }
 
 export interface CrossChainGasResponse {

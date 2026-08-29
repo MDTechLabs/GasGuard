@@ -13,7 +13,10 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./apps/api/test/jest-e2e.json"
+    "test:e2e": "jest --config ./apps/api/test/jest-e2e.json",
+    "test:regression": "jest --testPathPattern='tests/regression/security/stellar/regression.spec' --no-coverage --verbose",
+    "bench:gas-comparator": "ts-node tests/benchmarks/gas-comparator.ts tests/benchmarks/fixtures",
+    "test:contracts": "hardhat test"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -29,19 +32,25 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "husky": "^8.0.0",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/chai": "^4.3.16",
+    "@types/fs-extra": "^11.0.4",
     "@types/glob": "^8.1.0",
     "@types/jest": "^29.5.2",
+    "@types/mocha": "^10.0.6",
     "@types/node": "^20.3.1",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "chai": "^4.5.0",
     "eslint": "^8.42.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
     "glob": "^13.0.6",
+    "hardhat": "^2.22.5",
+    "husky": "^8.0.0",
     "jest": "^29.5.0",
     "prettier": "^3.0.0",
     "ts-jest": "^29.1.0",
@@ -76,7 +85,8 @@
       "^@rpc/(.*)$": "<rootDir>/libs/rpc/$1",
       "^@monitoring/(.*)$": "<rootDir>/libs/monitoring/$1",
       "^@simulation/(.*)$": "<rootDir>/libs/simulation/$1",
-      "^@chains/(.*)$": "<rootDir>/libs/chains/$1"
+      "^@chains/(.*)$": "<rootDir>/libs/chains/$1",
+      "^@gas-evaluator/(.*)$": "<rootDir>/libs/gas-evaluator/src/$1"
     }
   }
 }

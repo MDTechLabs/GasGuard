@@ -1,1 +1,1 @@
-export { JwtStrategy, JwtPayload, JwtUser } from './jwt.strategy';
+export { JwtStrategy, JwtPayload, JwtUser } from "./jwt.strategy";

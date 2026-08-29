@@ -10,22 +10,23 @@ impl PluginLoader {
     }
 
     /// Load a rule plugin from a dynamic library (.so, .dll, .dylib)
-    /// 
+    ///
     /// Note: This requires the plugin to export a function named `create_rule`
     /// that returns a pointer to a Box<dyn Rule>.
     /// In a production system, you'd want to use a stable ABI or WASM.
     pub unsafe fn load_rule<P: AsRef<Path>>(&self, path: P) -> Result<Box<dyn Rule>, String> {
         let lib = Library::new(path.as_ref().as_os_str()).map_err(|e| e.to_string())?;
-        
+
         // We leak the library to keep it loaded, as the Rule might use code from it
         let lib = Box::leak(Box::new(lib));
-        
-        let constructor: Symbol<unsafe fn() -> *mut dyn Rule> = lib.get(b"create_rule")
+
+        let constructor: Symbol<unsafe fn() -> *mut dyn Rule> = lib
+            .get(b"create_rule")
             .map_err(|e| format!("Failed to find 'create_rule' symbol: {}", e))?;
-        
+
         let rule_ptr = constructor();
         let rule = Box::from_raw(rule_ptr);
-        
+
         Ok(rule)
     }
 }

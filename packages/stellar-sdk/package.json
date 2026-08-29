@@ -1,0 +1,15 @@
+{
+  "name": "@gasguard/stellar-sdk",
+  "version": "1.0.0",
+  "description": "Stellar SDK with Soroban contract interface support",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rd /s /q dist"
+  }
+}

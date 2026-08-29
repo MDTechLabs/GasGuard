@@ -7,7 +7,7 @@ export function extractFeatures(events: EventRecord[]): FeatureVector {
 
   const sorted = [...events].sort((a, b) => a.timestamp - b.timestamp);
 
-  let gaps: number[] = [];
+  const gaps: number[] = [];
   let errors = 0;
 
   for (let i = 1; i < sorted.length; i++) {

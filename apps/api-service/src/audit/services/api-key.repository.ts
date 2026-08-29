@@ -1,5 +1,5 @@
-import { EntityRepository, Repository } from 'typeorm';
-import { ApiKey, ApiKeyStatus } from '../entities/api-key.entity';
+import { EntityRepository, Repository } from "typeorm";
+import { ApiKey, ApiKeyStatus } from "../entities/api-key.entity";
 
 @EntityRepository(ApiKey)
 export class ApiKeyRepository extends Repository<ApiKey> {
@@ -34,16 +34,16 @@ export class ApiKeyRepository extends Repository<ApiKey> {
     offset: number = 0,
     status?: ApiKeyStatus,
   ): Promise<{ data: ApiKey[]; total: number }> {
-    const query = this.createQueryBuilder('apiKey')
-      .where('apiKey.merchantId = :merchantId', { merchantId });
+    const query = this.createQueryBuilder("apiKey").where(
+      "apiKey.merchantId = :merchantId",
+      { merchantId },
+    );
 
     if (status) {
-      query.andWhere('apiKey.status = :status', { status });
+      query.andWhere("apiKey.status = :status", { status });
     }
 
-    query.orderBy('apiKey.createdAt', 'DESC')
-      .skip(offset)
-      .take(limit);
+    query.orderBy("apiKey.createdAt", "DESC").skip(offset).take(limit);
 
     const data = await query.getMany();
     const total = data.length;
@@ -113,9 +113,9 @@ export class ApiKeyRepository extends Repository<ApiKey> {
    */
   async findExpiredKeys(): Promise<ApiKey[]> {
     const now = new Date();
-    return this.createQueryBuilder('apiKey')
-      .where('apiKey.status = :status', { status: ApiKeyStatus.ACTIVE })
-      .andWhere('apiKey.expiresAt < :now', { now })
+    return this.createQueryBuilder("apiKey")
+      .where("apiKey.status = :status", { status: ApiKeyStatus.ACTIVE })
+      .andWhere("apiKey.expiresAt < :now", { now })
       .getMany();
   }
 
@@ -128,9 +128,9 @@ export class ApiKeyRepository extends Repository<ApiKey> {
 
     const now = new Date();
 
-    return this.createQueryBuilder('apiKey')
-      .where('apiKey.status = :status', { status: ApiKeyStatus.ACTIVE })
-      .andWhere('apiKey.expiresAt BETWEEN :now AND :futureDate', {
+    return this.createQueryBuilder("apiKey")
+      .where("apiKey.status = :status", { status: ApiKeyStatus.ACTIVE })
+      .andWhere("apiKey.expiresAt BETWEEN :now AND :futureDate", {
         now,
         futureDate,
       })
@@ -144,9 +144,9 @@ export class ApiKeyRepository extends Repository<ApiKey> {
     const cutoffDate = new Date();
     cutoffDate.setHours(cutoffDate.getHours() - gracePeriodHours);
 
-    return this.createQueryBuilder('apiKey')
-      .where('apiKey.status = :status', { status: ApiKeyStatus.ROTATED })
-      .andWhere('apiKey.updatedAt < :cutoffDate', { cutoffDate })
+    return this.createQueryBuilder("apiKey")
+      .where("apiKey.status = :status", { status: ApiKeyStatus.ROTATED })
+      .andWhere("apiKey.updatedAt < :cutoffDate", { cutoffDate })
       .getMany();
   }
 

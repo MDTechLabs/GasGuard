@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from "class-validator";
 
 export class ScanRequestDto {
   @IsString()
@@ -7,9 +7,9 @@ export class ScanRequestDto {
 
   @IsString()
   @IsOptional()
-  source?: string = 'remote-scan';
+  source?: string = "remote-scan";
 
   @IsString()
   @IsOptional()
-  language?: string = 'rust';
+  language?: string = "rust";
 }

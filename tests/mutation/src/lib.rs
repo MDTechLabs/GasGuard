@@ -115,6 +115,10 @@ impl Contract {
     pub fn new() -> Self {
         Self { huge_counter: 0 }
     }
+
+    pub fn get_huge_counter(&self) -> u128 {
+        self.huge_counter
+    }
 }
 "#;
 

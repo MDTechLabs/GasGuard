@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { RulesService } from '../rules/rules.service';
-import { ScanResult, RuleViolation } from './interfaces/scanner.interface';
-import { ScanRequestDto } from './dto/scan-request.dto';
+import { Injectable } from "@nestjs/common";
+import { RulesService } from "../rules/rules.service";
+import { ScanResult, RuleViolation } from "./interfaces/scanner.interface";
+import { ScanRequestDto } from "./dto/scan-request.dto";
 
 @Injectable()
 export class ScannerService {
@@ -25,7 +25,7 @@ export class ScannerService {
   async scanBatch(requests: ScanRequestDto[]): Promise<ScanResult[]> {
     const results = await Promise.all(
       requests.map((req) =>
-        this.scanContent(req.code, req.source ?? 'remote-scan'),
+        this.scanContent(req.code, req.source ?? "remote-scan"),
       ),
     );
     return results;
@@ -46,13 +46,13 @@ export class ScannerService {
 
     for (const violation of violations) {
       switch (violation.severity) {
-        case 'error':
+        case "error":
           summary.errors++;
           break;
-        case 'warning':
+        case "warning":
           summary.warnings++;
           break;
-        case 'info':
+        case "info":
           summary.info++;
           break;
       }

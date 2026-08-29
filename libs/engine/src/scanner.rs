@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
-use gasguard_rule_engine::{RedundantBooleanComparisonsRule, RuleEngine, RuleViolation};
 use gasguard_parser_rust::RustParser;
 use gasguard_parser_solidity::SolidityParser;
 use gasguard_parser_vyper::VyperParser;
+use gasguard_rule_engine::{RedundantBooleanComparisonsRule, RuleEngine, RuleViolation};
 use std::path::Path;
 
 /// Supported languages for scanning

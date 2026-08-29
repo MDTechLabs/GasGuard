@@ -95,9 +95,7 @@ pub fn compile_rule(def: RuleDefinition) -> DslResult<Box<dyn BaseRule>> {
 
 fn validate_condition(cond: &Condition) -> DslResult<()> {
     match cond {
-        Condition::Predicate { name, args, span } => {
-            validate_predicate(name, args, span)
-        }
+        Condition::Predicate { name, args, span } => validate_predicate(name, args, span),
         Condition::And(l, r) | Condition::Or(l, r) => {
             validate_condition(l)?;
             validate_condition(r)
@@ -179,9 +177,7 @@ impl CompiledRule {
         ctx: &EvalContext<'_>,
     ) -> DslResult<Vec<PredicateMatch>> {
         match cond {
-            Condition::Predicate { name, args, span } => {
-                builtins::evaluate(name, args, ctx, span)
-            }
+            Condition::Predicate { name, args, span } => builtins::evaluate(name, args, ctx, span),
 
             Condition::And(left, right) => {
                 let left_matches = self.eval_condition(left, ctx)?;
@@ -397,7 +393,11 @@ mod tests {
         let result = compile_str(src);
         assert!(result.is_err());
         let msg = result.err().unwrap().to_string();
-        assert!(msg.contains("does_not_exist"), "expected unknown predicate error, got: {}", msg);
+        assert!(
+            msg.contains("does_not_exist"),
+            "expected unknown predicate error, got: {}",
+            msg
+        );
     }
 
     #[test]
@@ -406,8 +406,16 @@ mod tests {
         let findings = rules[0].analyze("src/main.rs", "unsafe { }");
         assert!(!findings.is_empty());
         let msg = &findings[0].message;
-        assert!(msg.contains("1"), "line number should appear in message: {}", msg);
-        assert!(msg.contains("unsafe"), "snippet should appear in message: {}", msg);
+        assert!(
+            msg.contains("1"),
+            "line number should appear in message: {}",
+            msg
+        );
+        assert!(
+            msg.contains("unsafe"),
+            "snippet should appear in message: {}",
+            msg
+        );
     }
 
     #[test]

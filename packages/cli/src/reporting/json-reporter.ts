@@ -1,5 +1,5 @@
-import fs from 'fs-extra';
-import path from 'path';
+import fs from "fs-extra";
+import path from "path";
 
 export interface ScanResult {
   timestamp: string;
@@ -35,11 +35,14 @@ export interface Summary {
   totalGasSavings: number;
 }
 
-export async function generateJsonReport(results: ScanResult, outputPath: string): Promise<void> {
+export async function generateJsonReport(
+  results: ScanResult,
+  outputPath: string,
+): Promise<void> {
   const report = {
     metadata: {
-      version: '1.0.0',
-      tool: 'GasGuard CLI',
+      version: "1.0.0",
+      tool: "GasGuard CLI",
       timestamp: results.timestamp,
       scanPath: results.scanPath,
     },
@@ -51,7 +54,7 @@ export async function generateJsonReport(results: ScanResult, outputPath: string
       bySeverity: results.summary.bySeverity,
       byRule: results.summary.byRule,
     },
-    findings: results.findings.map(finding => ({
+    findings: results.findings.map((finding) => ({
       ...finding,
       category: categorizeFinding(finding),
     })),
@@ -66,30 +69,42 @@ export async function generateJsonReport(results: ScanResult, outputPath: string
 }
 
 function categorizeFinding(finding: Finding): string {
-  if (finding.ruleId.startsWith('SOL-')) return 'solidity';
-  if (finding.ruleId.startsWith('VY-')) return 'vyper';
-  if (finding.ruleId.startsWith('RS-')) return 'rust';
-  if (finding.ruleId.startsWith('SOR-')) return 'soroban';
-  return 'general';
+  if (finding.ruleId.startsWith("SOL-")) return "solidity";
+  if (finding.ruleId.startsWith("VY-")) return "vyper";
+  if (finding.ruleId.startsWith("RS-")) return "rust";
+  if (finding.ruleId.startsWith("SOR-")) return "soroban";
+  return "general";
 }
 
-export async function generateCsvReport(results: ScanResult, outputPath: string): Promise<void> {
-  const headers = ['File', 'Line', 'Rule ID', 'Rule Name', 'Severity', 'Message', 'Gas Savings', 'Confidence'];
-  const rows = results.findings.map(f => [
+export async function generateCsvReport(
+  results: ScanResult,
+  outputPath: string,
+): Promise<void> {
+  const headers = [
+    "File",
+    "Line",
+    "Rule ID",
+    "Rule Name",
+    "Severity",
+    "Message",
+    "Gas Savings",
+    "Confidence",
+  ];
+  const rows = results.findings.map((f) => [
     f.file,
     f.line.toString(),
     f.ruleId,
     f.ruleName,
     f.severity,
     f.message,
-    f.gasSavings?.toString() || 'N/A',
-    f.confidence?.toFixed(2) || 'N/A',
+    f.gasSavings?.toString() || "N/A",
+    f.confidence?.toFixed(2) || "N/A",
   ]);
 
   const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
-  ].join('\n');
+    headers.join(","),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+  ].join("\n");
 
   const outputDir = path.dirname(outputPath);
   await fs.ensureDir(outputDir);

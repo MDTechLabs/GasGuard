@@ -1,56 +1,64 @@
-/**
- * HTML Reporter Test
- * 
- * Demonstrates generating a human-readable report.
- */
+import { HtmlReporter } from "./html-reporter";
+import { ReportIssue } from "./types";
 
-import { HtmlReporter } from './html-reporter';
-import * as path from 'path';
-
-async function runDemo() {
+describe("HtmlReporter refactor suggestions", () => {
   const reporter = new HtmlReporter();
-  
-  const sampleIssues = [
+
+  const sampleIssues: ReportIssue[] = [
     {
-      ruleId: 'GAS-001',
-      filePath: 'contracts/Vulnerable.sol',
+      ruleId: "SOR-PERF",
+      filePath: "contracts/vault.rs",
       line: 42,
-      message: 'Unchecked loop variable increment leading to potential gas exhaustion.',
-      confidence: 0.95
+      message: "Expensive state variable access in loop should be cached.",
+      confidence: 0.95,
     },
     {
-      ruleId: 'GAS-002',
-      filePath: 'contracts/Vulnerable.sol',
-      line: 128,
-      message: 'Expensive state variable access in loop. Consider caching in memory.',
-      confidence: 0.82
-    },
-    {
-      ruleId: 'SEC-005',
-      filePath: 'contracts/Auth.sol',
+      ruleId: "SOR-AUTH",
+      filePath: "contracts/admin.rs",
       line: 12,
-      message: 'Implicit visibility for state variable. Should be explicitly public or private.',
-      confidence: 0.45
-    }
+      message: "Missing owner authorization check before admin action.",
+      confidence: 0.88,
+    },
   ];
 
-  const reportData = reporter.createReportData(
-    'StellarAid-Web',
-    'v1.2.0-beta',
-    sampleIssues,
-    156, // total files
-    2450 // duration ms
-  );
+  it("adds linked refactor suggestions to report data", () => {
+    const data = reporter.createReportData(
+      "GasGuard Soroban Scan",
+      "v1.0.0",
+      sampleIssues,
+      12,
+      140,
+    );
 
-  const outputPath = path.join(process.cwd(), 'reports', 'analysis-report.html');
-  console.log(`Generating report at: ${outputPath}`);
-  
-  await reporter.saveReport(reportData, outputPath);
-  console.log('Report generated successfully!');
-}
+    expect(
+      data.refactorSuggestions?.map((suggestion) => suggestion.category),
+    ).toEqual(expect.arrayContaining(["authorization", "performance"]));
+    expect(
+      data.issues[0].refactorSuggestions?.map(
+        (suggestion) => suggestion.category,
+      ),
+    ).toContain("performance");
+    expect(
+      data.issues[1].refactorSuggestions?.map(
+        (suggestion) => suggestion.category,
+      ),
+    ).toContain("authorization");
+  });
 
-if (require.main === module) {
-  runDemo().catch(console.error);
-}
+  it("renders refactor suggestions in the HTML report", () => {
+    const data = reporter.createReportData(
+      "GasGuard Soroban Scan",
+      "v1.0.0",
+      sampleIssues,
+      12,
+      140,
+    );
 
-export { runDemo };
+    const html = reporter.generate(data);
+
+    expect(html).toContain("Refactor Suggestions");
+    expect(html).toContain("Extract hot-path computation into a cached helper");
+    expect(html).toContain("Centralize authorization policy checks");
+    expect(html).toContain("Related refactors");
+  });
+});

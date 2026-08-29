@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use super::interface::{BaseRule, Language, RuleConfig};
 use super::io::{AnalysisInput, AnalysisOutput, SessionOutput};
+use std::collections::HashMap;
 
 /// Central store for all registered [`BaseRule`] implementations.
 ///
@@ -17,7 +17,9 @@ pub struct PluginRegistry {
 
 impl PluginRegistry {
     pub fn new() -> Self {
-        Self { rules: HashMap::new() }
+        Self {
+            rules: HashMap::new(),
+        }
     }
 
     /// Register a rule with the given config.  Calls `on_init` and returns

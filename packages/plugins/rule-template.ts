@@ -2,8 +2,8 @@ export interface RuleMetadata {
   id: string;
   name: string;
   description: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  category: 'gas' | 'security' | 'best-practice';
+  severity: "low" | "medium" | "high" | "critical";
+  category: "gas" | "security" | "best-practice";
 }
 
 export interface RuleMatch {
@@ -18,33 +18,38 @@ export abstract class BaseRule {
 
   abstract analyze(code: string): RuleMatch[];
 
-  protected createMatch(line: number, column: number, message: string, suggestion?: string): RuleMatch {
+  protected createMatch(
+    line: number,
+    column: number,
+    message: string,
+    suggestion?: string,
+  ): RuleMatch {
     return { line, column, message, suggestion };
   }
 }
 
 export class ExampleStorageRule extends BaseRule {
   metadata: RuleMetadata = {
-    id: 'inefficient-storage',
-    name: 'Inefficient Storage Pattern',
-    description: 'Detects redundant storage operations that increase gas costs',
-    severity: 'medium',
-    category: 'gas',
+    id: "inefficient-storage",
+    name: "Inefficient Storage Pattern",
+    description: "Detects redundant storage operations that increase gas costs",
+    severity: "medium",
+    category: "gas",
   };
 
   analyze(code: string): RuleMatch[] {
     const matches: RuleMatch[] = [];
-    const lines = code.split('\n');
+    const lines = code.split("\n");
 
     lines.forEach((line, index) => {
-      if (line.includes('storage.set') && line.includes('storage.get')) {
+      if (line.includes("storage.set") && line.includes("storage.get")) {
         matches.push(
           this.createMatch(
             index + 1,
             0,
-            'Redundant storage operation detected',
-            'Cache the value in memory instead of multiple storage reads'
-          )
+            "Redundant storage operation detected",
+            "Cache the value in memory instead of multiple storage reads",
+          ),
         );
       }
     });

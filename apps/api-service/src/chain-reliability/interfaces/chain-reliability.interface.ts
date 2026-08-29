@@ -1,4 +1,4 @@
-import { MetricTimeWindow } from '../entities/chain-performance-metric.entity';
+import { MetricTimeWindow } from "../entities/chain-performance-metric.entity";
 
 export interface ChainMetrics {
   chainId: string;

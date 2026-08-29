@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ScannerService } from '../scanner/scanner.service';
-import { RuleViolation } from '../scanner/interfaces/scanner.interface';
+import { Injectable, Logger } from "@nestjs/common";
+import { ScannerService } from "../scanner/scanner.service";
+import { RuleViolation } from "../scanner/interfaces/scanner.interface";
 import {
   AnalysisReport,
   StorageSavings,
   FormattedViolation,
-} from './interfaces/analyzer.interface';
+} from "./interfaces/analyzer.interface";
 
 export interface IncrementalAnalysisOptions {
   useIncremental?: boolean;
@@ -29,9 +29,7 @@ export class IncrementalAnalyzerSimpleService {
   private readonly logger = new Logger(IncrementalAnalyzerSimpleService.name);
   private readonly cache = new Map<string, any>();
 
-  constructor(
-    private readonly scannerService: ScannerService,
-  ) {}
+  constructor(private readonly scannerService: ScannerService) {}
 
   /**
    * Analyze code with incremental support
@@ -39,13 +37,13 @@ export class IncrementalAnalyzerSimpleService {
   async analyzeCodeIncremental(
     code: string,
     source: string,
-    options: IncrementalAnalysisOptions = {}
+    options: IncrementalAnalysisOptions = {},
   ): Promise<IncrementalAnalysisResult> {
     const startTime = Date.now();
-    
+
     // For single file analysis, always use full analysis
     const result = await this.analyzeCode(code, source);
-    
+
     return {
       ...result,
       incrementalStats: {
@@ -63,29 +61,32 @@ export class IncrementalAnalyzerSimpleService {
    */
   async analyzeRepositoryIncremental(
     repoPath: string,
-    options: IncrementalAnalysisOptions = {}
+    options: IncrementalAnalysisOptions = {},
   ): Promise<IncrementalAnalysisResult> {
     const startTime = Date.now();
-    const useIncremental = options.useIncremental !== false && !options.forceFull;
-    
+    const useIncremental =
+      options.useIncremental !== false && !options.forceFull;
+
     try {
       // For now, implement a simple version that always does full analysis
       // This can be enhanced later with proper incremental functionality
       this.logger.log(`Performing repository analysis for: ${repoPath}`);
-      
+
       // Simulate finding files (in real implementation, this would scan the directory)
       const files = await this.findSupportedFiles(repoPath);
-      
+
       if (!useIncremental || files.length <= 10) {
         return this.performFullAnalysis(repoPath, files, startTime);
       }
-      
+
       // For now, fallback to full analysis
       // TODO: Implement proper incremental analysis with file hashing
       return this.performFullAnalysis(repoPath, files, startTime);
-      
     } catch (error) {
-      this.logger.error(`Repository analysis failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Repository analysis failed: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -96,32 +97,37 @@ export class IncrementalAnalyzerSimpleService {
   private async performFullAnalysis(
     repoPath: string,
     files: string[],
-    startTime: number
+    startTime: number,
   ): Promise<IncrementalAnalysisResult> {
     this.logger.log(`Performing full analysis on ${files.length} files`);
-    
+
     const allViolations: RuleViolation[] = [];
     const analysisTime = Date.now() - startTime;
-    
+
     // Analyze files in batches
     const batchSize = 50;
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);
-      
+
       for (const filePath of batch) {
         try {
           // In a real implementation, this would read the file content
           // For now, we'll simulate the analysis
-          const scanResult = await this.scannerService.scanContent('', filePath);
+          const scanResult = await this.scannerService.scanContent(
+            "",
+            filePath,
+          );
           allViolations.push(...scanResult.violations);
         } catch (error) {
-          this.logger.warn(`Failed to analyze file ${filePath}: ${error.message}`);
+          this.logger.warn(
+            `Failed to analyze file ${filePath}: ${error.message}`,
+          );
         }
       }
     }
-    
+
     const report = this.createAnalysisReport(repoPath, allViolations);
-    
+
     return {
       ...report,
       incrementalStats: {
@@ -137,9 +143,13 @@ export class IncrementalAnalyzerSimpleService {
   /**
    * Create analysis report from violations
    */
-  private createAnalysisReport(repoPath: string, violations: RuleViolation[]): AnalysisReport {
+  private createAnalysisReport(
+    repoPath: string,
+    violations: RuleViolation[],
+  ): AnalysisReport {
     const formattedViolations = this.formatViolations(violations);
-    const storageSavings = this.calculateStorageSavingsFromViolations(violations);
+    const storageSavings =
+      this.calculateStorageSavingsFromViolations(violations);
 
     return {
       source: repoPath,
@@ -157,12 +167,12 @@ export class IncrementalAnalyzerSimpleService {
   private async findSupportedFiles(repoPath: string): Promise<string[]> {
     // This is a simplified implementation
     // In a real scenario, this would use fs.readdir and fs.stat to walk the directory
-    const supportedExtensions = ['.rs', '.sol', '.vy'];
-    
+    const supportedExtensions = [".rs", ".sol", ".vy"];
+
     // For now, return an empty array as a placeholder
     // In a real implementation, this would scan the directory recursively
     this.logger.log(`Scanning for supported files in ${repoPath}`);
-    
+
     return [];
   }
 
@@ -189,9 +199,11 @@ export class IncrementalAnalyzerSimpleService {
    */
   async clearCache(repoPath: string): Promise<void> {
     // Clear cache entries for this repository
-    const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes(repoPath));
-    keysToDelete.forEach(key => this.cache.delete(key));
-    
+    const keysToDelete = Array.from(this.cache.keys()).filter((key) =>
+      key.includes(repoPath),
+    );
+    keysToDelete.forEach((key) => this.cache.delete(key));
+
     this.logger.log(`Cleared incremental analysis cache for ${repoPath}`);
   }
 
@@ -200,21 +212,26 @@ export class IncrementalAnalyzerSimpleService {
    */
   async invalidateFiles(repoPath: string, filePaths: string[]): Promise<void> {
     // Invalidate specific file cache entries
-    filePaths.forEach(filePath => {
+    filePaths.forEach((filePath) => {
       const key = `${repoPath}:${filePath}`;
       this.cache.delete(key);
     });
-    
+
     this.logger.log(`Invalidated cache for ${filePaths.length} files`);
   }
 
   /**
    * Legacy method for backward compatibility
    */
-  private async analyzeCode(code: string, source: string): Promise<AnalysisReport> {
+  private async analyzeCode(
+    code: string,
+    source: string,
+  ): Promise<AnalysisReport> {
     const scanResult = await this.scannerService.scanContent(code, source);
     const formattedViolations = this.formatViolations(scanResult.violations);
-    const storageSavings = this.calculateStorageSavingsFromViolations(scanResult.violations);
+    const storageSavings = this.calculateStorageSavingsFromViolations(
+      scanResult.violations,
+    );
 
     return {
       source,
@@ -236,14 +253,14 @@ export class IncrementalAnalyzerSimpleService {
 
   private getSeverityIcon(severity: string): string {
     switch (severity) {
-      case 'error':
-        return '🚨';
-      case 'warning':
-        return '⚠️';
-      case 'info':
-        return 'ℹ️';
+      case "error":
+        return "🚨";
+      case "warning":
+        return "⚠️";
+      case "info":
+        return "ℹ️";
       default:
-        return '📝';
+        return "📝";
     }
   }
 
@@ -253,22 +270,24 @@ export class IncrementalAnalyzerSimpleService {
 
   private generateSummary(violations: RuleViolation[]): string {
     if (violations.length === 0) {
-      return '✅ No violations found! Your contract is optimized.';
+      return "✅ No violations found! Your contract is optimized.";
     }
 
-    const errors = violations.filter((v) => v.severity === 'error').length;
-    const warnings = violations.filter((v) => v.severity === 'warning').length;
-    const info = violations.filter((v) => v.severity === 'info').length;
+    const errors = violations.filter((v) => v.severity === "error").length;
+    const warnings = violations.filter((v) => v.severity === "warning").length;
+    const info = violations.filter((v) => v.severity === "info").length;
 
     return `Scan Summary: ${violations.length} total violations (${errors} errors, ${warnings} warnings, ${info} info)`;
   }
 
-  private calculateStorageSavingsFromViolations(violations: RuleViolation[]): StorageSavings {
+  private calculateStorageSavingsFromViolations(
+    violations: RuleViolation[],
+  ): StorageSavings {
     let unusedVariables = 0;
     let estimatedSavingsKb = 0;
 
     for (const violation of violations) {
-      if (violation.ruleName === 'unused-state-variables') {
+      if (violation.ruleName === "unused-state-variables") {
         unusedVariables++;
         estimatedSavingsKb += 2.5;
       }
@@ -284,7 +303,7 @@ export class IncrementalAnalyzerSimpleService {
   private generateRecommendations(violations: RuleViolation[]): string[] {
     const recommendations: string[] = [];
     const unusedVars = violations.filter(
-      (v) => v.ruleName === 'unused-state-variables',
+      (v) => v.ruleName === "unused-state-variables",
     ).length;
 
     if (unusedVars > 0) {
@@ -292,16 +311,16 @@ export class IncrementalAnalyzerSimpleService {
         `Remove ${unusedVars} unused state variables to reduce storage costs`,
       );
       recommendations.push(
-        'Consider using more efficient data types where possible',
+        "Consider using more efficient data types where possible",
       );
       recommendations.push(
-        'Implement lazy loading patterns for rarely accessed data',
+        "Implement lazy loading patterns for rarely accessed data",
       );
     }
 
     if (violations.length === 0) {
       recommendations.push(
-        'Your contract looks good! Consider regular audits to maintain code quality.',
+        "Your contract looks good! Consider regular audits to maintain code quality.",
       );
     }
 

@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from "@nestjs/common";
 
 export interface RateLimitConfig {
   maxPerMinute: number;
@@ -59,14 +59,16 @@ export class RateLimitService {
     if (lastMinute >= this.config.maxPerMinute) {
       const oldestInWindow = recent.filter((t) => t > oneMinuteAgo)[0];
       status.allowed = false;
-      status.retryAfterSeconds = Math.ceil((oldestInWindow + 60_000 - now) / 1000);
+      status.retryAfterSeconds = Math.ceil(
+        (oldestInWindow + 60_000 - now) / 1000,
+      );
       this.logger.warn(
         `Rate limit (per-minute) exceeded for merchant ${merchantId}: ${lastMinute} tx in last 60s`,
       );
       throw new HttpException(
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          error: 'Too Many Requests',
+          error: "Too Many Requests",
           message: `Rate limit exceeded: ${lastMinute}/${this.config.maxPerMinute} transactions in the last minute.`,
           retryAfterSeconds: status.retryAfterSeconds,
         },
@@ -77,14 +79,16 @@ export class RateLimitService {
     if (lastHour >= this.config.maxPerHour) {
       const oldestInWindow = recent[0];
       status.allowed = false;
-      status.retryAfterSeconds = Math.ceil((oldestInWindow + 3_600_000 - now) / 1000);
+      status.retryAfterSeconds = Math.ceil(
+        (oldestInWindow + 3_600_000 - now) / 1000,
+      );
       this.logger.warn(
         `Rate limit (per-hour) exceeded for merchant ${merchantId}: ${lastHour} tx in last 60min`,
       );
       throw new HttpException(
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          error: 'Too Many Requests',
+          error: "Too Many Requests",
           message: `Rate limit exceeded: ${lastHour}/${this.config.maxPerHour} transactions in the last hour.`,
           retryAfterSeconds: status.retryAfterSeconds,
         },
@@ -119,7 +123,9 @@ export class RateLimitService {
     const lastHour = recent.length;
 
     return {
-      allowed: lastMinute < this.config.maxPerMinute && lastHour < this.config.maxPerHour,
+      allowed:
+        lastMinute < this.config.maxPerMinute &&
+        lastHour < this.config.maxPerHour,
       merchantId,
       transactionsLastMinute: lastMinute,
       transactionsLastHour: lastHour,

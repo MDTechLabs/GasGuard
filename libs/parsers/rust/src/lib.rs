@@ -1,4 +1,7 @@
-use gasguard_ast::{UnifiedAST, Language, ContractNode, FunctionNode, StructNode, Visibility, VariableNode, ParamNode};
+use gasguard_ast::{
+    ContractNode, FunctionNode, Language, ParamNode, StructNode, UnifiedAST, VariableNode,
+    Visibility,
+};
 use regex::Regex;
 use thiserror::Error;
 
@@ -15,13 +18,13 @@ pub struct RustParser;
 impl RustParser {
     pub fn parse(source: &str, file_path: &str) -> Result<UnifiedAST, ParserError> {
         let lines: Vec<&str> = source.lines().collect();
-        
+
         let mut structs = Vec::new();
         let mut contracts = Vec::new();
 
         // Very basic extraction logic similar to the existing one but mapped to UnifiedAST
         let contract_name = Self::extract_contract_name(source)?;
-        
+
         // Extract structs
         let mut i = 0;
         while i < lines.len() {
@@ -88,7 +91,8 @@ impl RustParser {
     fn parse_struct(lines: &[&str], start_line: usize) -> Result<Option<StructNode>, ParserError> {
         let line = lines[0].trim();
         let name_re = Regex::new(r"struct\s+(\w+)")?;
-        let name = name_re.captures(line)
+        let name = name_re
+            .captures(line)
             .and_then(|caps| caps.get(1))
             .map(|m| m.as_str().to_string())
             .ok_or_else(|| ParserError::ParseError("Could not parse struct name".into()))?;
@@ -100,7 +104,10 @@ impl RustParser {
         }))
     }
 
-    fn parse_impl(lines: &[&str], start_line: usize) -> Result<(Vec<FunctionNode>, usize), ParserError> {
+    fn parse_impl(
+        lines: &[&str],
+        start_line: usize,
+    ) -> Result<(Vec<FunctionNode>, usize), ParserError> {
         let mut functions = Vec::new();
         let mut brace_count = 0;
         let mut i = 0;
@@ -112,10 +119,14 @@ impl RustParser {
 
         while i < lines.len() {
             let line = lines[i].trim();
-            if line.contains('{') { brace_count += 1; }
-            if line.contains('}') { 
-                brace_count -= 1; 
-                if brace_count == 0 { break; }
+            if line.contains('{') {
+                brace_count += 1;
+            }
+            if line.contains('}') {
+                brace_count -= 1;
+                if brace_count == 0 {
+                    break;
+                }
             }
 
             if line.starts_with("pub ") && line.contains("fn ") {

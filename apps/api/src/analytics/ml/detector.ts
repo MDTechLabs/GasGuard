@@ -34,8 +34,7 @@ export class MLDetector {
       mean[key] = avg;
 
       const variance =
-        values.reduce((a, b) => a + Math.pow(b - avg, 2), 0) /
-        values.length;
+        values.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / values.length;
 
       std[key] = Math.sqrt(variance);
     }
@@ -45,9 +44,27 @@ export class MLDetector {
 
   public predict(userId: string, input: FeatureVector): AnomalyResult {
     const score =
-      Math.abs(zScore(input.frequency, this.stats.mean.frequency, this.stats.std.frequency)) +
-      Math.abs(zScore(input.timeGapAvg, this.stats.mean.timeGapAvg, this.stats.std.timeGapAvg)) +
-      Math.abs(zScore(input.errorRate, this.stats.mean.errorRate, this.stats.std.errorRate));
+      Math.abs(
+        zScore(
+          input.frequency,
+          this.stats.mean.frequency,
+          this.stats.std.frequency,
+        ),
+      ) +
+      Math.abs(
+        zScore(
+          input.timeGapAvg,
+          this.stats.mean.timeGapAvg,
+          this.stats.std.timeGapAvg,
+        ),
+      ) +
+      Math.abs(
+        zScore(
+          input.errorRate,
+          this.stats.mean.errorRate,
+          this.stats.std.errorRate,
+        ),
+      );
 
     const isAnomaly = score > 3; // threshold (tunable)
 

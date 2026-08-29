@@ -1,9 +1,9 @@
-import { EntityRepository, Repository } from 'typeorm';
+import { EntityRepository, Repository } from "typeorm";
 import {
   SuspiciousGasPattern,
   SeverityLevel,
   PatternStatus,
-} from '../entities/suspicious-gas-pattern.entity';
+} from "../entities/suspicious-gas-pattern.entity";
 
 @EntityRepository(SuspiciousGasPattern)
 export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPattern> {
@@ -16,7 +16,7 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
   ): Promise<SuspiciousGasPattern | null> {
     return this.findOne({
       where: { accountAddress, chainId },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
   }
 
@@ -46,9 +46,9 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
     limit: number = 50,
     offset: number = 0,
   ): Promise<{ data: SuspiciousGasPattern[]; total: number }> {
-    const query = this.createQueryBuilder('pattern')
-      .where('pattern.severity = :severity', { severity })
-      .orderBy('pattern.lastDetectedAt', 'DESC')
+    const query = this.createQueryBuilder("pattern")
+      .where("pattern.severity = :severity", { severity })
+      .orderBy("pattern.lastDetectedAt", "DESC")
       .skip(offset)
       .take(limit);
 
@@ -65,9 +65,9 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
     limit: number = 50,
     offset: number = 0,
   ): Promise<{ data: SuspiciousGasPattern[]; total: number }> {
-    const query = this.createQueryBuilder('pattern')
-      .where('pattern.status = :status', { status })
-      .orderBy('pattern.lastDetectedAt', 'DESC')
+    const query = this.createQueryBuilder("pattern")
+      .where("pattern.status = :status", { status })
+      .orderBy("pattern.lastDetectedAt", "DESC")
       .skip(offset)
       .take(limit);
 
@@ -83,9 +83,9 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
     limit: number = 100,
     offset: number = 0,
   ): Promise<{ data: SuspiciousGasPattern[]; total: number }> {
-    const query = this.createQueryBuilder('pattern')
-      .where('pattern.status = :status', { status: PatternStatus.ACTIVE })
-      .orderBy('pattern.severity', 'DESC')
+    const query = this.createQueryBuilder("pattern")
+      .where("pattern.status = :status", { status: PatternStatus.ACTIVE })
+      .orderBy("pattern.severity", "DESC")
       .skip(offset)
       .take(limit);
 
@@ -103,10 +103,10 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
     limit: number = 100,
     offset: number = 0,
   ): Promise<{ data: SuspiciousGasPattern[]; total: number }> {
-    const query = this.createQueryBuilder('pattern')
-      .where('pattern.createdAt >= :from', { from })
-      .andWhere('pattern.createdAt <= :to', { to })
-      .orderBy('pattern.createdAt', 'DESC')
+    const query = this.createQueryBuilder("pattern")
+      .where("pattern.createdAt >= :from", { from })
+      .andWhere("pattern.createdAt <= :to", { to })
+      .orderBy("pattern.createdAt", "DESC")
       .skip(offset)
       .take(limit);
 
@@ -132,7 +132,12 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
   async getFlaggedAccountsStats(): Promise<{
     totalFlags: number;
     bySeverity: { low: number; medium: number; high: number };
-    byStatus: { active: number; reviewed: number; cleared: number; confirmed_abuse: number };
+    byStatus: {
+      active: number;
+      reviewed: number;
+      cleared: number;
+      confirmed_abuse: number;
+    };
     recentDetections: number;
   }> {
     const totalFlags = await this.count();
@@ -147,12 +152,14 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
       active: await this.count({ where: { status: PatternStatus.ACTIVE } }),
       reviewed: await this.count({ where: { status: PatternStatus.REVIEWED } }),
       cleared: await this.count({ where: { status: PatternStatus.CLEARED } }),
-      confirmed_abuse: await this.count({ where: { status: PatternStatus.CONFIRMED_ABUSE } }),
+      confirmed_abuse: await this.count({
+        where: { status: PatternStatus.CONFIRMED_ABUSE },
+      }),
     };
 
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentPatterns = await this.createQueryBuilder('pattern')
-      .where('pattern.createdAt > :twentyFourHoursAgo', { twentyFourHoursAgo })
+    const recentPatterns = await this.createQueryBuilder("pattern")
+      .where("pattern.createdAt > :twentyFourHoursAgo", { twentyFourHoursAgo })
       .getMany();
     const recentDetections = recentPatterns.length;
 
@@ -168,10 +175,10 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
    * Get patterns by chain
    */
   async getPatternsByChain(): Promise<Record<string, number>> {
-    const results = await this.createQueryBuilder('pattern')
-      .select('pattern.chainId', 'chainId')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('pattern.chainId')
+    const results = await this.createQueryBuilder("pattern")
+      .select("pattern.chainId", "chainId")
+      .addSelect("COUNT(*)", "count")
+      .groupBy("pattern.chainId")
       .getRawMany();
 
     const byChain: Record<string, number> = {};
@@ -194,29 +201,33 @@ export class SuspiciousGasPatternRepository extends Repository<SuspiciousGasPatt
     limit?: number;
     offset?: number;
   }): Promise<{ data: SuspiciousGasPattern[]; total: number }> {
-    const query = this.createQueryBuilder('pattern');
+    const query = this.createQueryBuilder("pattern");
 
     if (filters.chainId !== undefined) {
-      query.andWhere('pattern.chainId = :chainId', { chainId: filters.chainId });
+      query.andWhere("pattern.chainId = :chainId", {
+        chainId: filters.chainId,
+      });
     }
 
     if (filters.severity) {
-      query.andWhere('pattern.severity = :severity', { severity: filters.severity });
+      query.andWhere("pattern.severity = :severity", {
+        severity: filters.severity,
+      });
     }
 
     if (filters.status) {
-      query.andWhere('pattern.status = :status', { status: filters.status });
+      query.andWhere("pattern.status = :status", { status: filters.status });
     }
 
     if (filters.from) {
-      query.andWhere('pattern.createdAt >= :from', { from: filters.from });
+      query.andWhere("pattern.createdAt >= :from", { from: filters.from });
     }
 
     if (filters.to) {
-      query.andWhere('pattern.createdAt <= :to', { to: filters.to });
+      query.andWhere("pattern.createdAt <= :to", { to: filters.to });
     }
 
-    query.orderBy('pattern.lastDetectedAt', 'DESC');
+    query.orderBy("pattern.lastDetectedAt", "DESC");
 
     const limit = filters.limit || 50;
     const offset = filters.offset || 0;

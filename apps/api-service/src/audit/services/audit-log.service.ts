@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { EventType, OutcomeStatus } from '../entities';
-import { AuditLogRepository } from './audit-log.repository';
-import { AuditEventEmitter, AuditEventPayload } from './audit-event-emitter';
-import { 
-  AuditLogFilterDto, 
-  CreateAuditLogDto, 
+import { Injectable } from "@nestjs/common";
+import { EventType, OutcomeStatus } from "../entities";
+import { AuditLogRepository } from "./audit-log.repository";
+import { AuditEventEmitter, AuditEventPayload } from "./audit-event-emitter";
+import {
+  AuditLogFilterDto,
+  CreateAuditLogDto,
   AuditLogsPageDto,
-} from '../dto/audit-log.dto';
+} from "../dto/audit-log.dto";
 
 @Injectable()
 export class AuditLogService {
@@ -17,7 +17,7 @@ export class AuditLogService {
     // Listen to audit events and save them to database
     this.auditEventEmitter.onAuditEvent((payload) => {
       this.logEvent(payload).catch((error) => {
-        console.error('Failed to log audit event:', error);
+        console.error("Failed to log audit event:", error);
       });
     });
   }
@@ -97,37 +97,37 @@ export class AuditLogService {
    * Export logs as CSV or JSON
    */
   async exportLogs(
-    format: 'csv' | 'json',
+    format: "csv" | "json",
     filters?: AuditLogFilterDto,
   ): Promise<string> {
     const response = await this.auditLogRepository.findWithFilters(
       filters || { limit: 10000, offset: 0 },
     );
 
-    if (format === 'json') {
+    if (format === "json") {
       return JSON.stringify(response.data, null, 2);
     }
 
-    if (format === 'csv') {
+    if (format === "csv") {
       // Simple CSV generation without external dependency
       const headers = [
-        'id',
-        'eventType',
-        'timestamp',
-        'user',
-        'apiKey',
-        'chainId',
-        'outcome',
-        'endpoint',
-        'httpMethod',
-        'responseStatus',
+        "id",
+        "eventType",
+        "timestamp",
+        "user",
+        "apiKey",
+        "chainId",
+        "outcome",
+        "endpoint",
+        "httpMethod",
+        "responseStatus",
       ];
-      
-      const rows = response.data.map(row => 
-        headers.map(h => JSON.stringify((row as any)[h] || '')).join(',')
+
+      const rows = response.data.map((row) =>
+        headers.map((h) => JSON.stringify((row as any)[h] || "")).join(","),
       );
-      
-      return [headers.join(','), ...rows].join('\n');
+
+      return [headers.join(","), ...rows].join("\n");
     }
 
     throw new Error(`Unsupported format: ${format}`);
@@ -167,7 +167,10 @@ export class AuditLogService {
    * Emit API key event
    */
   emitApiKeyEvent(
-    eventType: EventType.API_KEY_CREATED | EventType.API_KEY_ROTATED | EventType.API_KEY_REVOKED,
+    eventType:
+      | EventType.API_KEY_CREATED
+      | EventType.API_KEY_ROTATED
+      | EventType.API_KEY_REVOKED,
     merchantId: string,
     details: Record<string, any>,
   ): void {
@@ -206,7 +209,12 @@ export class AuditLogService {
     changes: Record<string, any>,
     target?: string,
   ): void {
-    this.auditEventEmitter.emitConfigUpdateEvent(adminUser, configType, changes, target);
+    this.auditEventEmitter.emitConfigUpdateEvent(
+      adminUser,
+      configType,
+      changes,
+      target,
+    );
   }
 
   /**
@@ -215,11 +223,17 @@ export class AuditLogService {
   emitRoleChange(
     adminUser: string,
     targetUser: string,
-    action: 'grant' | 'revoke' | 'update',
+    action: "grant" | "revoke" | "update",
     role: string,
     previousRole?: string,
   ): void {
-    this.auditEventEmitter.emitRoleChangeEvent(adminUser, targetUser, action, role, previousRole);
+    this.auditEventEmitter.emitRoleChangeEvent(
+      adminUser,
+      targetUser,
+      action,
+      role,
+      previousRole,
+    );
   }
 
   /**
@@ -252,6 +266,11 @@ export class AuditLogService {
     target: string,
     details?: Record<string, any>,
   ): void {
-    this.auditEventEmitter.emitSystemAdminEvent(adminUser, action, target, details);
+    this.auditEventEmitter.emitSystemAdminEvent(
+      adminUser,
+      action,
+      target,
+      details,
+    );
   }
 }

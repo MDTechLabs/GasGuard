@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CrossChainGasService } from '../services/cross-chain-gas.service';
-import { CrossChainGasRequest } from '../schemas/cross-chain-gas.schema';
+import { Test, TestingModule } from "@nestjs/testing";
+import { CrossChainGasService } from "../services/cross-chain-gas.service";
+import { CrossChainGasRequest } from "../schemas/cross-chain-gas.schema";
 
-describe('CrossChainGasService', () => {
+describe("CrossChainGasService", () => {
   let service: CrossChainGasService;
 
   beforeEach(async () => {
@@ -13,69 +13,69 @@ describe('CrossChainGasService', () => {
     service = module.get<CrossChainGasService>(CrossChainGasService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  describe('getCrossChainGasComparison', () => {
-    it('should return comparison for transfer transaction', async () => {
+  describe("getCrossChainGasComparison", () => {
+    it("should return comparison for transfer transaction", async () => {
       const request: CrossChainGasRequest = {
-        txType: 'transfer'
+        txType: "transfer",
       };
 
       const result = await service.getCrossChainGasComparison(request);
 
-      expect(result).toHaveProperty('txType', 'transfer');
-      expect(result).toHaveProperty('timestamp');
-      expect(result).toHaveProperty('chains');
+      expect(result).toHaveProperty("txType", "transfer");
+      expect(result).toHaveProperty("timestamp");
+      expect(result).toHaveProperty("chains");
       expect(result.chains).toBeInstanceOf(Array);
       expect(result.chains.length).toBeGreaterThan(0);
     });
 
-    it('should return comparison for contract-call transaction', async () => {
+    it("should return comparison for contract-call transaction", async () => {
       const request: CrossChainGasRequest = {
-        txType: 'contract-call'
+        txType: "contract-call",
       };
 
       const result = await service.getCrossChainGasComparison(request);
 
-      expect(result.txType).toBe('contract-call');
+      expect(result.txType).toBe("contract-call");
       expect(result.chains).toBeDefined();
     });
 
-    it('should return comparison for swap transaction', async () => {
+    it("should return comparison for swap transaction", async () => {
       const request: CrossChainGasRequest = {
-        txType: 'swap'
+        txType: "swap",
       };
 
       const result = await service.getCrossChainGasComparison(request);
 
-      expect(result.txType).toBe('swap');
+      expect(result.txType).toBe("swap");
       expect(result.chains).toBeDefined();
     });
 
-    it('should rank chains by cost (lowest first)', async () => {
+    it("should rank chains by cost (lowest first)", async () => {
       const request: CrossChainGasRequest = {
-        txType: 'transfer'
+        txType: "transfer",
       };
 
       const result = await service.getCrossChainGasComparison(request);
 
-      const costs = result.chains.map(chain => chain.estimatedCostUSD);
+      const costs = result.chains.map((chain) => chain.estimatedCostUSD);
       const sortedCosts = [...costs].sort((a, b) => a - b);
-      
+
       expect(costs).toEqual(sortedCosts);
       expect(result.chains[0].rank).toBe(1);
     });
 
-    it('should include all supported chains', async () => {
+    it("should include all supported chains", async () => {
       const request: CrossChainGasRequest = {
-        txType: 'transfer'
+        txType: "transfer",
       };
 
       const result = await service.getCrossChainGasComparison(request);
 
-      const chainIds = result.chains.map(chain => chain.chainId);
+      const chainIds = result.chains.map((chain) => chain.chainId);
       expect(chainIds).toContain(1); // Ethereum
       expect(chainIds).toContain(137); // Polygon
       expect(chainIds).toContain(56); // BSC
@@ -84,14 +84,14 @@ describe('CrossChainGasService', () => {
     });
   });
 
-  describe('getSupportedChains', () => {
-    it('should return all supported chains', async () => {
+  describe("getSupportedChains", () => {
+    it("should return all supported chains", async () => {
       const chains = await service.getSupportedChains();
 
       expect(chains).toBeInstanceOf(Array);
       expect(chains.length).toBe(5);
 
-      const chainIds = chains.map(chain => chain.chainId);
+      const chainIds = chains.map((chain) => chain.chainId);
       expect(chainIds).toContain(1);
       expect(chainIds).toContain(137);
       expect(chainIds).toContain(56);
@@ -99,28 +99,28 @@ describe('CrossChainGasService', () => {
       expect(chainIds).toContain(10);
     });
 
-    it('should include required chain properties', async () => {
+    it("should include required chain properties", async () => {
       const chains = await service.getSupportedChains();
 
-      chains.forEach(chain => {
-        expect(chain).toHaveProperty('chainId');
-        expect(chain).toHaveProperty('chainName');
-        expect(chain).toHaveProperty('nativeToken');
-        expect(chain).toHaveProperty('rpcUrl');
-        expect(chain).toHaveProperty('blockTime');
+      chains.forEach((chain) => {
+        expect(chain).toHaveProperty("chainId");
+        expect(chain).toHaveProperty("chainName");
+        expect(chain).toHaveProperty("nativeToken");
+        expect(chain).toHaveProperty("rpcUrl");
+        expect(chain).toHaveProperty("blockTime");
       });
     });
   });
 
-  describe('gas cost normalization', () => {
-    it('should normalize costs correctly for different chains', async () => {
+  describe("gas cost normalization", () => {
+    it("should normalize costs correctly for different chains", async () => {
       const request: CrossChainGasRequest = {
-        txType: 'transfer'
+        txType: "transfer",
       };
 
       const result = await service.getCrossChainGasComparison(request);
 
-      result.chains.forEach(chain => {
+      result.chains.forEach((chain) => {
         expect(chain.estimatedCostUSD).toBeGreaterThan(0);
         expect(chain.estimatedCostNative).toBeDefined();
         expect(chain.averageConfirmationTime).toBeDefined();
@@ -128,18 +128,20 @@ describe('CrossChainGasService', () => {
       });
     });
 
-    it('should calculate USD costs correctly', async () => {
+    it("should calculate USD costs correctly", async () => {
       const request: CrossChainGasRequest = {
-        txType: 'transfer'
+        txType: "transfer",
       };
 
       const result = await service.getCrossChainGasComparison(request);
 
-      const polygonChain = result.chains.find(chain => chain.chainId === 137);
-      const ethereumChain = result.chains.find(chain => chain.chainId === 1);
+      const polygonChain = result.chains.find((chain) => chain.chainId === 137);
+      const ethereumChain = result.chains.find((chain) => chain.chainId === 1);
 
       // Polygon should be cheaper than Ethereum for transfers
-      expect(polygonChain!.estimatedCostUSD).toBeLessThan(ethereumChain!.estimatedCostUSD);
+      expect(polygonChain!.estimatedCostUSD).toBeLessThan(
+        ethereumChain!.estimatedCostUSD,
+      );
     });
   });
 });

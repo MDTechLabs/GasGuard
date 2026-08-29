@@ -1,4 +1,4 @@
-declare module 'typeorm' {
+declare module "typeorm" {
   export class Repository<T> {
     create(plainObject?: any): T;
     save(entity: any): Promise<any>;
@@ -13,15 +13,25 @@ declare module 'typeorm' {
     where(condition: string, parameters?: any): this;
     andWhere(condition: string, parameters?: any): this;
     orWhere(condition: string, parameters?: any): this;
-    orderBy(sort: string, order?: 'ASC' | 'DESC'): this;
+    orderBy(sort: string, order?: "ASC" | "DESC"): this;
     take(limit: number): this;
     skip(offset: number): this;
     groupBy(groupBy: string): this;
     addGroupBy(column: string): this;
     select(columns: string | string[], ...selection: string[]): this;
     addSelect(column: string, ...selection: string[]): this;
-    innerJoin(table: string, alias: string, condition?: string, parameters?: any): this;
-    leftJoin(table: string, alias: string, condition?: string, parameters?: this): this;
+    innerJoin(
+      table: string,
+      alias: string,
+      condition?: string,
+      parameters?: any,
+    ): this;
+    leftJoin(
+      table: string,
+      alias: string,
+      condition?: string,
+      parameters?: this,
+    ): this;
     limit(limit: number): this;
     offset(offset: number): this;
     getQuery(): string;
@@ -45,19 +55,26 @@ declare module 'typeorm' {
   }
 
   export function Entity(name?: string): ClassDecorator;
-  export function PrimaryGeneratedColumn(type?: 'uuid' | 'increment'): PropertyDecorator;
+  export function PrimaryGeneratedColumn(
+    type?: "uuid" | "increment",
+  ): PropertyDecorator;
   export function Column(options?: any): PropertyDecorator;
   export function CreateDateColumn(options?: any): PropertyDecorator;
-  export function Index(columns?: string | string[], options?: any): ClassDecorator & PropertyDecorator;
+  export function Index(
+    columns?: string | string[],
+    options?: any,
+  ): ClassDecorator & PropertyDecorator;
   export function PrimaryColumn(options?: any): PropertyDecorator;
   export function EntityRepository(name?: string): ClassDecorator;
-  export function EntityRepository(entityClass?: new (...args: any[]) => any): ClassDecorator;
-  
+  export function EntityRepository(
+    entityClass?: new (...args: any[]) => any,
+  ): ClassDecorator;
+
   export interface DeleteResult {
     raw: any;
     affected?: number;
   }
-  
+
   export class DataSource {
     getRepository<T>(target: any): Repository<T>;
   }

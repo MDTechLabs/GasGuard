@@ -1,5 +1,5 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { User } from '../../database/entities/user.entity';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import { User } from "../../database/entities/user.entity";
 
 /**
  * Interface for authenticated request
@@ -19,7 +19,10 @@ export interface AuthenticatedRequest extends Request {
  * ```
  */
 export const CurrentUser = createParamDecorator(
-  (data: keyof User | undefined, ctx: ExecutionContext): User | Partial<User> => {
+  (
+    data: keyof User | undefined,
+    ctx: ExecutionContext,
+  ): User | Partial<User> => {
     const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
 

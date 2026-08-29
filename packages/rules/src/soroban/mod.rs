@@ -4,16 +4,29 @@
 //! built on the Stellar network. It handles parsing of Soroban-specific macros like
 //! `#[contract]`, `#[contractimpl]`, and `#[contracttype]`.
 
-pub mod parser;
 pub mod analyzer;
+pub mod loop_cost_analyzer;
+pub mod memory;
+pub mod parser;
 pub mod rule_engine;
 pub mod interface_rules;
 
 pub use interface_rules::*;
 
-pub use parser::*;
 pub use analyzer::*;
+pub use event_emission::EventEmissionCostRule;
+pub use inefficient_error_construction::InefficientErrorConstructionRule;
+pub use memory::InefficientBytesAllocationRule;
+pub use memory::MemoryAllocationRule;
+pub use parser::*;
 pub use rule_engine::*;
+pub use unnecessary_cloning::UnnecessaryCloningRule;
+
+// New Soroban analysis rules
+pub use rule_engine::{
+    SorobanDeadCodeRule, SorobanDeepNestingRule, SorobanFunctionComplexityRule,
+    SorobanRepeatedComputationsRule,
+};
 
 /// Represents a Soroban contract structure
 #[derive(Debug, Clone, PartialEq)]
@@ -116,13 +129,13 @@ pub enum FunctionVisibility {
 pub enum SorobanParseError {
     #[error("Failed to parse Soroban contract: {0}")]
     ParseError(String),
-    
+
     #[error("Missing required Soroban macro: {0}")]
     MissingMacro(String),
-    
+
     #[error("Invalid contract structure: {0}")]
     InvalidStructure(String),
-    
+
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 }

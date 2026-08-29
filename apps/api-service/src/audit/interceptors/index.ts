@@ -1,1 +1,1 @@
-export { AuditInterceptor } from './audit.interceptor';
+export { AuditInterceptor } from "./audit.interceptor";

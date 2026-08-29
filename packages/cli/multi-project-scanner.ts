@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 export interface ScanResult {
   projectPath: string;
@@ -29,7 +29,7 @@ export class MultiProjectScanner {
   }
 
   addProjects(paths: string[]): void {
-    paths.forEach(p => this.addProject(p));
+    paths.forEach((p) => this.addProject(p));
   }
 
   async scanAll(): Promise<AggregatedResults> {
@@ -55,8 +55,10 @@ export class MultiProjectScanner {
   }
 
   private getSourceFiles(projectPath: string): string[] {
-    const extensions = ['.sol', '.rs', '.vy'];
-    return fs.readdirSync(projectPath).filter(f => extensions.some(ext => f.endsWith(ext)));
+    const extensions = [".sol", ".rs", ".vy"];
+    return fs
+      .readdirSync(projectPath)
+      .filter((f) => extensions.some((ext) => f.endsWith(ext)));
   }
 
   private aggregateResults(results: ScanResult[]): AggregatedResults {

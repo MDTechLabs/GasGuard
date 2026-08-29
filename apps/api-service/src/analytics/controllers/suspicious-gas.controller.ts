@@ -7,8 +7,8 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-} from '@nestjs/common';
-import { SuspiciousGasPatternRepository } from '../repositories/suspicious-gas-pattern.repository';
+} from "@nestjs/common";
+import { SuspiciousGasPatternRepository } from "../repositories/suspicious-gas-pattern.repository";
 import {
   QuerySuspiciousGasDto,
   ReviewPatternDto,
@@ -16,19 +16,17 @@ import {
   ConfirmAbuseDto,
   SuspiciousGasPatternListResponseDto,
   SuspiciousGasStatsResponseDto,
-} from '../dto/suspicious-gas.dto';
-import { PatternStatus } from '../entities/suspicious-gas-pattern.entity';
+} from "../dto/suspicious-gas.dto";
+import { PatternStatus } from "../entities/suspicious-gas-pattern.entity";
 
-@Controller('analytics/suspicious-gas')
+@Controller("analytics/suspicious-gas")
 export class SuspiciousGasController {
   constructor(
     private readonly patternRepository: SuspiciousGasPatternRepository,
   ) {}
 
   @Get()
-  async findAll(
-    @Query() query: QuerySuspiciousGasDto,
-  ) {
+  async findAll(@Query() query: QuerySuspiciousGasDto) {
     const { data, total } = await this.patternRepository.findWithFilters({
       chainId: query.chainId,
       severity: query.severity,
@@ -47,7 +45,7 @@ export class SuspiciousGasController {
     };
   }
 
-  @Get('stats')
+  @Get("stats")
   async getStats(): Promise<SuspiciousGasStatsResponseDto> {
     const stats = await this.patternRepository.getFlaggedAccountsStats();
     const byChain = await this.patternRepository.getPatternsByChain();
@@ -58,11 +56,11 @@ export class SuspiciousGasController {
     };
   }
 
-  @Get(':account')
-  async findByAccount(@Param('account') account: string) {
+  @Get(":account")
+  async findByAccount(@Param("account") account: string) {
     const patterns = await this.patternRepository.find({
       where: { accountAddress: account },
-      order: { lastDetectedAt: 'DESC' },
+      order: { lastDetectedAt: "DESC" },
     });
 
     return {
@@ -71,39 +69,33 @@ export class SuspiciousGasController {
     };
   }
 
-  @Post(':id/review')
+  @Post(":id/review")
   @HttpCode(HttpStatus.OK)
-  async reviewPattern(
-    @Param('id') id: string,
-    @Body() dto: ReviewPatternDto,
-  ) {
+  async reviewPattern(@Param("id") id: string, @Body() dto: ReviewPatternDto) {
     const pattern = await this.patternRepository.findOne({ where: { id } });
     if (!pattern) {
-      return { success: false, message: 'Pattern not found' };
+      return { success: false, message: "Pattern not found" };
     }
 
     pattern.status = PatternStatus.REVIEWED;
     pattern.reviewedBy = dto.reviewerId;
     pattern.reviewedAt = new Date();
-    pattern.reviewNotes = dto.notes || '';
+    pattern.reviewNotes = dto.notes || "";
 
     await this.patternRepository.save(pattern);
 
     return {
       success: true,
-      message: 'Pattern marked as under review',
+      message: "Pattern marked as under review",
     };
   }
 
-  @Post(':id/clear')
+  @Post(":id/clear")
   @HttpCode(HttpStatus.OK)
-  async clearPattern(
-    @Param('id') id: string,
-    @Body() dto: ClearPatternDto,
-  ) {
+  async clearPattern(@Param("id") id: string, @Body() dto: ClearPatternDto) {
     const pattern = await this.patternRepository.findOne({ where: { id } });
     if (!pattern) {
-      return { success: false, message: 'Pattern not found' };
+      return { success: false, message: "Pattern not found" };
     }
 
     pattern.status = PatternStatus.CLEARED;
@@ -115,31 +107,28 @@ export class SuspiciousGasController {
 
     return {
       success: true,
-      message: 'Pattern cleared as false positive',
+      message: "Pattern cleared as false positive",
     };
   }
 
-  @Post(':id/confirm')
+  @Post(":id/confirm")
   @HttpCode(HttpStatus.OK)
-  async confirmAbuse(
-    @Param('id') id: string,
-    @Body() dto: ConfirmAbuseDto,
-  ) {
+  async confirmAbuse(@Param("id") id: string, @Body() dto: ConfirmAbuseDto) {
     const pattern = await this.patternRepository.findOne({ where: { id } });
     if (!pattern) {
-      return { success: false, message: 'Pattern not found' };
+      return { success: false, message: "Pattern not found" };
     }
 
     pattern.status = PatternStatus.CONFIRMED_ABUSE;
     pattern.reviewedBy = dto.reviewerId;
     pattern.reviewedAt = new Date();
-    pattern.reviewNotes = `Confirmed abuse. Action: ${dto.action || 'none'}. ${dto.notes || ''}`;
+    pattern.reviewNotes = `Confirmed abuse. Action: ${dto.action || "none"}. ${dto.notes || ""}`;
 
     await this.patternRepository.save(pattern);
 
     return {
       success: true,
-      message: 'Abuse confirmed and restrictions applied',
+      message: "Abuse confirmed and restrictions applied",
     };
   }
 }

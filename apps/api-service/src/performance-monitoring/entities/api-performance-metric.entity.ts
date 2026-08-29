@@ -1,99 +1,105 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Index,
+  CreateDateColumn,
+} from "typeorm";
 
 export enum MetricAggregationWindow {
-  MINUTE = 'minute',
-  HOUR = 'hour',
-  DAY = 'day',
+  MINUTE = "minute",
+  HOUR = "hour",
+  DAY = "day",
 }
 
-@Entity('api_performance_metrics')
+@Entity("api_performance_metrics")
 export class ApiPerformanceMetric {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: "varchar", length: 255 })
   endpoint: string;
 
-  @Column({ type: 'varchar', length: 10 })
+  @Column({ type: "varchar", length: 10 })
   method: string;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ type: "varchar", length: 500, nullable: true })
   path: string;
 
-  @Column({ type: 'integer' })
+  @Column({ type: "integer" })
   statusCode: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   responseTime: number; // in milliseconds
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: "timestamp" })
   timestamp: Date;
 
   @CreateDateColumn()
   createdAt: Date;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100, nullable: true })
   requestId: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: "varchar", length: 50, nullable: true })
   ip: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   userAgent: string;
 }
 
 // Aggregated metrics for historical analysis
-@Entity('api_performance_aggregates')
+@Entity("api_performance_aggregates")
 export class ApiPerformanceAggregate {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: "varchar", length: 255 })
   endpoint: string;
 
-  @Column({ type: 'varchar', length: 20 })
+  @Column({ type: "varchar", length: 20 })
   method: string;
 
-  @Column({ type: 'varchar', length: 20 })
+  @Column({ type: "varchar", length: 20 })
   aggregationWindow: MetricAggregationWindow;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: "timestamp" })
   timestamp: Date;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   totalRequests: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   successfulRequests: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   failedRequests: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: "decimal", precision: 10, scale: 2 })
   successRate: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   minResponseTime: number;
 
-  @Column({ type: 'bigint' })
+  @Column({ type: "bigint" })
   maxResponseTime: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({ type: "decimal", precision: 15, scale: 2 })
   avgResponseTime: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({ type: "decimal", precision: 15, scale: 2 })
   p50ResponseTime: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({ type: "decimal", precision: 15, scale: 2 })
   p90ResponseTime: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({ type: "decimal", precision: 15, scale: 2 })
   p95ResponseTime: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({ type: "decimal", precision: 15, scale: 2 })
   p99ResponseTime: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2 })
+  @Column({ type: "decimal", precision: 15, scale: 2 })
   stdDevResponseTime: number;
 
   @CreateDateColumn()

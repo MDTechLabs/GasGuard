@@ -171,6 +171,32 @@ describe('End-to-End Scan Tests', () => {
       );
     });
 
+
+     test('should handle incremental scanning', async () => {
+      const projectPath = createTestSolidityProject();
+      const config: ScanConfig = {
+        include: ['**/*.sol'],
+        exclude: ['test/**'],
+        rules: ['all'],
+        outputFormat: 'json',
+        incremental: true,
+        cacheDir: path.join(testProjectsDir, '.cache')
+      };
+
+      // First scan
+      const firstResult: ScanResult = await scanner.scanProject(projectPath, config);
+      expect(firstResult.summary.totalFiles).toBeGreaterThan(0);
+
+      // Second scan (should use cache)
+      const secondResult: ScanResult = await scanner.scanProject(projectPath, config);
+      expect(secondResult.summary.totalFiles).toBe(firstResult.summary.totalFiles);
+      
+      // Second scan should be faster due to caching
+      expect(secondResult.summary.scanDuration).toBeLessThanOrEqual(
+        firstResult.summary.scanDuration
+      );
+    });
+
     test('should handle configuration validation', async () => {
       const projectPath = createTestSolidityProject();
       
@@ -256,6 +282,31 @@ describe('End-to-End Scan Tests', () => {
       expect(memoryGrowth).toBeLessThan(100 * 1024 * 1024); // 100MB
     });
   });
+
+   test('should handle incremental scanning', async () => {
+      const projectPath = createTestSolidityProject();
+      const config: ScanConfig = {
+        include: ['**/*.sol'],
+        exclude: ['test/**'],
+        rules: ['all'],
+        outputFormat: 'json',
+        incremental: true,
+        cacheDir: path.join(testProjectsDir, '.cache')
+      };
+
+      // First scan
+      const firstResult: ScanResult = await scanner.scanProject(projectPath, config);
+      expect(firstResult.summary.totalFiles).toBeGreaterThan(0);
+
+      // Second scan (should use cache)
+      const secondResult: ScanResult = await scanner.scanProject(projectPath, config);
+      expect(secondResult.summary.totalFiles).toBe(firstResult.summary.totalFiles);
+      
+      // Second scan should be faster due to caching
+      expect(secondResult.summary.scanDuration).toBeLessThanOrEqual(
+        firstResult.summary.scanDuration
+      );
+    });
 
   // Helper functions to create test projects
   function createTestSolidityProject(): string {

@@ -4,40 +4,40 @@ import {
   ExecutionContext,
   ForbiddenException,
   UnauthorizedException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { SetMetadata } from '@nestjs/common';
-import { UserRole } from '../enums/role.enum';
-import { AuthenticatedRequest } from '../decorators/current-user.decorator';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { SetMetadata } from "@nestjs/common";
+import { UserRole } from "../enums/role.enum";
+import { AuthenticatedRequest } from "../decorators/current-user.decorator";
 
 export enum Permission {
   // Gas operations
-  GAS_READ = 'gas:read',
-  GAS_WRITE = 'gas:write',
-  GAS_SUBSIDY_APPROVE = 'gas:subsidy:approve',
+  GAS_READ = "gas:read",
+  GAS_WRITE = "gas:write",
+  GAS_SUBSIDY_APPROVE = "gas:subsidy:approve",
 
   // Analytics
-  ANALYTICS_READ = 'analytics:read',
-  ANALYTICS_EXPORT = 'analytics:export',
+  ANALYTICS_READ = "analytics:read",
+  ANALYTICS_EXPORT = "analytics:export",
 
   // User management
-  USER_READ = 'user:read',
-  USER_WRITE = 'user:write',
-  USER_DELETE = 'user:delete',
-  USER_ROLE_ASSIGN = 'user:role:assign',
+  USER_READ = "user:read",
+  USER_WRITE = "user:write",
+  USER_DELETE = "user:delete",
+  USER_ROLE_ASSIGN = "user:role:assign",
 
   // API keys
-  API_KEY_READ = 'apikey:read',
-  API_KEY_WRITE = 'apikey:write',
-  API_KEY_REVOKE = 'apikey:revoke',
+  API_KEY_READ = "apikey:read",
+  API_KEY_WRITE = "apikey:write",
+  API_KEY_REVOKE = "apikey:revoke",
 
   // Audit
-  AUDIT_READ = 'audit:read',
+  AUDIT_READ = "audit:read",
 
   // Admin
-  SYSTEM_CONFIG = 'system:config',
-  EMERGENCY_OVERRIDE = 'system:emergency:override',
-  PAUSE_CONTROL = 'system:pause',
+  SYSTEM_CONFIG = "system:config",
+  EMERGENCY_OVERRIDE = "system:emergency:override",
+  PAUSE_CONTROL = "system:pause",
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -62,7 +62,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.ADMIN]: Object.values(Permission),
 };
 
-export const PERMISSIONS_KEY = 'permissions';
+export const PERMISSIONS_KEY = "permissions";
 
 export const RequirePermissions = (...permissions: Permission[]) =>
   SetMetadata(PERMISSIONS_KEY, permissions);
@@ -72,10 +72,10 @@ export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const required = this.reflector.getAllAndOverride<Permission[]>(PERMISSIONS_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const required = this.reflector.getAllAndOverride<Permission[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!required || required.length === 0) {
       return true;
@@ -85,11 +85,11 @@ export class PermissionsGuard implements CanActivate {
     const user = request.user;
 
     if (!user) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException("Authentication required");
     }
 
     if (!user.isActive) {
-      throw new ForbiddenException('User account is deactivated');
+      throw new ForbiddenException("User account is deactivated");
     }
 
     const granted = ROLE_PERMISSIONS[user.role] ?? [];
@@ -97,7 +97,7 @@ export class PermissionsGuard implements CanActivate {
 
     if (missing.length > 0) {
       throw new ForbiddenException(
-        `Missing permission(s): ${missing.join(', ')}`,
+        `Missing permission(s): ${missing.join(", ")}`,
       );
     }
 

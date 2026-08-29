@@ -224,9 +224,17 @@ contract C {
         let violations = rule.check(&ast);
 
         assert_eq!(violations.len(), 6);
-        assert!(violations.iter().any(|v| v.suggestion.contains("Replace `x == true` with `x`")));
-        assert!(violations.iter().any(|v| v.suggestion.contains("Replace `x != false` with `x`")));
-        assert!(violations.iter().any(|v| v.suggestion.contains("Replace `x == false` with `!x`")));
-        assert!(violations.iter().any(|v| v.suggestion.contains("Replace `x != true` with `!x`")));
+        assert!(violations
+            .iter()
+            .any(|v| v.suggestion.contains("Replace `x == true` with `x`")));
+        assert!(violations
+            .iter()
+            .any(|v| v.suggestion.contains("Replace `x != false` with `x`")));
+        assert!(violations
+            .iter()
+            .any(|v| v.suggestion.contains("Replace `x == false` with `!x`")));
+        assert!(violations
+            .iter()
+            .any(|v| v.suggestion.contains("Replace `x != true` with `!x`")));
     }
 }

@@ -16,7 +16,7 @@ export interface AnalysisResult {
 export interface Violation {
   ruleId: string;
   ruleName: string;
-  severity: 'info' | 'warning' | 'error' | 'critical';
+  severity: "info" | "warning" | "error" | "critical";
   location: {
     file?: string;
     line?: number;
@@ -47,18 +47,18 @@ export interface Rule {
  * Example: Gas Optimization Rule
  */
 export class UnoptimizedLoopRule implements Rule {
-  readonly id = 'unoptimized-loop';
-  readonly name = 'Unoptimized Loop';
-  readonly description = 'Detects loops that read array length in each iteration';
-  readonly languages = ['solidity', 'rust'];
+  readonly id = "unoptimized-loop";
+  readonly name = "Unoptimized Loop";
+  readonly description =
+    "Detects loops that read array length in each iteration";
+  readonly languages = ["solidity", "rust"];
 
   analyze(code: string): Violation[] {
     const violations: Violation[] = [];
-    const lines = code.split('\n');
+    const lines = code.split("\n");
 
     // Pattern: for (... < array.length ...) without caching
-    const loopPattern =
-      /for\s*\([^)]*<\s*(\w+)\.length[^)]*\)/g;
+    const loopPattern = /for\s*\([^)]*<\s*(\w+)\.length[^)]*\)/g;
 
     lines.forEach((line, lineNum) => {
       let match;
@@ -66,7 +66,7 @@ export class UnoptimizedLoopRule implements Rule {
         violations.push({
           ruleId: this.id,
           ruleName: this.name,
-          severity: 'high',
+          severity: "high",
           location: {
             line: lineNum + 1,
             column: match.index,
@@ -85,25 +85,25 @@ export class UnoptimizedLoopRule implements Rule {
  * Example: Security Rule
  */
 export class MissingReentrancyGuardRule implements Rule {
-  readonly id = 'missing-reentrancy-guard';
-  readonly name = 'Missing Reentrancy Guard';
-  readonly description =
-    'Detects external calls without reentrancy protection';
-  readonly languages = ['solidity'];
+  readonly id = "missing-reentrancy-guard";
+  readonly name = "Missing Reentrancy Guard";
+  readonly description = "Detects external calls without reentrancy protection";
+  readonly languages = ["solidity"];
 
   analyze(code: string): Violation[] {
     const violations: Violation[] = [];
-    const hasGuard = code.includes('nonReentrant');
+    const hasGuard = code.includes("nonReentrant");
     const hasExternalCall = /\.call|\.delegatecall|\.transfer/.test(code);
 
     if (hasExternalCall && !hasGuard) {
       violations.push({
         ruleId: this.id,
         ruleName: this.name,
-        severity: 'critical',
+        severity: "critical",
         location: { line: 1 },
-        message: 'External calls detected without reentrancy guard',
-        suggestion: 'Add @nonReentrant modifier to functions making external calls',
+        message: "External calls detected without reentrancy guard",
+        suggestion:
+          "Add @nonReentrant modifier to functions making external calls",
       });
     }
 
@@ -115,18 +115,17 @@ export class MissingReentrancyGuardRule implements Rule {
  * Example: Code Quality Rule
  */
 export class NamingConventionRule implements Rule {
-  readonly id = 'naming-convention';
-  readonly name = 'Naming Convention';
-  readonly description = 'Checks adherence to naming conventions';
-  readonly languages = ['solidity', 'rust'];
+  readonly id = "naming-convention";
+  readonly name = "Naming Convention";
+  readonly description = "Checks adherence to naming conventions";
+  readonly languages = ["solidity", "rust"];
 
   analyze(code: string): Violation[] {
     const violations: Violation[] = [];
-    const lines = code.split('\n');
+    const lines = code.split("\n");
 
     // Check for camelCase violations
-    const nonStandardNames =
-      /(?:function|let|const|var)\s+([a-z]+_[a-z]+)/g;
+    const nonStandardNames = /(?:function|let|const|var)\s+([a-z]+_[a-z]+)/g;
 
     lines.forEach((line, lineNum) => {
       let match;
@@ -134,15 +133,15 @@ export class NamingConventionRule implements Rule {
         violations.push({
           ruleId: this.id,
           ruleName: this.name,
-          severity: 'warning',
+          severity: "warning",
           location: {
             line: lineNum + 1,
             column: match.index,
           },
           message: `Non-standard naming: '${match[1]}' should use camelCase`,
-          suggestion: `Rename to: '${
-            match[1].replace(/_(.)/g, (g) => g[1].toUpperCase())
-          }'`,
+          suggestion: `Rename to: '${match[1].replace(/_(.)/g, (g) =>
+            g[1].toUpperCase(),
+          )}'`,
         });
       }
     });
@@ -232,7 +231,7 @@ export function createRegistry(): PluginRegistry {
 export interface PluginConfig {
   enabledRules?: string[];
   disabledRules?: string[];
-  ruleSeverityThreshold?: 'info' | 'warning' | 'error' | 'critical';
+  ruleSeverityThreshold?: "info" | "warning" | "error" | "critical";
   customOptions?: Record<string, any>;
 }
 
@@ -245,7 +244,7 @@ export class ConfigurableRegistry extends PluginRegistry {
   }
 
   analyzeCode(code: string, language: string): AnalysisResult {
-    let result = super.analyzeCode(code, language);
+    const result = super.analyzeCode(code, language);
 
     // Filter violations based on configuration
     if (this.config.enabledRules) {
@@ -261,7 +260,7 @@ export class ConfigurableRegistry extends PluginRegistry {
     }
 
     if (this.config.ruleSeverityThreshold) {
-      const severityLevels = ['info', 'warning', 'error', 'critical'];
+      const severityLevels = ["info", "warning", "error", "critical"];
       const thresholdIndex = severityLevels.indexOf(
         this.config.ruleSeverityThreshold,
       );
@@ -300,7 +299,7 @@ export async function exampleUsage(): Promise<void> {
   `;
 
   // Analyze code
-  const result = registry.analyzeCode(solidityCode, 'solidity');
+  const result = registry.analyzeCode(solidityCode, "solidity");
 
   console.log(`Found ${result.violations.length} violations`);
   for (const violation of result.violations) {
@@ -311,15 +310,17 @@ export async function exampleUsage(): Promise<void> {
 
   // Example with configuration
   const configRegistry = new ConfigurableRegistry({
-    enabledRules: ['unoptimized-loop', 'missing-reentrancy-guard'],
-    ruleSeverityThreshold: 'warning',
+    enabledRules: ["unoptimized-loop", "missing-reentrancy-guard"],
+    ruleSeverityThreshold: "warning",
   });
 
-  const filteredResult = configRegistry.analyzeCode(solidityCode, 'solidity');
-  console.log(`\nFiltered result: ${filteredResult.violations.length} violations`);
+  const filteredResult = configRegistry.analyzeCode(solidityCode, "solidity");
+  console.log(
+    `\nFiltered result: ${filteredResult.violations.length} violations`,
+  );
 }
 
 // Run if executed directly
-if (typeof module !== 'undefined' && require.main === module) {
+if (typeof module !== "undefined" && require.main === module) {
   exampleUsage().catch(console.error);
 }

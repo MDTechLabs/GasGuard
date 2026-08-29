@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 export interface GasEstimationNetworkConfig {
   chainId: string;
@@ -15,8 +15,8 @@ export interface GasEstimationNetworkConfig {
 export class NetworkConfigService {
   private readonly networks: GasEstimationNetworkConfig[] = [
     {
-      chainId: 'soroban-mainnet',
-      chainName: 'Soroban Mainnet',
+      chainId: "soroban-mainnet",
+      chainName: "Soroban Mainnet",
       rpcUrl:
         process.env.GAS_ESTIMATION_SOROBAN_MAINNET_RPC_URL ||
         process.env.GAS_ESTIMATION_SOROBAN_RPC_URL,
@@ -27,8 +27,8 @@ export class NetworkConfigService {
       averageBlockTimeMs: 4000,
     },
     {
-      chainId: 'soroban-testnet',
-      chainName: 'Soroban Testnet',
+      chainId: "soroban-testnet",
+      chainName: "Soroban Testnet",
       rpcUrl:
         process.env.GAS_ESTIMATION_SOROBAN_TESTNET_RPC_URL ||
         process.env.GAS_ESTIMATION_SOROBAN_RPC_URL,
@@ -49,7 +49,9 @@ export class NetworkConfigService {
   }
 
   getNetworkConfig(chainId: string): GasEstimationNetworkConfig {
-    const network = this.networks.find((candidate) => candidate.chainId === chainId);
+    const network = this.networks.find(
+      (candidate) => candidate.chainId === chainId,
+    );
 
     if (!network) {
       throw new Error(`Unsupported chainId: ${chainId}`);

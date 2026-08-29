@@ -1,8 +1,11 @@
-# State Variable Packing Optimization Rule
+# Optimization Rules
 
 ## 📋 Overview
 
-This implementation provides a comprehensive state variable packing detection system for detecting gas optimization opportunities in smart contracts. The rule analyzes how state variables are ordered and suggests opportunities to pack them more efficiently into storage slots.
+This module provides comprehensive gas optimization detection rules for smart contracts, including:
+- **Storage optimization**: State variable packing detection
+- **Deployment optimization**: Excessive contract size detection
+- **Event optimization**: Oversized event emission detection
 
 ## 📁 Implementation Structure
 
@@ -10,10 +13,19 @@ This implementation provides a comprehensive state variable packing detection sy
 packages/rules/src/
 ├── optimization/
 │   ├── mod.rs                                 # Optimization module root
-│   └── storage/
-│       ├── mod.rs                             # Storage module exports
-│       ├── state_variable_packing.rs          # Core packing detection logic
-│       └── state_variable_packing.tests.rs    # Comprehensive test suite
+│   ├── README.md                              # This file
+│   ├── storage/
+│   │   ├── mod.rs                             # Storage module exports
+│   │   ├── state_variable_packing.rs          # Core packing detection logic
+│   │   └── state_variable_packing.tests.rs    # Comprehensive test suite
+│   ├── deployment/
+│   │   ├── mod.rs                             # Deployment module exports
+│   │   └── excessive_contract_size.rs         # Contract size detection
+│   ├── events/
+│   │   ├── mod.rs                             # Events module exports
+│   │   └── oversized_events.rs                # Oversized event detection
+│   └── gas/
+│       └── duplicate_require_statements.rs    # Duplicate require detection
 │
 └── solidity/
     ├── state_variable_packing.rs              # Solidity rule integration
@@ -22,7 +34,9 @@ packages/rules/src/
 
 ## 🎯 Key Components
 
-### 1. **Core Detection Module** (`state_variable_packing.rs`)
+### 1. **Storage Optimization** (`storage/`)
+
+To find storage packing logic visit [state_variable_packing.rs](file:///C:/Stellar%20Contributions/GasGuard/packages/rules/src/optimization/storage/state_variable_packing.rs).
 
 Core functions for packing analysis:
 
@@ -303,3 +317,103 @@ engine.register_rule(Box::new(StateVariablePackingRule));
 - ✅ Complete test coverage
 - ✅ Documentation with examples
 - ✅ Integration with rule engine
+
+---
+
+## 📡 Event Optimization (`events/`)
+
+To find oversized event detection logic visit [oversized_events.rs](file:///C:/Stellar%20Contributions/GasGuard/packages/rules/src/optimization/events/oversized_events.rs).
+
+### Overview
+
+Large event emissions increase transaction costs because event data is stored on-chain permanently. This rule detects events with oversized payloads and suggests compact alternatives.
+
+### Key Components
+
+#### `EventInfo`
+```rust
+pub struct EventInfo {
+    pub name: String,
+    pub parameters: Vec<EventParameter>,
+    pub total_size: usize,
+    pub indexed_count: usize,
+    pub line_number: usize,
+}
+```
+
+#### `Suggestion`
+```rust
+pub struct Suggestion {
+    pub original: String,
+    pub alternative: String,
+    pub estimated_savings: usize,
+    pub reason: String,
+}
+```
+
+#### `estimate_event_size(parameters: &[EventParameter]) -> usize`
+- Calculates estimated event payload size
+- Indexed parameters: 32 bytes each (keccak256 hash)
+- Non-indexed parameters: ABI-encoded size
+- Dynamic types (string, bytes): estimated 64 bytes
+
+#### `OversizedEventsRule`
+Implements the `Rule` trait:
+- **Rule ID**: `oversized-events`
+- **Default threshold**: 128 bytes
+- **Severity scaling**:
+  - Critical: > 256 bytes
+  - High: > 192 bytes
+  - Medium: > 128 bytes
+  - Low: > 64 bytes
+
+### Suggestion Types
+
+1. **String → bytes32 hash**: Replace string parameters with keccak256 hash
+2. **Remove unnecessary indexed**: Only index fields needed for filtering
+3. **Array → bytes32 hash**: Replace arrays with content hash
+4. **Split large events**: Break events with many parameters into smaller ones
+
+### Usage Example
+
+```rust
+use gasguard_rules::{OversizedEventsRule, EventInfo, estimate_event_size};
+
+// Custom threshold
+let rule = OversizedEventsRule::with_threshold(64);
+let violations = rule.check(&ast.items);
+
+// Estimate event size manually
+let params = vec![
+    EventParameter {
+        name: "from".to_string(),
+        type_name: "address".to_string(),
+        indexed: true,
+        estimated_size: 32,
+    },
+    EventParameter {
+        name: "memo".to_string(),
+        type_name: "string".to_string(),
+        indexed: false,
+        estimated_size: 64,
+    },
+];
+let size = estimate_event_size(&params); // 96 bytes
+```
+
+### Test Coverage
+
+Run tests:
+```bash
+cargo test -p gasguard-rules oversized_events
+```
+
+Tests include:
+- ✅ Type size estimation
+- ✅ Event size calculation
+- ✅ Oversized event detection
+- ✅ Small event pass-through
+- ✅ Emit call analysis
+- ✅ Suggestion generation
+- ✅ Severity scaling
+- ✅ Custom thresholds

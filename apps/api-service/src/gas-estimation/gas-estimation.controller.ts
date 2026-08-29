@@ -8,21 +8,21 @@ import {
   HttpStatus,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { DynamicPricingService } from './services/dynamic-pricing.service';
-import { GasPriceHistoryService } from './services/gas-price-history.service';
-import { NetworkMonitorService } from './services/network-monitor.service';
-import { NetworkConfigService } from './config/network-config.service';
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { DynamicPricingService } from "./services/dynamic-pricing.service";
+import { GasPriceHistoryService } from "./services/gas-price-history.service";
+import { NetworkMonitorService } from "./services/network-monitor.service";
+import { NetworkConfigService } from "./config/network-config.service";
 import {
   GetGasEstimateDto,
   GasEstimateResponseDto,
   GasPriceHistoryDto,
   NetworkMetricsDto,
-} from './dto/gas-estimate.dto';
+} from "./dto/gas-estimate.dto";
 
-@ApiTags('Gas Estimation')
-@Controller('gas-estimation')
+@ApiTags("Gas Estimation")
+@Controller("gas-estimation")
 export class GasEstimationController {
   private readonly logger = new Logger(GasEstimationController.name);
 
@@ -37,29 +37,31 @@ export class GasEstimationController {
    * Get dynamic gas estimate for a transaction
    * Replaces static gas estimation with real-time network-aware pricing
    */
-  @Post('estimate')
+  @Post("estimate")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Get dynamic gas price estimate',
+    summary: "Get dynamic gas price estimate",
     description:
-      'Returns estimated gas cost based on real-time network conditions, with multiple priority options',
+      "Returns estimated gas cost based on real-time network conditions, with multiple priority options",
   })
   @ApiResponse({
     status: 200,
-    description: 'Gas estimate with dynamic pricing',
+    description: "Gas estimate with dynamic pricing",
     type: GasEstimateResponseDto,
   })
   async estimateGasPrice(@Body() dto: GetGasEstimateDto): Promise<any> {
     try {
       if (!dto.chainId) {
-        throw new BadRequestException('chainId is required');
+        throw new BadRequestException("chainId is required");
       }
 
       if (!dto.estimatedGasUnits || dto.estimatedGasUnits <= 0) {
-        throw new BadRequestException('estimatedGasUnits must be greater than 0');
+        throw new BadRequestException(
+          "estimatedGasUnits must be greater than 0",
+        );
       }
 
-      const priority = dto.priority || 'normal';
+      const priority = dto.priority || "normal";
       const estimate = await this.dynamicPricingService.estimateGasPrice(
         dto.chainId,
         dto.estimatedGasUnits,
@@ -71,7 +73,7 @@ export class GasEstimationController {
         confidence: estimate.alternativePrices ? 85 : 70,
       };
     } catch (error) {
-      this.logger.error('Failed to estimate gas price', error);
+      this.logger.error("Failed to estimate gas price", error);
       throw error;
     }
   }
@@ -79,17 +81,19 @@ export class GasEstimationController {
   /**
    * Get multiple price options for different priority levels
    */
-  @Post('estimate/multi')
+  @Post("estimate/multi")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Get multiple gas price options',
+    summary: "Get multiple gas price options",
     description:
-      'Returns gas price estimates for low, normal, high, and critical priority levels',
+      "Returns gas price estimates for low, normal, high, and critical priority levels",
   })
   async getMultiplePriceOptions(@Body() dto: GetGasEstimateDto): Promise<any> {
     try {
       if (!dto.chainId || !dto.estimatedGasUnits) {
-        throw new BadRequestException('chainId and estimatedGasUnits are required');
+        throw new BadRequestException(
+          "chainId and estimatedGasUnits are required",
+        );
       }
 
       return await this.dynamicPricingService.getMultiplePriceOptions(
@@ -97,7 +101,7 @@ export class GasEstimationController {
         dto.estimatedGasUnits,
       );
     } catch (error) {
-      this.logger.error('Failed to get multiple price options', error);
+      this.logger.error("Failed to get multiple price options", error);
       throw error;
     }
   }
@@ -105,17 +109,19 @@ export class GasEstimationController {
   /**
    * Get optimal gas price suggestion based on historical patterns
    */
-  @Post('suggest-optimal')
+  @Post("suggest-optimal")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Get optimal gas price suggestion',
+    summary: "Get optimal gas price suggestion",
     description:
-      'Recommends the best gas price based on historical trends and current conditions',
+      "Recommends the best gas price based on historical trends and current conditions",
   })
   async suggestOptimalPrice(@Body() dto: GetGasEstimateDto): Promise<any> {
     try {
       if (!dto.chainId || !dto.estimatedGasUnits) {
-        throw new BadRequestException('chainId and estimatedGasUnits are required');
+        throw new BadRequestException(
+          "chainId and estimatedGasUnits are required",
+        );
       }
 
       return await this.dynamicPricingService.suggestOptimalPrice(
@@ -123,7 +129,7 @@ export class GasEstimationController {
         dto.estimatedGasUnits,
       );
     } catch (error) {
-      this.logger.error('Failed to suggest optimal price', error);
+      this.logger.error("Failed to suggest optimal price", error);
       throw error;
     }
   }
@@ -131,20 +137,22 @@ export class GasEstimationController {
   /**
    * Get current network metrics for a chain
    */
-  @Get('network-metrics/:chainId')
+  @Get("network-metrics/:chainId")
   @ApiOperation({
-    summary: 'Get current network metrics',
+    summary: "Get current network metrics",
     description:
-      'Returns real-time network metrics including congestion level, transaction count, and volatility',
+      "Returns real-time network metrics including congestion level, transaction count, and volatility",
   })
-  async getNetworkMetrics(@Param('chainId') chainId: string): Promise<any> {
+  async getNetworkMetrics(@Param("chainId") chainId: string): Promise<any> {
     try {
       if (!chainId) {
-        throw new BadRequestException('chainId is required');
+        throw new BadRequestException("chainId is required");
       }
 
-      const metrics = await this.networkMonitorService.getNetworkMetrics(chainId);
-      const snapshot = await this.networkMonitorService.getGasPriceSnapshot(chainId);
+      const metrics =
+        await this.networkMonitorService.getNetworkMetrics(chainId);
+      const snapshot =
+        await this.networkMonitorService.getGasPriceSnapshot(chainId);
 
       return {
         chainId,
@@ -159,7 +167,7 @@ export class GasEstimationController {
         },
       };
     } catch (error) {
-      this.logger.error('Failed to get network metrics', error);
+      this.logger.error("Failed to get network metrics", error);
       throw error;
     }
   }
@@ -167,18 +175,18 @@ export class GasEstimationController {
   /**
    * Get historical gas prices
    */
-  @Get('history/:chainId')
+  @Get("history/:chainId")
   @ApiOperation({
-    summary: 'Get historical gas prices',
-    description: 'Returns gas price history for analysis and trend detection',
+    summary: "Get historical gas prices",
+    description: "Returns gas price history for analysis and trend detection",
   })
   async getGasPriceHistory(
-    @Param('chainId') chainId: string,
+    @Param("chainId") chainId: string,
     @Body() dto: GasPriceHistoryDto,
   ): Promise<any> {
     try {
       if (!chainId) {
-        throw new BadRequestException('chainId is required');
+        throw new BadRequestException("chainId is required");
       }
 
       const hoursBack = dto.hoursBack || 24;
@@ -203,7 +211,7 @@ export class GasEstimationController {
         trend,
       };
     } catch (error) {
-      this.logger.error('Failed to get gas price history', error);
+      this.logger.error("Failed to get gas price history", error);
       throw error;
     }
   }
@@ -211,24 +219,28 @@ export class GasEstimationController {
   /**
    * Get analysis of best time windows for low gas prices
    */
-  @Get('best-time-windows/:chainId')
+  @Get("best-time-windows/:chainId")
   @ApiOperation({
-    summary: 'Find best times for low gas prices',
-    description: 'Analyzes 7-day history to find optimal time windows with lowest gas prices',
+    summary: "Find best times for low gas prices",
+    description:
+      "Analyzes 7-day history to find optimal time windows with lowest gas prices",
   })
-  async getBestTimeWindows(@Param('chainId') chainId: string): Promise<any> {
+  async getBestTimeWindows(@Param("chainId") chainId: string): Promise<any> {
     try {
       if (!chainId) {
-        throw new BadRequestException('chainId is required');
+        throw new BadRequestException("chainId is required");
       }
 
       const bestWindows =
-        await this.gasPriceHistoryService.getBestTimeWindowsForLowPrices(chainId, 5);
+        await this.gasPriceHistoryService.getBestTimeWindowsForLowPrices(
+          chainId,
+          5,
+        );
 
       return {
         chainId,
-        analysisWindow: '7 days',
-        timezone: 'UTC',
+        analysisWindow: "7 days",
+        timezone: "UTC",
         bestWindows: bestWindows.map((w) => ({
           hour: `${w.hour}:00 UTC`,
           averagePrice: w.averagePrice.toFixed(2),
@@ -237,7 +249,7 @@ export class GasEstimationController {
         })),
       };
     } catch (error) {
-      this.logger.error('Failed to get best time windows', error);
+      this.logger.error("Failed to get best time windows", error);
       throw error;
     }
   }
@@ -245,15 +257,16 @@ export class GasEstimationController {
   /**
    * Get price trend analysis
    */
-  @Get('trend/:chainId')
+  @Get("trend/:chainId")
   @ApiOperation({
-    summary: 'Get gas price trend',
-    description: 'Analyzes recent gas price trends to predict future price movements',
+    summary: "Get gas price trend",
+    description:
+      "Analyzes recent gas price trends to predict future price movements",
   })
-  async getPriceTrend(@Param('chainId') chainId: string): Promise<any> {
+  async getPriceTrend(@Param("chainId") chainId: string): Promise<any> {
     try {
       if (!chainId) {
-        throw new BadRequestException('chainId is required');
+        throw new BadRequestException("chainId is required");
       }
 
       const trend = await this.gasPriceHistoryService.getPriceTrend(chainId);
@@ -273,10 +286,13 @@ export class GasEstimationController {
           max6h: stats.max,
           volatility: stats.stdDev,
         },
-        recommendation: this.getTrendRecommendation(trend.trend, trend.percentChange),
+        recommendation: this.getTrendRecommendation(
+          trend.trend,
+          trend.percentChange,
+        ),
       };
     } catch (error) {
-      this.logger.error('Failed to get price trend', error);
+      this.logger.error("Failed to get price trend", error);
       throw error;
     }
   }
@@ -284,14 +300,14 @@ export class GasEstimationController {
   /**
    * Health check for gas estimation service
    */
-  @Get('health')
+  @Get("health")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Health check' })
+  @ApiOperation({ summary: "Health check" })
   async health(): Promise<any> {
     return {
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: "1.0.0",
       supportedChains: this.networkConfigService.getSupportedChainIds(),
     };
   }
@@ -299,22 +315,19 @@ export class GasEstimationController {
   /**
    * Helper: Get trend-based recommendation
    */
-  private getTrendRecommendation(
-    trend: string,
-    percentChange: number,
-  ): string {
-    if (trend === 'increasing') {
+  private getTrendRecommendation(trend: string, percentChange: number): string {
+    if (trend === "increasing") {
       if (percentChange > 10) {
-        return '⚠️  Prices rising sharply. Consider executing urgent transactions now if needed.';
+        return "⚠️  Prices rising sharply. Consider executing urgent transactions now if needed.";
       }
-      return '📈 Prices trending up. Good time to execute if not urgent.';
-    } else if (trend === 'decreasing') {
+      return "📈 Prices trending up. Good time to execute if not urgent.";
+    } else if (trend === "decreasing") {
       if (percentChange < -10) {
-        return '✅ Prices falling significantly. Optimal time for non-urgent transactions.';
+        return "✅ Prices falling significantly. Optimal time for non-urgent transactions.";
       }
-      return '📉 Prices trending down. Wait for cheaper rates if possible.';
+      return "📉 Prices trending down. Wait for cheaper rates if possible.";
     } else {
-      return '➡️  Prices stable. Safe to execute at any time.';
+      return "➡️  Prices stable. Safe to execute at any time.";
     }
   }
 }

@@ -52,10 +52,11 @@
       "@engine/analyzers/*": ["libs/engine/analyzers/*"],
       "@engine/*": ["libs/engine/*"],
       "@rules/*": ["packages/rules/*"],
-      "@api/*": ["apps/api/src/*"]
+      "@api/*": ["apps/api/src/*"],
+      "@gas-evaluator/*": ["libs/gas-evaluator/src/*"]
     }
   },
-  "include": ["apps/**/*", "libs/**/*", "packages/**/*"],
+  "include": ["apps/**/*", "libs/**/*", "packages/**/*", "src/**/*", "rules/**/*", "src/rules/**/*"],
   "exclude": [
     "node_modules",
     "dist",
