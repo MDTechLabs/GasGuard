@@ -26,6 +26,12 @@ pub use parser::*;
 pub use rule_engine::*;
 pub use unnecessary_cloning::UnnecessaryCloningRule;
 
+// New Soroban analysis rules
+pub use rule_engine::{
+    SorobanDeadCodeRule, SorobanDeepNestingRule, SorobanFunctionComplexityRule,
+    SorobanRepeatedComputationsRule,
+};
+
 /// Represents a Soroban contract structure
 #[derive(Debug, Clone, PartialEq)]
 pub struct SorobanContract {
