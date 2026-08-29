@@ -7,3 +7,4 @@
 export * from './nested-calls-rule';
 export * from './cross-contract-calls-rule';
 export * from './redundant-calls-rule';
+export * from './cross-contract-calls-in-loop-rule';
