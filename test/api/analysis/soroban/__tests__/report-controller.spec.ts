@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SorobanOptimizationReportController } from '../../../../src/api/analysis/soroban/report-controller';
+import { SorobanOptimizationReportController } from '../report-controller';
 
 describe('SorobanOptimizationReportController', () => {
   let controller: SorobanOptimizationReportController;
