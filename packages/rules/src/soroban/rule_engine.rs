@@ -9,6 +9,7 @@ use super::{
     SorobanParser, SorobanResult, UnsafeCallTargetRule,
     UnvalidatedContractAddressRule,
 };
+use crate::soroban::storage::{SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -53,6 +54,8 @@ impl SorobanRuleEngine {
             .add_rule(InefficientIntegerTypesRule::default())
             .add_rule(MissingErrorHandlingRule::default())
             .add_rule(InefficientBytesAllocationRule::default())
+            .add_rule(SorobanLedgerReadCostRule::default())
+            .add_rule(SorobanLedgerWriteCostRule::default())
             .add_rule(EmergencyWithdrawalRule::default())
             .add_rule(GovernanceVotingRule::default())
             .add_rule(ClaimExpirationRule::default())    // #117

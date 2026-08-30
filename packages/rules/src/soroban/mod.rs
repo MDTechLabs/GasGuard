@@ -12,6 +12,7 @@ pub mod loop_cost_analyzer;
 pub mod memory;
 pub mod parser;
 pub mod rule_engine;
+pub mod storage;
 pub mod unbounded_iteration;
 pub mod unnecessary_cloning;
 
@@ -26,6 +27,7 @@ pub use crate::soroban::rule_engine::{
     SorobanDeadCodeRule, SorobanDeepNestingRule, SorobanFunctionComplexityRule,
     SorobanRepeatedComputationsRule,
 };
+pub use self::storage::{SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule};
 pub use self::unbounded_iteration::UnboundedIterationRule;
 pub use self::unnecessary_cloning::UnnecessaryCloningRule;
 
