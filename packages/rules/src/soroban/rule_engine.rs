@@ -6,8 +6,12 @@
 use super::{
     InefficientBytesAllocationRule, InefficientInterfaceParamsRule, InterfaceConsistencyRule,
     SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult, UnsafeCallTargetRule,
+    memory::InefficientBytesAllocationRule, InefficientInterfaceParamsRule,
+    InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract, SorobanFunction,
+    SorobanParser, SorobanResult, UnsafeCallTargetRule,
     UnvalidatedContractAddressRule,
 };
+use crate::soroban::storage::{SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -52,6 +56,8 @@ impl SorobanRuleEngine {
             .add_rule(InefficientIntegerTypesRule::default())
             .add_rule(MissingErrorHandlingRule::default())
             .add_rule(InefficientBytesAllocationRule::default())
+            .add_rule(SorobanLedgerReadCostRule::default())
+            .add_rule(SorobanLedgerWriteCostRule::default())
             .add_rule(EmergencyWithdrawalRule::default())
             .add_rule(GovernanceVotingRule::default())
             .add_rule(ClaimExpirationRule::default())    // #117
@@ -1052,7 +1058,7 @@ impl SorobanRule for OptimizationPriorityRule {
         let mut violations = Vec::new();
         for implementation in &contract.implementations {
             // Build a simple density score per function
-            let mut scored: Vec<(usize, &crate::soroban::SorobanFunction)> = implementation
+            let mut scored: Vec<(usize, &SorobanFunction)> = implementation
                 .functions
                 .iter()
                 .map(|f| {

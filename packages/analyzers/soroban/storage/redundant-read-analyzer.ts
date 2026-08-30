@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ASTNode, ContractDefinition } from '@gasguard/parser';
 
-export interface RedundantWriteFinding {
+export interface RedundantReadFinding {
   ruleId: string;
   severity: 'medium' | 'low';
   message: string;
@@ -9,53 +9,50 @@ export interface RedundantWriteFinding {
   recommendation: string;
 }
 
-export interface RedundantWriteAnalysisResult {
+export interface RedundantReadAnalysisResult {
   contractPath: string;
-  findings: RedundantWriteFinding[];
+  findings: RedundantReadFinding[];
   metrics: {
-    redundantWritesDetected: number;
+    redundantReadsDetected: number;
   };
 }
 
 @Injectable()
-export class SorobanRedundantWriteAnalyzer {
-  private readonly logger = new Logger(SorobanRedundantWriteAnalyzer.name);
+export class SorobanRedundantReadAnalyzer {
+  private readonly logger = new Logger(SorobanRedundantReadAnalyzer.name);
 
-  public analyze(contractAst: ContractDefinition, contractPath: string): RedundantWriteAnalysisResult {
-    this.logger.debug(`Analyzing redundant storage writes for contract: ${contractPath}`);
+  public analyze(contractAst: ContractDefinition, contractPath: string): RedundantReadAnalysisResult {
+    this.logger.debug(`Analyzing redundant storage reads for contract: ${contractPath}`);
 
-    const findings: RedundantWriteFinding[] = [];
-    let redundantWritesDetected = 0;
+    const findings: RedundantReadFinding[] = [];
+    let redundantReadsDetected = 0;
 
     this.traverseFunctions(contractAst, (functionNode) => {
-      const writtenValues = new Map<string, string>(); // key -> value expression/literal representation
+      const readKeys = new Set<string>();
 
       this.traverseAst(functionNode, (node) => {
-        if (this.isStorageWrite(node)) {
+        if (this.isStorageRead(node)) {
           const key = this.extractStorageKey(node);
-          const value = this.extractStorageValue(node);
-
           if (key) {
-            if (writtenValues.has(key) && writtenValues.get(key) === value) {
-              redundantWritesDetected++;
+            if (readKeys.has(key)) {
+              redundantReadsDetected++;
               findings.push({
-                ruleId: 'SOROBAN-STOR-05',
+                ruleId: 'SOROBAN-STOR-04',
                 severity: 'medium',
-                message: `Redundant identical storage write detected for key '${key}' with value '${value}'.`,
+                message: `Redundant storage read detected for key '${key}'.`,
                 nodeId: node.id,
-                recommendation: 'Check if the state has already been updated or skip duplicate write operations to save transaction fees.',
+                recommendation: 'Cache the storage query result in a local variable instead of reading it multiple times.',
               });
-            } else if (value !== null) {
-              writtenValues.set(key, value);
+            } else {
+              readKeys.add(key);
             }
           }
         }
 
-        if (this.isStorageRead(node)) {
+        if (this.isStorageWrite(node)) {
           const key = this.extractStorageKey(node);
           if (key) {
-            // Reading state can invalidate write optimization assumptions if external changes could occur
-            // but within local synchronous execution scopes, identical consecutive writes are flagged.
+            readKeys.delete(key);
           }
         }
       });
@@ -65,7 +62,7 @@ export class SorobanRedundantWriteAnalyzer {
       contractPath,
       findings,
       metrics: {
-        redundantWritesDetected,
+        redundantReadsDetected,
       },
     };
   }
@@ -90,19 +87,15 @@ export class SorobanRedundantWriteAnalyzer {
     }
   }
 
-  private isStorageWrite(node: ASTNode): boolean {
-    return node.type === 'MethodCall' && (node.value === 'set' || node.value === 'put');
-  }
-
   private isStorageRead(node: ASTNode): boolean {
     return node.type === 'MethodCall' && (node.value === 'get' || node.value === 'has');
   }
 
-  private extractStorageKey(node: ASTNode): string | null {
-    return node.metadata?.['storageKey'] ?? node.arguments?.[0]?.value ?? null;
+  private isStorageWrite(node: ASTNode): boolean {
+    return node.type === 'MethodCall' && (node.value === 'set' || node.value === 'put');
   }
 
-  private extractStorageValue(node: ASTNode): string | null {
-    return node.metadata?.['storageValue'] ?? node.arguments?.[1]?.value ?? null;
+  private extractStorageKey(node: ASTNode): string | null {
+    return node.metadata?.['storageKey'] ?? node.arguments?.[0]?.value ?? null;
   }
 }
