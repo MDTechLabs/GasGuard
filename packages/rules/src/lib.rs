@@ -31,6 +31,7 @@ pub use soroban::{
     SorobanDeepNestingRule, SorobanField, SorobanFunction, SorobanFunctionComplexityRule,
     SorobanImpl, SorobanParam, SorobanParser, SorobanRepeatedComputationsRule, SorobanResult,
     SorobanRuleEngine, SorobanStruct, UnnecessaryCloningRule,
+    SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule,
 };
 
 // Export Vyper types (keeping glob here is fine if Vyper module is clean, but let's be safe)
