@@ -4,6 +4,8 @@
 //! with rules tailored to Soroban's unique characteristics and gas optimization patterns.
 
 use super::{
+    InefficientBytesAllocationRule, InefficientInterfaceParamsRule, InterfaceConsistencyRule,
+    SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult, UnsafeCallTargetRule,
     memory::InefficientBytesAllocationRule, InefficientInterfaceParamsRule,
     InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract, SorobanFunction,
     SorobanParser, SorobanResult, UnsafeCallTargetRule,
@@ -805,6 +807,45 @@ impl SorobanRule for GovernanceVotingRule {
         }
         
         violations
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_soroban_rule_engine_creation() {
+        let engine = SorobanRuleEngine::with_default_rules();
+        assert!(!engine.get_rules().is_empty());
+        
+        let rule_ids: Vec<_> = engine.get_rules().iter().map(|r| r.id()).collect();
+        assert!(rule_ids.contains(&"soroban-unused-state-variables"));
+        assert!(rule_ids.contains(&"soroban-inefficient-storage"));
+        assert!(rule_ids.contains(&"soroban-governance-voting"));
+        assert!(rule_ids.contains(&"soroban-emergency-withdrawal"));
+        // Stellar Wave interface & call-safety rules (#861, #862, #863, #864)
+        assert!(rule_ids.contains(&"soroban-unvalidated-contract-address")); // #861
+        assert!(rule_ids.contains(&"soroban-unsafe-call-target"));           // #862
+        assert!(rule_ids.contains(&"soroban-interface-consistency"));       // #863
+        assert!(rule_ids.contains(&"soroban-inefficient-interface-params")); // #864
+    }
+    
+    #[test]
+    fn test_unused_state_variables_rule() {
+        let source = r#"
+use soroban_sdk::{contract, contractimpl, contracttype, Address};
+
+#[contracttype]
+pub struct TestContract {
+    pub admin: Address,
+    pub unused_counter: u64,
+}
+"#;
+        let contract = SorobanParser::parse_contract(source, "test.rs").unwrap();
+        let rule = UnusedStateVariablesRule::default();
+        let violations = rule.apply(&contract);
+        assert!(!violations.is_empty());
     }
 }
 
@@ -1677,7 +1718,7 @@ impl SorobanDeadCodeRule {
 }
 
 #[cfg(test)]
-mod tests {
+mod engine_tests {
     use super::*;
 
     #[test]

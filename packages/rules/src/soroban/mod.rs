@@ -12,6 +12,17 @@ pub mod loop_cost_analyzer;
 pub mod memory;
 pub mod parser;
 pub mod rule_engine;
+pub mod unnecessary_cloning;
+
+pub use analyzer::*;
+pub use event_emission::EventEmissionCostRule;
+pub use inefficient_error_construction::InefficientErrorConstructionRule;
+pub use interface_rules::*;
+pub use memory::InefficientBytesAllocationRule;
+pub use memory::MemoryAllocationRule;
+pub use parser::*;
+pub use rule_engine::*;
+pub use unnecessary_cloning::UnnecessaryCloningRule;
 pub mod storage;
 pub mod unbounded_iteration;
 pub mod unnecessary_cloning;
