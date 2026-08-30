@@ -43,7 +43,7 @@ impl SerializationUpgradeCompatibilityRule {
         violations
     }
 
-    fn issue_to_violation(&self, issue: &SerializationIssue, file_path: &str) -> RuleViolation {
+    fn issue_to_violation(&self, issue: &SerializationIssue, _file_path: &str) -> RuleViolation {
         let (severity, recommendation) = self.get_severity_and_recommendation(issue);
 
         let variable_name = issue

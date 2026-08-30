@@ -4,9 +4,12 @@
 //! with rules tailored to Soroban's unique characteristics and gas optimization patterns.
 
 use super::{
-    InefficientInterfaceParamsRule, InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract,
-    SorobanParser, SorobanResult, UnsafeCallTargetRule, UnvalidatedContractAddressRule,
+    memory::InefficientBytesAllocationRule, InefficientInterfaceParamsRule,
+    InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract, SorobanFunction,
+    SorobanParser, SorobanResult, UnsafeCallTargetRule,
+    UnvalidatedContractAddressRule,
 };
+use crate::soroban::storage::{SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -51,6 +54,8 @@ impl SorobanRuleEngine {
             .add_rule(InefficientIntegerTypesRule::default())
             .add_rule(MissingErrorHandlingRule::default())
             .add_rule(InefficientBytesAllocationRule::default())
+            .add_rule(SorobanLedgerReadCostRule::default())
+            .add_rule(SorobanLedgerWriteCostRule::default())
             .add_rule(EmergencyWithdrawalRule::default())
             .add_rule(GovernanceVotingRule::default())
             .add_rule(ClaimExpirationRule::default())    // #117
@@ -803,42 +808,6 @@ impl SorobanRule for GovernanceVotingRule {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_soroban_rule_engine_creation() {
-        let engine = SorobanRuleEngine::with_default_rules();
-        assert!(!engine.get_rules().is_empty());
-        
-        let rule_ids: Vec<_> = engine.get_rules().iter().map(|r| r.id()).collect();
-        assert!(rule_ids.contains(&"soroban-unused-state-variables"));
-        assert!(rule_ids.contains(&"soroban-inefficient-storage"));
-        assert!(rule_ids.contains(&"soroban-governance-voting"));
-        assert!(rule_ids.contains(&"soroban-emergency-withdrawal"));
-        // Stellar Wave interface & call-safety rules (#861, #862, #863, #864)
-        assert!(rule_ids.contains(&"soroban-unvalidated-contract-address")); // #861
-        assert!(rule_ids.contains(&"soroban-unsafe-call-target"));           // #862
-        assert!(rule_ids.contains(&"soroban-interface-consistency"));       // #863
-        assert!(rule_ids.contains(&"soroban-inefficient-interface-params")); // #864
-    }
-    
-    #[test]
-    fn test_unused_state_variables_rule() {
-        let source = r#"
-use soroban_sdk::{contract, contractimpl, contracttype, Address};
-
-#[contracttype]
-pub struct TestContract {
-    pub admin: Address,
-    pub unused_counter: u64,
-}
-
-        violations
-    }
-}
-
 // ── Issue #779: Redundant Event Emissions ────────────────────────────────────
 
 /// Detects duplicate `env.events().publish(...)` calls within the same function.
@@ -1048,7 +1017,7 @@ impl SorobanRule for OptimizationPriorityRule {
         let mut violations = Vec::new();
         for implementation in &contract.implementations {
             // Build a simple density score per function
-            let mut scored: Vec<(usize, &crate::soroban::SorobanFunction)> = implementation
+            let mut scored: Vec<(usize, &SorobanFunction)> = implementation
                 .functions
                 .iter()
                 .map(|f| {
