@@ -8,6 +8,7 @@ export * from './calls';
 export * from './serialization';
 export * from './events';
 export * from './authorization';
+export * from './upgrades';
 export * from './budget';
 export * from './prioritization';
 export * from './functions';
