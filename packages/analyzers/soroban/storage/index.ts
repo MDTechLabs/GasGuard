@@ -6,3 +6,4 @@ export * from "./redundant-write-analyzer";
 export * from "./storage-entry-classifier";
 export * from "./inefficient-temporary-storage-analyzer";
 export * from "./storage-footprint-expansion-analyzer";
+export * from "./mutable-upgrade-config-analyzer";
