@@ -18,3 +18,4 @@ export * from './wasm';
 export * from './storage';
 export * from './suggestions';
 export * from '../ledger';
+export * from '../auth';
