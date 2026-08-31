@@ -168,6 +168,7 @@ pub fn run_interactive_fix_wizard(path: &Path, scanner: &ContractScanner) -> Res
             .with_context(|| format!("Failed to read {}", file_path.display()))?;
         let updated = fix_engine
             .apply_fixes(&file_path, &accepted)
+            .map_err(|e| anyhow!(e))
             .with_context(|| format!("Failed to generate fixes for {}", file_path.display()))?;
 
         if updated == original {
@@ -217,6 +218,7 @@ fn collect_fixable_issues(
 
         let report = fix_engine
             .preview_fixes(&file_path, &safe_violations)
+            .map_err(|e| anyhow!(e))
             .with_context(|| format!("Failed to build preview for {}", file_path.display()))?;
 
         for (violation, preview) in safe_violations

@@ -1,5 +1,5 @@
 use crate::optimization::storage::{
-    detect_packing_opportunities, get_type_size, is_packable_type, VariableInfo,
+    detect_packing_opportunities, get_type_size, VariableInfo,
 };
 /// Solidity State Variable Packing Rule
 ///

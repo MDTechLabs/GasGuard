@@ -28,9 +28,12 @@ describe('Optimization Preview API (#807)', () => {
     for (const p of result.proposals) {
       expect(p.confidence).toBeGreaterThanOrEqual(0);
       expect(p.confidence).toBeLessThanOrEqual(1);
+      expect(p.confidenceScore).toBe(p.confidence);
+      expect(p.originalCode).toBeTruthy();
+      expect(p.proposedCode).toBeTruthy();
       expect(p.diff.patch).toContain('---');
       expect(p.diff.filePath).toBeTruthy();
-      expect(p.estimatedImpact).toEqual(
+      expect(p.expectedResourceImpact).toEqual(
         expect.objectContaining({
           cpu: expect.any(Number),
           memory: expect.any(Number),
@@ -39,6 +42,7 @@ describe('Optimization Preview API (#807)', () => {
           summary: expect.any(String),
         }),
       );
+      expect(p.estimatedImpact).toEqual(p.expectedResourceImpact);
     }
   });
 

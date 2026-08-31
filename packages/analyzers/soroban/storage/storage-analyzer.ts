@@ -81,6 +81,7 @@ export class SorobanStorageAnalyzer {
     callback(node);
     if (node.children) {
       for (const child of node.children) {
+        child.parent = node;
         this.traverseAst(child, callback);
       }
     }

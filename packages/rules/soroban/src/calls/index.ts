@@ -9,3 +9,4 @@ export * from './cross-contract-calls-rule';
 export * from './redundant-calls-rule';
 export * from './recursive-contract-calls-rule';
 export * from './call-depth-threshold-rule';
+export * from './cross-contract-calls-in-loop-rule';

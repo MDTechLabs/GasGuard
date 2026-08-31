@@ -21,6 +21,14 @@ export interface ProposedDiff {
   endLine: number;
 }
 
+export interface ResourceImpactSummary {
+  cpu: number;
+  memory: number;
+  ledger: number;
+  fees: number;
+  summary: string;
+}
+
 export interface OptimizationProposal {
   id: string;
   ruleId: string;
@@ -29,14 +37,16 @@ export interface OptimizationProposal {
   description: string;
   /** 0–1 confidence that the fix is safe and beneficial */
   confidence: number;
+  /** Alias kept for reporting/UI compatibility */
+  confidenceScore: number;
+  /** Original code being considered for change */
+  originalCode: string;
+  /** Proposed transformed code for preview */
+  proposedCode: string;
   /** Estimated impact breakdown */
-  estimatedImpact: {
-    cpu: number;
-    memory: number;
-    ledger: number;
-    fees: number;
-    summary: string;
-  };
+  estimatedImpact: ResourceImpactSummary;
+  /** Expected resource impact shown to developers */
+  expectedResourceImpact: ResourceImpactSummary;
   /** Proposed source diff (preview) */
   diff: ProposedDiff;
   line: number;
@@ -80,6 +90,19 @@ export function previewOptimizations(
   for (const f of freq.findings) {
     const confidence =
       f.edge.count >= 8 ? 0.9 : f.edge.count >= 5 ? 0.75 : 0.6;
+    const impact: ResourceImpactSummary = {
+      cpu: Math.min(80, f.edge.count * 8),
+      memory: 5,
+      ledger: 10,
+      fees: Math.min(60, f.edge.count * 5),
+      summary: `Reducing ${f.edge.count} repeated calls may cut relative CPU by ~${Math.min(80, f.edge.count * 8)}%.`,
+    };
+    const previewCode = buildPreviewCode(
+      source,
+      f.line,
+      `cache result of ${f.edge.callee}(...) across repeated calls`,
+      'cache',
+    );
     proposals.push({
       id: `opt-freq-${f.line}-${f.edge.callee}`,
       ruleId: f.ruleId,
@@ -87,13 +110,11 @@ export function previewOptimizations(
       title: `Cache / batch repeated call to '${f.edge.callee}'`,
       description: f.message,
       confidence,
-      estimatedImpact: {
-        cpu: Math.min(80, f.edge.count * 8),
-        memory: 5,
-        ledger: 10,
-        fees: Math.min(60, f.edge.count * 5),
-        summary: `Reducing ${f.edge.count} repeated calls may cut relative CPU by ~${Math.min(80, f.edge.count * 8)}%.`,
-      },
+      confidenceScore: confidence,
+      originalCode: previewCode.originalCode,
+      proposedCode: previewCode.proposedCode,
+      estimatedImpact: impact,
+      expectedResourceImpact: impact,
       diff: buildCacheDiff(source, f.line, f.edge.callee, filePath),
       line: f.line,
     });
@@ -105,6 +126,19 @@ export function previewOptimizations(
     if (f.severity === 'low' || f.severity === 'info') continue;
     const confidence =
       f.severity === 'critical' ? 0.85 : f.severity === 'high' ? 0.7 : 0.55;
+    const impact: ResourceImpactSummary = {
+      cpu: f.estimatedCpuCost,
+      memory: f.patternId === 'serialization' ? 20 : 5,
+      ledger: f.patternId === 'storage-in-loop' ? 70 : 5,
+      fees: Math.round(f.estimatedCpuCost * 0.6),
+      summary: f.suggestion,
+    };
+    const previewCode = buildPreviewCode(
+      source,
+      f.line,
+      f.suggestion,
+      'generic',
+    );
     proposals.push({
       id: `opt-cpu-${f.patternId}-${f.line}`,
       ruleId: f.ruleId,
@@ -112,13 +146,11 @@ export function previewOptimizations(
       title: `Reduce CPU: ${f.patternId}`,
       description: f.message,
       confidence,
-      estimatedImpact: {
-        cpu: f.estimatedCpuCost,
-        memory: f.patternId === 'serialization' ? 20 : 5,
-        ledger: f.patternId === 'storage-in-loop' ? 70 : 5,
-        fees: Math.round(f.estimatedCpuCost * 0.6),
-        summary: f.suggestion,
-      },
+      confidenceScore: confidence,
+      originalCode: previewCode.originalCode,
+      proposedCode: previewCode.proposedCode,
+      estimatedImpact: impact,
+      expectedResourceImpact: impact,
       diff: buildGenericDiff(source, f.line, f.suggestion, filePath),
       line: f.line,
     });
@@ -156,6 +188,27 @@ function applyFilter(
   );
 }
 
+function buildPreviewCode(
+  source: string,
+  line: number,
+  suggestion: string,
+  mode: 'cache' | 'generic',
+): { originalCode: string; proposedCode: string } {
+  const lines = source.split('\n');
+  const originalCode = lines[line - 1] ?? '';
+  const indent = originalCode.match(/^\s*/)?.[0] ?? '';
+
+  const proposedCode =
+    mode === 'cache'
+      ? `${indent}// OPTIMIZE: ${suggestion}\n${originalCode}`
+      : `${indent}// TODO(optimization): ${suggestion}\n${originalCode}`;
+
+  return {
+    originalCode,
+    proposedCode,
+  };
+}
+
 function buildCacheDiff(
   source: string,
   line: number,
@@ -165,7 +218,6 @@ function buildCacheDiff(
   const lines = source.split('\n');
   const original = lines[line - 1] ?? '';
   const indent = original.match(/^\s*/)?.[0] ?? '';
-  const proposed = `${indent}// OPTIMIZE: cache result of ${callee}(...) across repeated calls\n${original}`;
 
   return {
     filePath,

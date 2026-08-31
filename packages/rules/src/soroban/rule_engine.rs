@@ -4,9 +4,14 @@
 //! with rules tailored to Soroban's unique characteristics and gas optimization patterns.
 
 use super::{
-    InefficientInterfaceParamsRule, InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract,
-    SorobanParser, SorobanResult, UnsafeCallTargetRule, UnvalidatedContractAddressRule,
+    InefficientBytesAllocationRule, InefficientInterfaceParamsRule, InterfaceConsistencyRule,
+    SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult, UnsafeCallTargetRule,
+    memory::InefficientBytesAllocationRule, InefficientInterfaceParamsRule,
+    InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract, SorobanFunction,
+    SorobanParser, SorobanResult, UnsafeCallTargetRule,
+    UnvalidatedContractAddressRule,
 };
+use crate::soroban::storage::{SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -51,6 +56,8 @@ impl SorobanRuleEngine {
             .add_rule(InefficientIntegerTypesRule::default())
             .add_rule(MissingErrorHandlingRule::default())
             .add_rule(InefficientBytesAllocationRule::default())
+            .add_rule(SorobanLedgerReadCostRule::default())
+            .add_rule(SorobanLedgerWriteCostRule::default())
             .add_rule(EmergencyWithdrawalRule::default())
             .add_rule(GovernanceVotingRule::default())
             .add_rule(ClaimExpirationRule::default())    // #117
@@ -834,8 +841,11 @@ pub struct TestContract {
     pub admin: Address,
     pub unused_counter: u64,
 }
-
-        violations
+"#;
+        let contract = SorobanParser::parse_contract(source, "test.rs").unwrap();
+        let rule = UnusedStateVariablesRule::default();
+        let violations = rule.apply(&contract);
+        assert!(!violations.is_empty());
     }
 }
 
@@ -1048,7 +1058,7 @@ impl SorobanRule for OptimizationPriorityRule {
         let mut violations = Vec::new();
         for implementation in &contract.implementations {
             // Build a simple density score per function
-            let mut scored: Vec<(usize, &crate::soroban::SorobanFunction)> = implementation
+            let mut scored: Vec<(usize, &SorobanFunction)> = implementation
                 .functions
                 .iter()
                 .map(|f| {
@@ -1708,7 +1718,7 @@ impl SorobanDeadCodeRule {
 }
 
 #[cfg(test)]
-mod tests {
+mod engine_tests {
     use super::*;
 
     #[test]
