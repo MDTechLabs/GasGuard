@@ -1,5 +1,5 @@
 /**
- * Issue #903 — Soroban Entry-Point Rules
+ * Issues #903, #904 — Soroban Entry-Point Rules
  */
 
 export * from './types';
