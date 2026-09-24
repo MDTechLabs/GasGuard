@@ -20,4 +20,6 @@ export * from './storage';
 export * from './suggestions';
 export * from '../ledger';
 export * from '../auth';
+export * from '../ttl';
+export * from '../events';
 export * from './entrypoints';
