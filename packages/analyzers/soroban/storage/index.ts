@@ -7,3 +7,4 @@ export * from "./storage-entry-classifier";
 export * from "./inefficient-temporary-storage-analyzer";
 export * from "./storage-footprint-expansion-analyzer";
 export * from "./mutable-upgrade-config-analyzer";
+export * from "./ttl-analyzer";
