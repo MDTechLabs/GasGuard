@@ -52,6 +52,44 @@ GasGuard/
 
 ---
 
+## 🔐 Privilege Boundaries
+
+GasGuard follows the **principle of least privilege** across all components. This section documents the trust boundaries, privilege levels, and security assumptions for each part of the system.
+
+### Trust Boundary Overview
+
+| Component | Privilege Level | Trust Boundary | Notes |
+|-----------|----------------|----------------|-------|
+| **CLI (`libs/engine`)** | Local user | Runs with invoking user's privileges | No network access required; reads local files only |
+| **API (`apps/api`)** | Unprivileged service | Public network boundary | Rate-limited; no filesystem write access |
+| **API Service (`apps/api-service`)** | Unprivileged service | Public network + DB boundary | Scoped DB credentials; no shell execution |
+| **Rules (`packages/rules`)** | Sandboxed | Executed in-process | Must not perform I/O or network calls |
+| **CI/CD Action** | Repository-scoped | GitHub Actions runner | Read-only token by default; no secret exposure |
+
+### Security Assumptions
+
+- **No implicit trust between components.** Each service validates inputs independently.
+- **Secrets are never logged.** API keys, tokens, and credentials are redacted from all log output.
+- **Database access is least-privilege.** Each service uses a dedicated role with only the permissions it requires.
+- **Rule execution is pure.** Optimization rules must be deterministic and side-effect free.
+- **Network egress is restricted.** Services only communicate with explicitly allowlisted upstreams.
+
+### Upstream & Cross-Component Dependencies
+
+| Dependency | Purpose | Privilege Impact |
+|------------|---------|------------------|
+| `@nestjs/throttler` | Rate limiting | Prevents abuse of public endpoints |
+| PostgreSQL | Audit log storage | Append-only role; no DDL in runtime |
+| Redis | Rate-limit state | Ephemeral; no PII stored |
+| Hardhat (test only) | Local chain simulation | Never used in production |
+| Cargo-Audit / Slither | Security scanning | Read-only analysis |
+
+### Reporting a Privilege Issue
+
+If you discover a privilege escalation or boundary violation, please follow the process in [SECURITY.md](./SECURITY.md) and **do not** open a public issue.
+
+---
+
 ## 🛡️ Rate Limiting
 
 The public API includes IP-based rate limiting to protect against abuse and ensure fair usage.
