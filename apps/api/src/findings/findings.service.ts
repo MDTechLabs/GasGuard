@@ -5,6 +5,8 @@ import {
   FindingListQuery,
   FindingSeverity,
   FindingStatus,
+  FindingExpirationNotification,
+  FindingExpirationNotificationSink,
   MAX_PAGE_LIMIT,
 } from './finding.types';
 import { findingsToCsv } from './findings.csv';
@@ -20,14 +22,68 @@ export interface CreateFindingInput {
   ruleId: string;
   filePath?: string;
   line?: number;
+  expiresAt?: string;
 }
+
+/** In-memory sink; replace with a Slack/email adapter in production. */
+export class InMemoryExpirationNotificationSink
+  implements FindingExpirationNotificationSink
+{
+  readonly outbox: FindingExpirationNotification[] = [];
+  send(notification: FindingExpirationNotification): void {
+    this.outbox.push(notification);
+  }
+}
+
+export const DEFAULT_EXPIRATION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 function newId(): string {
   return `fnd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export class FindingsService {
-  constructor(private readonly repo: FindingsRepository = findingsRepository) {}
+  constructor(
+    private readonly repo: FindingsRepository = findingsRepository,
+    private readonly expirationSink: FindingExpirationNotificationSink = new InMemoryExpirationNotificationSink(),
+  ) {}
+
+  /**
+   * Send notifications for findings that are expiring within `windowMs` or
+   * have expired. Idempotent: each finding is notified at most once per phase (#1037).
+   */
+  async notifyExpiringFindings(
+    organizationId: string,
+    windowMs: number = DEFAULT_EXPIRATION_WINDOW_MS,
+    now: Date = new Date(),
+  ): Promise<FindingExpirationNotification[]> {
+    if (!organizationId || !organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    const sent: FindingExpirationNotification[] = [];
+    for (const f of this.repo.listExpiring(organizationId, now, windowMs)) {
+      const notification: FindingExpirationNotification = {
+        findingId: f.id,
+        organizationId: f.organizationId,
+        kind: new Date(f.expiresAt!).getTime() <= now.getTime() ? 'expired' : 'expiring_soon',
+        title: f.title,
+        severity: f.severity,
+        assignedTo: f.assignedTo,
+        expiresAt: f.expiresAt!,
+        createdAt: now.toISOString(),
+      };
+      try {
+        await this.expirationSink.send(notification);
+      } catch {
+        continue; // leave un-notified so the next run retries
+      }
+      this.repo.markExpirationNotified(f.id, now.toISOString());
+      sent.push(notification);
+    }
+    return sent;
+  }
 
   create(input: CreateFindingInput): Finding {
     const now = new Date().toISOString();
@@ -43,6 +99,7 @@ export class FindingsService {
       ruleId: input.ruleId,
       filePath: input.filePath,
       line: input.line,
+      expiresAt: input.expiresAt,
       createdAt: now,
       updatedAt: now,
     };

@@ -26,8 +26,30 @@ export interface Finding {
   reassignedAt?: string;
   /** Total number of times this finding has been reassigned (#1035). */
   reassignmentCount?: number;
+  /** ISO timestamp after which the finding (e.g. suppression/acceptance) expires (#1037). */
+  expiresAt?: string;
+  /** ISO timestamp of the last expiration notification sent (#1037). */
+  expirationNotifiedAt?: string;
   createdAt: string; // ISO
   updatedAt: string;
+}
+
+export type FindingExpirationNotificationKind = 'expiring_soon' | 'expired';
+
+export interface FindingExpirationNotification {
+  findingId: string;
+  organizationId: string;
+  kind: FindingExpirationNotificationKind;
+  title: string;
+  severity: FindingSeverity;
+  assignedTo?: string;
+  expiresAt: string;
+  createdAt: string; // ISO
+}
+
+/** Delivery sink for expiration notifications (email/Slack/webhook adapters implement this). */
+export interface FindingExpirationNotificationSink {
+  send(notification: FindingExpirationNotification): void | Promise<void>;
 }
 
 export type FindingSortField = 'createdAt' | 'severity' | 'status' | 'title';

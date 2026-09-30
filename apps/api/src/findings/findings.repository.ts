@@ -181,6 +181,28 @@ export class FindingsRepository {
     };
   }
 
+  /**
+   * Findings whose expiration falls before `now + windowMs` (or already passed)
+   * and that have not yet been notified for the current expiry (#1037).
+   */
+  listExpiring(organizationId: string, now: Date, windowMs: number): Finding[] {
+    const horizon = now.getTime() + windowMs;
+    return Array.from(this.byId.values()).filter((f) => {
+      if (f.organizationId !== organizationId || !f.expiresAt) return false;
+      if (f.status === 'resolved') return false;
+      if (new Date(f.expiresAt).getTime() > horizon) return false;
+      const expired = new Date(f.expiresAt).getTime() <= now.getTime();
+      // Notify once while expiring soon, and once more after it expires.
+      if (!f.expirationNotifiedAt) return true;
+      return expired && new Date(f.expirationNotifiedAt).getTime() < new Date(f.expiresAt).getTime();
+    });
+  }
+
+  markExpirationNotified(id: string, at: string): void {
+    const f = this.byId.get(id);
+    if (f) f.expirationNotifiedAt = at;
+  }
+
   private readonly auditHistory = new Map<string, import('./finding.types').ReassignmentAuditRecord[]>();
 
   reassign(

@@ -116,6 +116,42 @@ export class FindingsController {
     }
   }
 
+  async notifyExpiring(req: Request, res: Response): Promise<void> {
+    try {
+      const organizationId =
+        (req.headers['x-organization-id'] as string) ||
+        (req.body?.organizationId as string);
+      if (!organizationId) {
+        res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'organizationId is required',
+          },
+        });
+        return;
+      }
+      const windowDays = req.body?.windowDays;
+      const windowMs =
+        windowDays === undefined ? undefined : Number(windowDays) * 24 * 60 * 60 * 1000;
+      if (windowMs !== undefined && (!Number.isFinite(windowMs) || windowMs < 0)) {
+        res.status(400).json({
+          error: { code: 'VALIDATION_ERROR', message: 'Invalid windowDays' },
+        });
+        return;
+      }
+      const sent = await findingsService.notifyExpiringFindings(organizationId, windowMs);
+      res.status(200).json({ data: { sent: sent.length, notifications: sent } });
+    } catch (err) {
+      const e = err as { status?: number; code?: string; message?: string };
+      res.status(e.status ?? 500).json({
+        error: {
+          code: e.code ?? 'INTERNAL_ERROR',
+          message: e.message ?? 'Unexpected error',
+        },
+      });
+    }
+  }
+
   exportCsv(req: Request, res: Response): void {
     try {
       const query = parseListQuery(req);
