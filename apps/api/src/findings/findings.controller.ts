@@ -426,6 +426,57 @@ export class FindingsController {
     }
   }
 
+  acceptRisk(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+
+      const { justification, acceptedBy, approvedBy, expiresAt } = req.body ?? {};
+      const result = findingsService.acceptRisk({
+        organizationId,
+        findingId: req.params.id,
+        justification,
+        acceptedBy,
+        approvedBy,
+        expiresAt,
+      });
+
+      res.status(201).json({ data: result });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  revokeRiskAcceptance(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+
+      const { revokedBy, reason } = req.body ?? {};
+      const result = findingsService.revokeRiskAcceptance({
+        organizationId,
+        findingId: req.params.id,
+        revokedBy,
+        reason,
+      });
+
+      res.status(200).json({ data: result });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  listRiskAcceptances(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const records = findingsService.listRiskAcceptances(req.params.id, organizationId);
+      res.status(200).json({ data: records });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
   getHistory(req: Request, res: Response): void {
     try {
       const organizationId =

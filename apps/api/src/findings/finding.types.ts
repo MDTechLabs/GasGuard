@@ -157,7 +157,7 @@ export interface ReassignmentAuditRecord {
  */
 export const STATUS_TRANSITIONS: Record<FindingStatus, FindingStatus[]> = {
   open: ['suppressed', 'resolved', 'accepted'],
-  suppressed: ['open', 'resolved'],
+  suppressed: ['open', 'resolved', 'accepted'],
   resolved: ['open'],
   accepted: ['open', 'resolved'],
 };
@@ -180,6 +180,44 @@ export interface FindingStatusChangeRecord {
   reason?: string;
   timestamp: string; // ISO
 }
+
+/**
+ * Formal record of accepting the risk of a finding rather than fixing it (#1036).
+ * Creating one transitions the finding to 'accepted'; revoking one reopens it.
+ */
+export interface RiskAcceptance {
+  id: string;
+  findingId: string;
+  organizationId: string;
+  justification: string;
+  acceptedBy: string;
+  /** Optional second signer (e.g. security lead) who approved the acceptance. */
+  approvedBy?: string;
+  /** ISO timestamp after which this acceptance is no longer valid. */
+  expiresAt?: string;
+  createdAt: string; // ISO
+  revokedAt?: string;
+  revokedBy?: string;
+  revokedReason?: string;
+}
+
+export interface AcceptFindingRiskInput {
+  organizationId: string;
+  findingId: string;
+  justification: string;
+  acceptedBy: string;
+  approvedBy?: string;
+  expiresAt?: string;
+}
+
+export interface RevokeRiskAcceptanceInput {
+  organizationId: string;
+  findingId: string;
+  revokedBy: string;
+  reason?: string;
+}
+
+export const MIN_RISK_JUSTIFICATION_LENGTH = 10;
 
 export interface FindingListPage {
   items: Finding[];

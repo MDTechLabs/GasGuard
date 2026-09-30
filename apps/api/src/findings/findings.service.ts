@@ -15,6 +15,10 @@ import {
   FindingStatusChangeRecord,
   TransitionFindingStatusInput,
   STATUS_TRANSITIONS,
+  AcceptFindingRiskInput,
+  RevokeRiskAcceptanceInput,
+  RiskAcceptance,
+  MIN_RISK_JUSTIFICATION_LENGTH,
 } from './finding.types';
 import { findingsToCsv } from './findings.csv';
 import { computeFindingFingerprint } from './finding.fingerprint';
@@ -418,6 +422,73 @@ export class FindingsService {
     organizationId: string,
   ): FindingStatusChangeRecord[] {
     return this.repo.getStatusHistory(findingId, organizationId);
+  }
+
+  /** Formally accept a finding's risk instead of fixing it (#1036). */
+  acceptRisk(input: AcceptFindingRiskInput): { finding: Finding; record: RiskAcceptance } {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.acceptedBy || !input.acceptedBy.trim()) {
+      throw Object.assign(new Error('acceptedBy is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    const justification = (input.justification ?? '').trim();
+    if (justification.length < MIN_RISK_JUSTIFICATION_LENGTH) {
+      throw Object.assign(
+        new Error(
+          `justification must be at least ${MIN_RISK_JUSTIFICATION_LENGTH} characters`,
+        ),
+        { code: 'VALIDATION_ERROR', status: 400 },
+      );
+    }
+    if (input.expiresAt !== undefined && Number.isNaN(new Date(input.expiresAt).getTime())) {
+      throw Object.assign(new Error('expiresAt must be a valid ISO date'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.acceptRisk({ ...input, justification });
+  }
+
+  /** Revoke an active risk acceptance and reopen the finding (#1036). */
+  revokeRiskAcceptance(
+    input: RevokeRiskAcceptanceInput,
+  ): { finding: Finding; record: RiskAcceptance } {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.revokedBy || !input.revokedBy.trim()) {
+      throw Object.assign(new Error('revokedBy is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.revokeRiskAcceptance(input);
+  }
+
+  listRiskAcceptances(findingId: string, organizationId: string): RiskAcceptance[] {
+    return this.repo.listRiskAcceptances(findingId, organizationId);
   }
 }
 

@@ -4,6 +4,7 @@
  */
 
 import {
+  AcceptFindingRiskInput,
   DEFAULT_PAGE_LIMIT,
   Finding,
   FindingListPage,
@@ -13,6 +14,8 @@ import {
   FindingStatus,
   FindingStatusChangeRecord,
   MAX_PAGE_LIMIT,
+  RevokeRiskAcceptanceInput,
+  RiskAcceptance,
   SEVERITY_RANK,
   SortDirection,
   STATUS_TRANSITIONS,
@@ -404,6 +407,141 @@ export class FindingsRepository {
     const history = this.statusHistory.get(findingId) ?? [];
     return [...history].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+  }
+
+  private readonly riskAcceptances = new Map<string, RiskAcceptance[]>();
+
+  /** The current non-revoked risk acceptance for a finding, if any (#1036). */
+  getActiveRiskAcceptance(findingId: string): RiskAcceptance | undefined {
+    const list = this.riskAcceptances.get(findingId) ?? [];
+    return list.find((r) => !r.revokedAt);
+  }
+
+  /** Formally accept a finding's risk, transitioning its status to 'accepted' (#1036). */
+  acceptRisk(input: AcceptFindingRiskInput): { finding: Finding; record: RiskAcceptance } {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    if (this.getActiveRiskAcceptance(finding.id)) {
+      throw Object.assign(
+        new Error('Finding already has an active risk acceptance'),
+        { code: 'ALREADY_ACCEPTED', status: 409 },
+      );
+    }
+
+    const allowed = STATUS_TRANSITIONS[finding.status] ?? [];
+    if (finding.status !== 'accepted' && !allowed.includes('accepted')) {
+      throw Object.assign(
+        new Error(`Cannot accept risk for a finding in status '${finding.status}'`),
+        { code: 'INVALID_STATUS_TRANSITION', status: 409 },
+      );
+    }
+
+    const now = new Date().toISOString();
+    const record: RiskAcceptance = {
+      id: `rka_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+      findingId: finding.id,
+      organizationId: finding.organizationId,
+      justification: input.justification.trim(),
+      acceptedBy: input.acceptedBy.trim(),
+      approvedBy: input.approvedBy?.trim() || undefined,
+      expiresAt: input.expiresAt,
+      createdAt: now,
+    };
+
+    const previousStatus = finding.status;
+    finding.status = 'accepted';
+    finding.expiresAt = input.expiresAt ?? finding.expiresAt;
+    finding.updatedAt = now;
+    this.upsert(finding);
+
+    const list = this.riskAcceptances.get(finding.id) ?? [];
+    list.push(record);
+    this.riskAcceptances.set(finding.id, list);
+
+    if (previousStatus !== 'accepted') {
+      const statusRecord: FindingStatusChangeRecord = {
+        id: `stc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+        findingId: finding.id,
+        organizationId: finding.organizationId,
+        previousStatus,
+        newStatus: 'accepted',
+        changedBy: record.acceptedBy,
+        reason: record.justification,
+        timestamp: now,
+      };
+      const history = this.statusHistory.get(finding.id) ?? [];
+      history.push(statusRecord);
+      this.statusHistory.set(finding.id, history);
+    }
+
+    return { finding, record };
+  }
+
+  /** Revoke the active risk acceptance and reopen the finding (#1036). */
+  revokeRiskAcceptance(
+    input: RevokeRiskAcceptanceInput,
+  ): { finding: Finding; record: RiskAcceptance } {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    const record = this.getActiveRiskAcceptance(finding.id);
+    if (!record) {
+      throw Object.assign(
+        new Error('No active risk acceptance found for this finding'),
+        { code: 'NOT_FOUND', status: 404 },
+      );
+    }
+
+    const now = new Date().toISOString();
+    record.revokedAt = now;
+    record.revokedBy = input.revokedBy.trim();
+    record.revokedReason = input.reason?.trim() || undefined;
+
+    const previousStatus = finding.status;
+    finding.status = 'open';
+    finding.updatedAt = now;
+    this.upsert(finding);
+
+    if (previousStatus !== 'open') {
+      const statusRecord: FindingStatusChangeRecord = {
+        id: `stc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+        findingId: finding.id,
+        organizationId: finding.organizationId,
+        previousStatus,
+        newStatus: 'open',
+        changedBy: record.revokedBy,
+        reason: record.revokedReason ?? 'Risk acceptance revoked',
+        timestamp: now,
+      };
+      const history = this.statusHistory.get(finding.id) ?? [];
+      history.push(statusRecord);
+      this.statusHistory.set(finding.id, history);
+    }
+
+    return { finding, record };
+  }
+
+  /** All risk acceptance records for a finding, oldest first (#1036). */
+  listRiskAcceptances(findingId: string, organizationId: string): RiskAcceptance[] {
+    const finding = this.getForTenant(findingId, organizationId);
+    if (!finding) {
+      return [];
+    }
+    const list = this.riskAcceptances.get(findingId) ?? [];
+    return [...list].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }
 }
