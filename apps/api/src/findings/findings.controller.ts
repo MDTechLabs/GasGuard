@@ -92,7 +92,94 @@ function parseListQuery(req: Request): FindingListQuery {
   };
 }
 
+function sendError(res: Response, err: unknown): void {
+  const e = err as { status?: number; code?: string; message?: string };
+  res.status(e.status ?? 500).json({
+    error: {
+      code: e.code ?? 'INTERNAL_ERROR',
+      message: e.message ?? 'Unexpected error',
+    },
+  });
+}
+
+function requireOrg(req: Request, res: Response): string | undefined {
+  const organizationId =
+    (req.headers['x-organization-id'] as string) ||
+    (req.query.organizationId as string) ||
+    (req.body?.organizationId as string);
+  if (!organizationId) {
+    res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: 'organizationId is required' },
+    });
+    return undefined;
+  }
+  return organizationId;
+}
+
 export class FindingsController {
+  addComment(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const { author, body, type } = req.body ?? {};
+      const comment = findingsService.addComment({
+        organizationId,
+        findingId: req.params.id,
+        author,
+        body,
+        type,
+      });
+      res.status(201).json({ data: comment });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  listComments(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      res.status(200).json({
+        data: findingsService.listComments(req.params.id, organizationId),
+      });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  updateComment(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const comment = findingsService.updateComment({
+        organizationId,
+        findingId: req.params.id,
+        commentId: req.params.commentId,
+        author: req.body?.author,
+        body: req.body?.body,
+      });
+      res.status(200).json({ data: comment });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  deleteComment(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      findingsService.deleteComment(
+        organizationId,
+        req.params.id,
+        req.params.commentId,
+        (req.body?.author as string) || (req.query.author as string),
+      );
+      res.status(204).send();
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
   list(req: Request, res: Response): void {
     try {
       const query = parseListQuery(req);

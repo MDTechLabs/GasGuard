@@ -5,6 +5,10 @@ import {
   FindingListQuery,
   FindingSeverity,
   FindingStatus,
+  AddFindingCommentInput,
+  FindingComment,
+  MAX_COMMENT_LENGTH,
+  UpdateFindingCommentInput,
   FindingExpirationNotification,
   FindingExpirationNotificationSink,
   MAX_PAGE_LIMIT,
@@ -138,6 +142,112 @@ export class FindingsService {
 
   getForTenant(id: string, organizationId: string): Finding | undefined {
     return this.repo.getForTenant(id, organizationId);
+  }
+
+  addComment(input: AddFindingCommentInput): FindingComment {
+    const type = input.type ?? 'comment';
+    if (type !== 'comment' && type !== 'review_note') {
+      throw Object.assign(new Error('Invalid comment type'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.author || !input.author.trim()) {
+      throw Object.assign(new Error('author is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    const body = (input.body ?? '').trim();
+    if (!body) {
+      throw Object.assign(new Error('body is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (body.length > MAX_COMMENT_LENGTH) {
+      throw Object.assign(
+        new Error(`body cannot exceed ${MAX_COMMENT_LENGTH} characters`),
+        { code: 'VALIDATION_ERROR', status: 400 },
+      );
+    }
+    const finding = this.repo.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+    const now = new Date().toISOString();
+    return this.repo.addComment({
+      id: `cmt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+      findingId: finding.id,
+      organizationId: finding.organizationId,
+      type,
+      author: input.author.trim(),
+      body,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  listComments(findingId: string, organizationId: string): FindingComment[] {
+    return this.repo.listComments(findingId, organizationId);
+  }
+
+  updateComment(input: UpdateFindingCommentInput): FindingComment {
+    const comment = this.getOwnedComment(input.organizationId, input.findingId, input.commentId);
+    if (comment.author !== (input.author ?? '').trim()) {
+      throw Object.assign(new Error('Only the author can edit this comment'), {
+        code: 'FORBIDDEN',
+        status: 403,
+      });
+    }
+    const body = (input.body ?? '').trim();
+    if (!body || body.length > MAX_COMMENT_LENGTH) {
+      throw Object.assign(
+        new Error(`body is required and cannot exceed ${MAX_COMMENT_LENGTH} characters`),
+        { code: 'VALIDATION_ERROR', status: 400 },
+      );
+    }
+    const now = new Date().toISOString();
+    comment.body = body;
+    comment.updatedAt = now;
+    comment.editedAt = now;
+    return comment;
+  }
+
+  deleteComment(
+    organizationId: string,
+    findingId: string,
+    commentId: string,
+    author: string,
+  ): void {
+    const comment = this.getOwnedComment(organizationId, findingId, commentId);
+    if (comment.author !== (author ?? '').trim()) {
+      throw Object.assign(new Error('Only the author can delete this comment'), {
+        code: 'FORBIDDEN',
+        status: 403,
+      });
+    }
+    this.repo.deleteComment(findingId, commentId);
+  }
+
+  private getOwnedComment(
+    organizationId: string,
+    findingId: string,
+    commentId: string,
+  ): FindingComment {
+    const comment = this.repo.getForTenant(findingId, organizationId)
+      ? this.repo.getComment(findingId, commentId)
+      : undefined;
+    if (!comment) {
+      throw Object.assign(new Error('Comment not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+    return comment;
   }
 
   /** Export all findings matching the query (cursor/limit ignored) as CSV (#1039). */

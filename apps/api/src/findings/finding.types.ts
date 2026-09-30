@@ -34,6 +34,41 @@ export interface Finding {
   updatedAt: string;
 }
 
+/** A discussion comment or formal review note on a finding (#1034). */
+export type FindingCommentType = 'comment' | 'review_note';
+
+export interface FindingComment {
+  id: string;
+  findingId: string;
+  organizationId: string;
+  type: FindingCommentType;
+  author: string;
+  body: string;
+  createdAt: string; // ISO
+  updatedAt: string;
+  /** Set when the comment body has been edited. */
+  editedAt?: string;
+}
+
+export interface AddFindingCommentInput {
+  organizationId: string;
+  findingId: string;
+  author: string;
+  body: string;
+  type?: FindingCommentType;
+}
+
+export interface UpdateFindingCommentInput {
+  organizationId: string;
+  findingId: string;
+  commentId: string;
+  /** Only the original author may edit. */
+  author: string;
+  body: string;
+}
+
+export const MAX_COMMENT_LENGTH = 5000;
+
 export type FindingExpirationNotificationKind = 'expiring_soon' | 'expired';
 
 export interface FindingExpirationNotification {

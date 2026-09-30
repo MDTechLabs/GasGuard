@@ -203,6 +203,42 @@ export class FindingsRepository {
     if (f) f.expirationNotifiedAt = at;
   }
 
+  private readonly comments = new Map<string, import('./finding.types').FindingComment[]>();
+
+  addComment(
+    comment: import('./finding.types').FindingComment,
+  ): import('./finding.types').FindingComment {
+    const list = this.comments.get(comment.findingId) ?? [];
+    list.push(comment);
+    this.comments.set(comment.findingId, list);
+    return comment;
+  }
+
+  /** Comments for a finding, oldest first. Empty for cross-tenant/unknown findings. */
+  listComments(
+    findingId: string,
+    organizationId: string,
+  ): import('./finding.types').FindingComment[] {
+    if (!this.getForTenant(findingId, organizationId)) return [];
+    return [...(this.comments.get(findingId) ?? [])];
+  }
+
+  getComment(
+    findingId: string,
+    commentId: string,
+  ): import('./finding.types').FindingComment | undefined {
+    return this.comments.get(findingId)?.find((c) => c.id === commentId);
+  }
+
+  deleteComment(findingId: string, commentId: string): boolean {
+    const list = this.comments.get(findingId);
+    if (!list) return false;
+    const idx = list.findIndex((c) => c.id === commentId);
+    if (idx === -1) return false;
+    list.splice(idx, 1);
+    return true;
+  }
+
   private readonly auditHistory = new Map<string, import('./finding.types').ReassignmentAuditRecord[]>();
 
   reassign(
