@@ -395,6 +395,37 @@ export class FindingsController {
     }
   }
 
+  transitionStatus(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+
+      const { newStatus, changedBy, reason } = req.body ?? {};
+      const result = findingsService.transitionStatus({
+        organizationId,
+        findingId: req.params.id,
+        newStatus,
+        changedBy,
+        reason,
+      });
+
+      res.status(200).json({ data: result });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  getStatusHistory(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const history = findingsService.getStatusHistory(req.params.id, organizationId);
+      res.status(200).json({ data: history });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
   getHistory(req: Request, res: Response): void {
     try {
       const organizationId =

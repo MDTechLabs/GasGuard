@@ -11,9 +11,12 @@ import {
   FindingSeverity,
   FindingSortField,
   FindingStatus,
+  FindingStatusChangeRecord,
   MAX_PAGE_LIMIT,
   SEVERITY_RANK,
   SortDirection,
+  STATUS_TRANSITIONS,
+  TransitionFindingStatusInput,
 } from './finding.types';
 import { decodeCursor, encodeCursor } from './cursor';
 
@@ -331,6 +334,74 @@ export class FindingsRepository {
       return [];
     }
     const history = this.auditHistory.get(findingId) ?? [];
+    return [...history].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+  }
+
+  private readonly statusHistory = new Map<string, FindingStatusChangeRecord[]>();
+
+  /** Validated finding status transition with audit trail (#1033). */
+  transitionStatus(
+    input: TransitionFindingStatusInput,
+  ): { finding: Finding; record: FindingStatusChangeRecord } {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    if (finding.status === input.newStatus) {
+      throw Object.assign(
+        new Error(`Finding is already in status '${input.newStatus}'`),
+        { code: 'ALREADY_IN_STATUS', status: 409 },
+      );
+    }
+
+    const allowed = STATUS_TRANSITIONS[finding.status] ?? [];
+    if (!allowed.includes(input.newStatus)) {
+      throw Object.assign(
+        new Error(
+          `Invalid status transition from '${finding.status}' to '${input.newStatus}'`,
+        ),
+        { code: 'INVALID_STATUS_TRANSITION', status: 409 },
+      );
+    }
+
+    const now = new Date().toISOString();
+    const record: FindingStatusChangeRecord = {
+      id: `stc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+      findingId: finding.id,
+      organizationId: finding.organizationId,
+      previousStatus: finding.status,
+      newStatus: input.newStatus,
+      changedBy: input.changedBy.trim(),
+      reason: input.reason?.trim() || undefined,
+      timestamp: now,
+    };
+
+    finding.status = input.newStatus;
+    finding.updatedAt = now;
+    this.upsert(finding);
+
+    const history = this.statusHistory.get(finding.id) ?? [];
+    history.push(record);
+    this.statusHistory.set(finding.id, history);
+
+    return { finding, record };
+  }
+
+  getStatusHistory(
+    findingId: string,
+    organizationId: string,
+  ): FindingStatusChangeRecord[] {
+    const finding = this.getForTenant(findingId, organizationId);
+    if (!finding) {
+      return [];
+    }
+    const history = this.statusHistory.get(findingId) ?? [];
     return [...history].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );

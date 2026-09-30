@@ -12,6 +12,9 @@ import {
   FindingExpirationNotification,
   FindingExpirationNotificationSink,
   MAX_PAGE_LIMIT,
+  FindingStatusChangeRecord,
+  TransitionFindingStatusInput,
+  STATUS_TRANSITIONS,
 } from './finding.types';
 import { findingsToCsv } from './findings.csv';
 import { computeFindingFingerprint } from './finding.fingerprint';
@@ -377,6 +380,44 @@ export class FindingsService {
     organizationId: string,
   ): import('./finding.types').ReassignmentAuditRecord[] {
     return this.repo.getReassignmentHistory(findingId, organizationId);
+  }
+
+  /** Validated status transition (open/suppressed/resolved/accepted) (#1033). */
+  transitionStatus(
+    input: TransitionFindingStatusInput,
+  ): { finding: Finding; record: FindingStatusChangeRecord } {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!Object.keys(STATUS_TRANSITIONS).includes(input.newStatus)) {
+      throw Object.assign(new Error('Invalid newStatus'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.changedBy || !input.changedBy.trim()) {
+      throw Object.assign(new Error('changedBy is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.transitionStatus(input);
+  }
+
+  getStatusHistory(
+    findingId: string,
+    organizationId: string,
+  ): FindingStatusChangeRecord[] {
+    return this.repo.getStatusHistory(findingId, organizationId);
   }
 }
 

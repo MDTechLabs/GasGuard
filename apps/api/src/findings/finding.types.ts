@@ -149,6 +149,38 @@ export interface ReassignmentAuditRecord {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Allowed finding status transitions (#1033). Every status can return to
+ * 'open' (reopen); 'accepted' additionally requires a risk acceptance
+ * record (#1036) and is normally reached via acceptRisk(), not a direct
+ * transition, but remains listed here for the transition graph to be complete.
+ */
+export const STATUS_TRANSITIONS: Record<FindingStatus, FindingStatus[]> = {
+  open: ['suppressed', 'resolved', 'accepted'],
+  suppressed: ['open', 'resolved'],
+  resolved: ['open'],
+  accepted: ['open', 'resolved'],
+};
+
+export interface TransitionFindingStatusInput {
+  organizationId: string;
+  findingId: string;
+  newStatus: FindingStatus;
+  changedBy: string;
+  reason?: string;
+}
+
+export interface FindingStatusChangeRecord {
+  id: string;
+  findingId: string;
+  organizationId: string;
+  previousStatus: FindingStatus;
+  newStatus: FindingStatus;
+  changedBy: string;
+  reason?: string;
+  timestamp: string; // ISO
+}
+
 export interface FindingListPage {
   items: Finding[];
   nextCursor: string | null;
