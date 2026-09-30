@@ -12,6 +12,20 @@ import {
   FindingExpirationNotification,
   FindingExpirationNotificationSink,
   MAX_PAGE_LIMIT,
+  FindingStatusChangeRecord,
+  TransitionFindingStatusInput,
+  STATUS_TRANSITIONS,
+  AcceptFindingRiskInput,
+  RevokeRiskAcceptanceInput,
+  RiskAcceptance,
+  MIN_RISK_JUSTIFICATION_LENGTH,
+  SetFindingOwnershipInput,
+  OwnerType,
+  OwnershipSource,
+  CreateRootCauseGroupInput,
+  AssignFindingToRootCauseGroupInput,
+  RemoveFindingFromRootCauseGroupInput,
+  RootCauseGroup,
 } from './finding.types';
 import { findingsToCsv } from './findings.csv';
 import { computeFindingFingerprint } from './finding.fingerprint';
@@ -377,6 +391,241 @@ export class FindingsService {
     organizationId: string,
   ): import('./finding.types').ReassignmentAuditRecord[] {
     return this.repo.getReassignmentHistory(findingId, organizationId);
+  }
+
+  /** Validated status transition (open/suppressed/resolved/accepted) (#1033). */
+  transitionStatus(
+    input: TransitionFindingStatusInput,
+  ): { finding: Finding; record: FindingStatusChangeRecord } {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!Object.keys(STATUS_TRANSITIONS).includes(input.newStatus)) {
+      throw Object.assign(new Error('Invalid newStatus'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.changedBy || !input.changedBy.trim()) {
+      throw Object.assign(new Error('changedBy is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.transitionStatus(input);
+  }
+
+  getStatusHistory(
+    findingId: string,
+    organizationId: string,
+  ): FindingStatusChangeRecord[] {
+    return this.repo.getStatusHistory(findingId, organizationId);
+  }
+
+  /** Formally accept a finding's risk instead of fixing it (#1036). */
+  acceptRisk(input: AcceptFindingRiskInput): { finding: Finding; record: RiskAcceptance } {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.acceptedBy || !input.acceptedBy.trim()) {
+      throw Object.assign(new Error('acceptedBy is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    const justification = (input.justification ?? '').trim();
+    if (justification.length < MIN_RISK_JUSTIFICATION_LENGTH) {
+      throw Object.assign(
+        new Error(
+          `justification must be at least ${MIN_RISK_JUSTIFICATION_LENGTH} characters`,
+        ),
+        { code: 'VALIDATION_ERROR', status: 400 },
+      );
+    }
+    if (input.expiresAt !== undefined && Number.isNaN(new Date(input.expiresAt).getTime())) {
+      throw Object.assign(new Error('expiresAt must be a valid ISO date'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.acceptRisk({ ...input, justification });
+  }
+
+  /** Revoke an active risk acceptance and reopen the finding (#1036). */
+  revokeRiskAcceptance(
+    input: RevokeRiskAcceptanceInput,
+  ): { finding: Finding; record: RiskAcceptance } {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.revokedBy || !input.revokedBy.trim()) {
+      throw Object.assign(new Error('revokedBy is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.revokeRiskAcceptance(input);
+  }
+
+  listRiskAcceptances(findingId: string, organizationId: string): RiskAcceptance[] {
+    return this.repo.listRiskAcceptances(findingId, organizationId);
+  }
+
+  /** Set the accountable owner of a finding, distinct from its active assignee (#1032). */
+  setOwnership(input: SetFindingOwnershipInput): Finding {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.owner || !input.owner.trim()) {
+      throw Object.assign(new Error('owner is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    const ownerTypes: OwnerType[] = ['team', 'individual', 'service'];
+    if (!ownerTypes.includes(input.ownerType)) {
+      throw Object.assign(new Error('Invalid ownerType'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    const sources: OwnershipSource[] = ['manual', 'codeowners', 'inferred'];
+    if (input.source !== undefined && !sources.includes(input.source)) {
+      throw Object.assign(new Error('Invalid source'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if ((input.source ?? 'manual') === 'manual' && !input.setBy?.trim()) {
+      throw Object.assign(
+        new Error('setBy is required when source is manual'),
+        { code: 'VALIDATION_ERROR', status: 400 },
+      );
+    }
+    return this.repo.setOwnership(input);
+  }
+
+  /** Create a manual grouping of findings sharing an underlying root cause (#1038). */
+  createRootCauseGroup(input: CreateRootCauseGroupInput): RootCauseGroup {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.title || !input.title.trim()) {
+      throw Object.assign(new Error('title is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.createdBy || !input.createdBy.trim()) {
+      throw Object.assign(new Error('createdBy is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.createRootCauseGroup(input);
+  }
+
+  listRootCauseGroups(organizationId: string): RootCauseGroup[] {
+    if (!organizationId || !organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.listRootCauseGroups(organizationId);
+  }
+
+  deleteRootCauseGroup(id: string, organizationId: string): void {
+    const deleted = this.repo.deleteRootCauseGroup(id, organizationId);
+    if (!deleted) {
+      throw Object.assign(new Error('Root cause group not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+  }
+
+  assignFindingToRootCauseGroup(
+    input: AssignFindingToRootCauseGroupInput,
+  ): { finding: Finding; group: RootCauseGroup } {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.groupId || !input.groupId.trim()) {
+      throw Object.assign(new Error('groupId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.assignFindingToRootCauseGroup(input);
+  }
+
+  removeFindingFromRootCauseGroup(input: RemoveFindingFromRootCauseGroupInput): Finding {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.removeFindingFromRootCauseGroup(input);
+  }
+
+  listRootCauseGroupMembers(groupId: string, organizationId: string): Finding[] {
+    return this.repo.listRootCauseGroupMembers(groupId, organizationId);
   }
 }
 

@@ -81,6 +81,8 @@ function parseListQuery(req: Request): FindingListQuery {
     organizationId,
     repositoryId: req.query.repositoryId as string | undefined,
     analysisJobId: req.query.analysisJobId as string | undefined,
+    owner: req.query.owner as string | undefined,
+    rootCauseGroupId: req.query.rootCauseGroupId as string | undefined,
     severity: parseCsv(req.query.severity, SEVERITIES),
     status: parseCsv(req.query.status, STATUSES),
     ruleId: req.query.ruleId as string | undefined,
@@ -392,6 +394,189 @@ export class FindingsController {
           message: e.message ?? 'Unexpected error',
         },
       });
+    }
+  }
+
+  transitionStatus(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+
+      const { newStatus, changedBy, reason } = req.body ?? {};
+      const result = findingsService.transitionStatus({
+        organizationId,
+        findingId: req.params.id,
+        newStatus,
+        changedBy,
+        reason,
+      });
+
+      res.status(200).json({ data: result });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  getStatusHistory(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const history = findingsService.getStatusHistory(req.params.id, organizationId);
+      res.status(200).json({ data: history });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  acceptRisk(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+
+      const { justification, acceptedBy, approvedBy, expiresAt } = req.body ?? {};
+      const result = findingsService.acceptRisk({
+        organizationId,
+        findingId: req.params.id,
+        justification,
+        acceptedBy,
+        approvedBy,
+        expiresAt,
+      });
+
+      res.status(201).json({ data: result });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  revokeRiskAcceptance(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+
+      const { revokedBy, reason } = req.body ?? {};
+      const result = findingsService.revokeRiskAcceptance({
+        organizationId,
+        findingId: req.params.id,
+        revokedBy,
+        reason,
+      });
+
+      res.status(200).json({ data: result });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  listRiskAcceptances(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const records = findingsService.listRiskAcceptances(req.params.id, organizationId);
+      res.status(200).json({ data: records });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  setOwnership(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+
+      const { owner, ownerType, source, setBy, note } = req.body ?? {};
+      const finding = findingsService.setOwnership({
+        organizationId,
+        findingId: req.params.id,
+        owner,
+        ownerType,
+        source,
+        setBy,
+        note,
+      });
+
+      res.status(200).json({ data: finding });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  createRootCauseGroup(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const { title, description, createdBy } = req.body ?? {};
+      const group = findingsService.createRootCauseGroup({
+        organizationId,
+        title,
+        description,
+        createdBy,
+      });
+      res.status(201).json({ data: group });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  listRootCauseGroups(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      res.status(200).json({ data: findingsService.listRootCauseGroups(organizationId) });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  deleteRootCauseGroup(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      findingsService.deleteRootCauseGroup(req.params.groupId, organizationId);
+      res.status(204).send();
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  listRootCauseGroupMembers(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      res.status(200).json({
+        data: findingsService.listRootCauseGroupMembers(req.params.groupId, organizationId),
+      });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  assignFindingToRootCauseGroup(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const result = findingsService.assignFindingToRootCauseGroup({
+        organizationId,
+        groupId: req.params.groupId,
+        findingId: req.params.id,
+      });
+      res.status(200).json({ data: result });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  removeFindingFromRootCauseGroup(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const finding = findingsService.removeFindingFromRootCauseGroup({
+        organizationId,
+        findingId: req.params.id,
+      });
+      res.status(200).json({ data: finding });
+    } catch (err) {
+      sendError(res, err);
     }
   }
 

@@ -36,8 +36,46 @@ export interface Finding {
   expiresAt?: string;
   /** ISO timestamp of the last expiration notification sent (#1037). */
   expirationNotifiedAt?: string;
+  /**
+   * Accountable owner for this finding — distinct from `assignedTo`, which
+   * tracks who is actively working the finding right now (#1032).
+   */
+  ownership?: FindingOwnership;
+  /**
+   * Manual grouping of findings that share an underlying root cause, even
+   * across different fingerprints/rules — distinct from the automatic exact-match
+   * `fingerprint` grouping (#1038).
+   */
+  rootCauseGroupId?: string;
   createdAt: string; // ISO
   updatedAt: string;
+}
+
+/** Who/what a finding's owner is (#1032). */
+export type OwnerType = 'team' | 'individual' | 'service';
+
+/** How the ownership was determined (#1032). */
+export type OwnershipSource = 'manual' | 'codeowners' | 'inferred';
+
+export interface FindingOwnership {
+  owner: string;
+  ownerType: OwnerType;
+  source: OwnershipSource;
+  /** Actor who set this ownership; omitted for automatically-detected ownership. */
+  setBy?: string;
+  setAt: string; // ISO
+  /** e.g. the CODEOWNERS pattern matched, or the rationale for an inferred owner. */
+  note?: string;
+}
+
+export interface SetFindingOwnershipInput {
+  organizationId: string;
+  findingId: string;
+  owner: string;
+  ownerType: OwnerType;
+  source?: OwnershipSource;
+  setBy?: string;
+  note?: string;
 }
 
 /** A discussion comment or formal review note on a finding (#1034). */
@@ -101,6 +139,10 @@ export interface FindingListQuery {
   repositoryId?: string;
   analysisJobId?: string;
   assignedTo?: string;
+  /** Filter by accountable owner (#1032). */
+  owner?: string;
+  /** Filter by root cause group membership (#1038). */
+  rootCauseGroupId?: string;
   fingerprint?: string;
   severity?: FindingSeverity | FindingSeverity[];
   status?: FindingStatus | FindingStatus[];
@@ -147,6 +189,109 @@ export interface ReassignmentAuditRecord {
   reason: string;
   timestamp: string; // ISO
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * Allowed finding status transitions (#1033). Every status can return to
+ * 'open' (reopen); 'accepted' additionally requires a risk acceptance
+ * record (#1036) and is normally reached via acceptRisk(), not a direct
+ * transition, but remains listed here for the transition graph to be complete.
+ */
+export const STATUS_TRANSITIONS: Record<FindingStatus, FindingStatus[]> = {
+  open: ['suppressed', 'resolved', 'accepted'],
+  suppressed: ['open', 'resolved', 'accepted'],
+  resolved: ['open'],
+  accepted: ['open', 'resolved'],
+};
+
+export interface TransitionFindingStatusInput {
+  organizationId: string;
+  findingId: string;
+  newStatus: FindingStatus;
+  changedBy: string;
+  reason?: string;
+}
+
+export interface FindingStatusChangeRecord {
+  id: string;
+  findingId: string;
+  organizationId: string;
+  previousStatus: FindingStatus;
+  newStatus: FindingStatus;
+  changedBy: string;
+  reason?: string;
+  timestamp: string; // ISO
+}
+
+/**
+ * Formal record of accepting the risk of a finding rather than fixing it (#1036).
+ * Creating one transitions the finding to 'accepted'; revoking one reopens it.
+ */
+export interface RiskAcceptance {
+  id: string;
+  findingId: string;
+  organizationId: string;
+  justification: string;
+  acceptedBy: string;
+  /** Optional second signer (e.g. security lead) who approved the acceptance. */
+  approvedBy?: string;
+  /** ISO timestamp after which this acceptance is no longer valid. */
+  expiresAt?: string;
+  createdAt: string; // ISO
+  revokedAt?: string;
+  revokedBy?: string;
+  revokedReason?: string;
+}
+
+export interface AcceptFindingRiskInput {
+  organizationId: string;
+  findingId: string;
+  justification: string;
+  acceptedBy: string;
+  approvedBy?: string;
+  expiresAt?: string;
+}
+
+export interface RevokeRiskAcceptanceInput {
+  organizationId: string;
+  findingId: string;
+  revokedBy: string;
+  reason?: string;
+}
+
+export const MIN_RISK_JUSTIFICATION_LENGTH = 10;
+
+/**
+ * A manually-curated group of findings that share an underlying root cause,
+ * e.g. the same flawed shared library used across several call sites (#1038).
+ * Unlike `fingerprint`, membership is not automatic and can span rules/files.
+ */
+export interface RootCauseGroup {
+  id: string;
+  organizationId: string;
+  title: string;
+  description?: string;
+  createdBy: string;
+  createdAt: string; // ISO
+  updatedAt: string;
+}
+
+export interface CreateRootCauseGroupInput {
+  organizationId: string;
+  title: string;
+  description?: string;
+  createdBy: string;
+}
+
+export interface AssignFindingToRootCauseGroupInput {
+  organizationId: string;
+  groupId: string;
+  findingId: string;
+}
+
+export interface RemoveFindingFromRootCauseGroupInput {
+  organizationId: string;
+  findingId: string;
 }
 
 export interface FindingListPage {

@@ -4,16 +4,28 @@
  */
 
 import {
+  AcceptFindingRiskInput,
+  AssignFindingToRootCauseGroupInput,
+  CreateRootCauseGroupInput,
   DEFAULT_PAGE_LIMIT,
   Finding,
   FindingListPage,
   FindingListQuery,
+  FindingOwnership,
   FindingSeverity,
   FindingSortField,
   FindingStatus,
+  FindingStatusChangeRecord,
   MAX_PAGE_LIMIT,
+  RemoveFindingFromRootCauseGroupInput,
+  RevokeRiskAcceptanceInput,
+  RiskAcceptance,
+  RootCauseGroup,
+  SetFindingOwnershipInput,
   SEVERITY_RANK,
   SortDirection,
+  STATUS_TRANSITIONS,
+  TransitionFindingStatusInput,
 } from './finding.types';
 import { decodeCursor, encodeCursor } from './cursor';
 
@@ -140,6 +152,12 @@ export class FindingsRepository {
     }
     if (query.assignedTo) {
       rows = rows.filter((f) => f.assignedTo === query.assignedTo);
+    }
+    if (query.owner) {
+      rows = rows.filter((f) => f.ownership?.owner === query.owner);
+    }
+    if (query.rootCauseGroupId) {
+      rows = rows.filter((f) => f.rootCauseGroupId === query.rootCauseGroupId);
     }
     if (query.ruleId) {
       rows = rows.filter((f) => f.ruleId === query.ruleId);
@@ -334,6 +352,336 @@ export class FindingsRepository {
     return [...history].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
+  }
+
+  private readonly statusHistory = new Map<string, FindingStatusChangeRecord[]>();
+
+  /** Validated finding status transition with audit trail (#1033). */
+  transitionStatus(
+    input: TransitionFindingStatusInput,
+  ): { finding: Finding; record: FindingStatusChangeRecord } {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    if (finding.status === input.newStatus) {
+      throw Object.assign(
+        new Error(`Finding is already in status '${input.newStatus}'`),
+        { code: 'ALREADY_IN_STATUS', status: 409 },
+      );
+    }
+
+    const allowed = STATUS_TRANSITIONS[finding.status] ?? [];
+    if (!allowed.includes(input.newStatus)) {
+      throw Object.assign(
+        new Error(
+          `Invalid status transition from '${finding.status}' to '${input.newStatus}'`,
+        ),
+        { code: 'INVALID_STATUS_TRANSITION', status: 409 },
+      );
+    }
+
+    const now = new Date().toISOString();
+    const record: FindingStatusChangeRecord = {
+      id: `stc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+      findingId: finding.id,
+      organizationId: finding.organizationId,
+      previousStatus: finding.status,
+      newStatus: input.newStatus,
+      changedBy: input.changedBy.trim(),
+      reason: input.reason?.trim() || undefined,
+      timestamp: now,
+    };
+
+    finding.status = input.newStatus;
+    finding.updatedAt = now;
+    this.upsert(finding);
+
+    const history = this.statusHistory.get(finding.id) ?? [];
+    history.push(record);
+    this.statusHistory.set(finding.id, history);
+
+    return { finding, record };
+  }
+
+  getStatusHistory(
+    findingId: string,
+    organizationId: string,
+  ): FindingStatusChangeRecord[] {
+    const finding = this.getForTenant(findingId, organizationId);
+    if (!finding) {
+      return [];
+    }
+    const history = this.statusHistory.get(findingId) ?? [];
+    return [...history].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+  }
+
+  private readonly riskAcceptances = new Map<string, RiskAcceptance[]>();
+
+  /** The current non-revoked risk acceptance for a finding, if any (#1036). */
+  getActiveRiskAcceptance(findingId: string): RiskAcceptance | undefined {
+    const list = this.riskAcceptances.get(findingId) ?? [];
+    return list.find((r) => !r.revokedAt);
+  }
+
+  /** Formally accept a finding's risk, transitioning its status to 'accepted' (#1036). */
+  acceptRisk(input: AcceptFindingRiskInput): { finding: Finding; record: RiskAcceptance } {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    if (this.getActiveRiskAcceptance(finding.id)) {
+      throw Object.assign(
+        new Error('Finding already has an active risk acceptance'),
+        { code: 'ALREADY_ACCEPTED', status: 409 },
+      );
+    }
+
+    const allowed = STATUS_TRANSITIONS[finding.status] ?? [];
+    if (finding.status !== 'accepted' && !allowed.includes('accepted')) {
+      throw Object.assign(
+        new Error(`Cannot accept risk for a finding in status '${finding.status}'`),
+        { code: 'INVALID_STATUS_TRANSITION', status: 409 },
+      );
+    }
+
+    const now = new Date().toISOString();
+    const record: RiskAcceptance = {
+      id: `rka_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+      findingId: finding.id,
+      organizationId: finding.organizationId,
+      justification: input.justification.trim(),
+      acceptedBy: input.acceptedBy.trim(),
+      approvedBy: input.approvedBy?.trim() || undefined,
+      expiresAt: input.expiresAt,
+      createdAt: now,
+    };
+
+    const previousStatus = finding.status;
+    finding.status = 'accepted';
+    finding.expiresAt = input.expiresAt ?? finding.expiresAt;
+    finding.updatedAt = now;
+    this.upsert(finding);
+
+    const list = this.riskAcceptances.get(finding.id) ?? [];
+    list.push(record);
+    this.riskAcceptances.set(finding.id, list);
+
+    if (previousStatus !== 'accepted') {
+      const statusRecord: FindingStatusChangeRecord = {
+        id: `stc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+        findingId: finding.id,
+        organizationId: finding.organizationId,
+        previousStatus,
+        newStatus: 'accepted',
+        changedBy: record.acceptedBy,
+        reason: record.justification,
+        timestamp: now,
+      };
+      const history = this.statusHistory.get(finding.id) ?? [];
+      history.push(statusRecord);
+      this.statusHistory.set(finding.id, history);
+    }
+
+    return { finding, record };
+  }
+
+  /** Revoke the active risk acceptance and reopen the finding (#1036). */
+  revokeRiskAcceptance(
+    input: RevokeRiskAcceptanceInput,
+  ): { finding: Finding; record: RiskAcceptance } {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    const record = this.getActiveRiskAcceptance(finding.id);
+    if (!record) {
+      throw Object.assign(
+        new Error('No active risk acceptance found for this finding'),
+        { code: 'NOT_FOUND', status: 404 },
+      );
+    }
+
+    const now = new Date().toISOString();
+    record.revokedAt = now;
+    record.revokedBy = input.revokedBy.trim();
+    record.revokedReason = input.reason?.trim() || undefined;
+
+    const previousStatus = finding.status;
+    finding.status = 'open';
+    finding.updatedAt = now;
+    this.upsert(finding);
+
+    if (previousStatus !== 'open') {
+      const statusRecord: FindingStatusChangeRecord = {
+        id: `stc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+        findingId: finding.id,
+        organizationId: finding.organizationId,
+        previousStatus,
+        newStatus: 'open',
+        changedBy: record.revokedBy,
+        reason: record.revokedReason ?? 'Risk acceptance revoked',
+        timestamp: now,
+      };
+      const history = this.statusHistory.get(finding.id) ?? [];
+      history.push(statusRecord);
+      this.statusHistory.set(finding.id, history);
+    }
+
+    return { finding, record };
+  }
+
+  /** All risk acceptance records for a finding, oldest first (#1036). */
+  listRiskAcceptances(findingId: string, organizationId: string): RiskAcceptance[] {
+    const finding = this.getForTenant(findingId, organizationId);
+    if (!finding) {
+      return [];
+    }
+    const list = this.riskAcceptances.get(findingId) ?? [];
+    return [...list].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }
+
+  /** Set (or replace) the accountable owner of a finding (#1032). */
+  setOwnership(input: SetFindingOwnershipInput): Finding {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    const now = new Date().toISOString();
+    const ownership: FindingOwnership = {
+      owner: input.owner.trim(),
+      ownerType: input.ownerType,
+      source: input.source ?? 'manual',
+      setBy: input.setBy?.trim() || undefined,
+      setAt: now,
+      note: input.note?.trim() || undefined,
+    };
+
+    finding.ownership = ownership;
+    finding.updatedAt = now;
+    this.upsert(finding);
+
+    return finding;
+  }
+
+  private readonly rootCauseGroups = new Map<string, RootCauseGroup>();
+
+  createRootCauseGroup(input: CreateRootCauseGroupInput): RootCauseGroup {
+    const now = new Date().toISOString();
+    const group: RootCauseGroup = {
+      id: `rcg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+      organizationId: input.organizationId,
+      title: input.title.trim(),
+      description: input.description?.trim() || undefined,
+      createdBy: input.createdBy.trim(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.rootCauseGroups.set(group.id, group);
+    return group;
+  }
+
+  getRootCauseGroupForTenant(id: string, organizationId: string): RootCauseGroup | undefined {
+    const group = this.rootCauseGroups.get(id);
+    if (!group || group.organizationId !== organizationId) return undefined;
+    return group;
+  }
+
+  listRootCauseGroups(organizationId: string): RootCauseGroup[] {
+    return Array.from(this.rootCauseGroups.values())
+      .filter((g) => g.organizationId === organizationId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
+  }
+
+  /** Delete a group and detach any findings currently assigned to it (#1038). */
+  deleteRootCauseGroup(id: string, organizationId: string): boolean {
+    const group = this.getRootCauseGroupForTenant(id, organizationId);
+    if (!group) return false;
+    for (const finding of this.byId.values()) {
+      if (finding.organizationId === organizationId && finding.rootCauseGroupId === id) {
+        finding.rootCauseGroupId = undefined;
+        finding.updatedAt = new Date().toISOString();
+      }
+    }
+    this.rootCauseGroups.delete(id);
+    return true;
+  }
+
+  assignFindingToRootCauseGroup(
+    input: AssignFindingToRootCauseGroupInput,
+  ): { finding: Finding; group: RootCauseGroup } {
+    const group = this.getRootCauseGroupForTenant(input.groupId, input.organizationId);
+    if (!group) {
+      throw Object.assign(new Error('Root cause group not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    finding.rootCauseGroupId = group.id;
+    finding.updatedAt = new Date().toISOString();
+    this.upsert(finding);
+
+    return { finding, group };
+  }
+
+  removeFindingFromRootCauseGroup(
+    input: RemoveFindingFromRootCauseGroupInput,
+  ): Finding {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+    if (!finding.rootCauseGroupId) {
+      throw Object.assign(
+        new Error('Finding is not part of a root cause group'),
+        { code: 'NOT_IN_GROUP', status: 409 },
+      );
+    }
+
+    finding.rootCauseGroupId = undefined;
+    finding.updatedAt = new Date().toISOString();
+    this.upsert(finding);
+
+    return finding;
+  }
+
+  /** All findings currently in a root cause group (#1038). */
+  listRootCauseGroupMembers(groupId: string, organizationId: string): Finding[] {
+    if (!this.getRootCauseGroupForTenant(groupId, organizationId)) return [];
+    return Array.from(this.byId.values())
+      .filter((f) => f.organizationId === organizationId && f.rootCauseGroupId === groupId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
   }
 }
 
