@@ -7,6 +7,88 @@ import {
   Index,
 } from "typeorm";
 
+export interface ReportPaginationQuery {
+  page?: number;
+  limit?: number;
+  type?: string;
+  period?: string;
+  merchantId?: string;
+  chainId?: string;
+  status?: string;
+  startDateFrom?: Date;
+  startDateTo?: Date;
+  endDateFrom?: Date;
+  endDateTo?: Date;
+  createdAtFrom?: Date;
+  createdAtTo?: Date;
+  sortField?: keyof Report;
+  sortOrder?: "ASC" | "DESC";
+}
+
+export interface ReportPaginationResult {
+  data: Report[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export const REPORT_PAGINATION_DEFAULTS = {
+  page: 1,
+  limit: 20,
+  maxLimit: 100,
+  sortField: "createdAt" as keyof Report,
+  sortOrder: "DESC" as const,
+};
+
+export function normalizeReportPaginationQuery(
+  query: ReportPaginationQuery = {},
+): Required<Pick<ReportPaginationQuery, "page" | "limit" | "sortField" | "sortOrder">> &
+  Omit<ReportPaginationQuery, "page" | "limit" | "sortField" | "sortOrder"> {
+  const rawPage = Number(query.page ?? REPORT_PAGINATION_DEFAULTS.page);
+  const rawLimit = Number(query.limit ?? REPORT_PAGINATION_DEFAULTS.limit);
+
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : REPORT_PAGINATION_DEFAULTS.page;
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0
+    ? Math.min(Math.floor(rawLimit), REPORT_PAGINATION_DEFAULTS.maxLimit)
+    : REPORT_PAGINATION_DEFAULTS.limit;
+
+  const sortOrder = query.sortOrder === "ASC" ? "ASC" : "DESC";
+  const sortField = query.sortField ?? REPORT_PAGINATION_DEFAULTS.sortField;
+
+  return {
+    ...query,
+    page,
+    limit,
+    sortField,
+    sortOrder,
+  };
+}
+
+export function buildReportPaginationResult(
+  data: Report[],
+  total: number,
+  page: number,
+  limit: number,
+): ReportPaginationResult {
+  const safeTotal = Number.isFinite(total) && total > 0 ? Math.floor(total) : 0;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : REPORT_PAGINATION_DEFAULTS.limit;
+  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : REPORT_PAGINATION_DEFAULTS.page;
+  const totalPages = safeTotal === 0 ? 0 : Math.ceil(safeTotal / safeLimit);
+
+  return {
+    data,
+    total: safeTotal,
+    page: safePage,
+    limit: safeLimit,
+    totalPages: totalPages,
+    hasNextPage: totalPages > 0 && safePage < totalPages,
+    hasPreviousPage: safePage > 1 && totalPages > 0,
+  };
+}
+
 @Entity("reports")
 export class Report {
   @PrimaryGeneratedColumn("uuid")
