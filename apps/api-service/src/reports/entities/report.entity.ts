@@ -41,6 +41,13 @@ export class Report {
   @Column({ type: "jsonb", nullable: true })
   metadata?: Record<string, any>;
 
+  /**
+   * ID of the user who created the report. Used for audit trailing.
+   */
+  @Column({ type: "varchar", length: 100, nullable: true })
+  @Index("idx_report_created_by")
+  createdBy?: string;
+
   @Column({ type: "timestamp" })
   @Index("idx_report_start_date")
   startDate: Date;

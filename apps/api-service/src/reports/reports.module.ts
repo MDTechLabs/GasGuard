@@ -5,6 +5,7 @@ import { ConfigService } from "@nestjs/config";
 import { Report } from "./entities/report.entity";
 import { ReportRepository } from "./repositories/report.repository";
 import { ReportService } from "./services/report.service";
+import { ReportAccessService } from "./services/report-access.service";
 import { DataAggregationService } from "./services/data-aggregation.service";
 import { ReportGenerationService } from "./services/report-generation.service";
 import { EmailNotificationService } from "./services/email-notification.service";
@@ -29,11 +30,12 @@ import { Chain } from "../database/entities/chain.entity";
     },
     // Services
     ReportService,
+    ReportAccessService,
     DataAggregationService,
     ReportGenerationService,
     EmailNotificationService,
     SchedulingService,
   ],
-  exports: [ReportService, DataAggregationService],
+  exports: [ReportService, ReportAccessService, DataAggregationService],
 })
 export class ReportsModule {}
