@@ -19,6 +19,9 @@ import {
   RevokeRiskAcceptanceInput,
   RiskAcceptance,
   MIN_RISK_JUSTIFICATION_LENGTH,
+  SetFindingOwnershipInput,
+  OwnerType,
+  OwnershipSource,
 } from './finding.types';
 import { findingsToCsv } from './findings.csv';
 import { computeFindingFingerprint } from './finding.fingerprint';
@@ -489,6 +492,49 @@ export class FindingsService {
 
   listRiskAcceptances(findingId: string, organizationId: string): RiskAcceptance[] {
     return this.repo.listRiskAcceptances(findingId, organizationId);
+  }
+
+  /** Set the accountable owner of a finding, distinct from its active assignee (#1032). */
+  setOwnership(input: SetFindingOwnershipInput): Finding {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.owner || !input.owner.trim()) {
+      throw Object.assign(new Error('owner is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    const ownerTypes: OwnerType[] = ['team', 'individual', 'service'];
+    if (!ownerTypes.includes(input.ownerType)) {
+      throw Object.assign(new Error('Invalid ownerType'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    const sources: OwnershipSource[] = ['manual', 'codeowners', 'inferred'];
+    if (input.source !== undefined && !sources.includes(input.source)) {
+      throw Object.assign(new Error('Invalid source'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if ((input.source ?? 'manual') === 'manual' && !input.setBy?.trim()) {
+      throw Object.assign(
+        new Error('setBy is required when source is manual'),
+        { code: 'VALIDATION_ERROR', status: 400 },
+      );
+    }
+    return this.repo.setOwnership(input);
   }
 }
 

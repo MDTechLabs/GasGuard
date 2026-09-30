@@ -81,6 +81,7 @@ function parseListQuery(req: Request): FindingListQuery {
     organizationId,
     repositoryId: req.query.repositoryId as string | undefined,
     analysisJobId: req.query.analysisJobId as string | undefined,
+    owner: req.query.owner as string | undefined,
     severity: parseCsv(req.query.severity, SEVERITIES),
     status: parseCsv(req.query.status, STATUSES),
     ruleId: req.query.ruleId as string | undefined,
@@ -472,6 +473,28 @@ export class FindingsController {
       if (!organizationId) return;
       const records = findingsService.listRiskAcceptances(req.params.id, organizationId);
       res.status(200).json({ data: records });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
+  setOwnership(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+
+      const { owner, ownerType, source, setBy, note } = req.body ?? {};
+      const finding = findingsService.setOwnership({
+        organizationId,
+        findingId: req.params.id,
+        owner,
+        ownerType,
+        source,
+        setBy,
+        note,
+      });
+
+      res.status(200).json({ data: finding });
     } catch (err) {
       sendError(res, err);
     }

@@ -36,8 +36,40 @@ export interface Finding {
   expiresAt?: string;
   /** ISO timestamp of the last expiration notification sent (#1037). */
   expirationNotifiedAt?: string;
+  /**
+   * Accountable owner for this finding — distinct from `assignedTo`, which
+   * tracks who is actively working the finding right now (#1032).
+   */
+  ownership?: FindingOwnership;
   createdAt: string; // ISO
   updatedAt: string;
+}
+
+/** Who/what a finding's owner is (#1032). */
+export type OwnerType = 'team' | 'individual' | 'service';
+
+/** How the ownership was determined (#1032). */
+export type OwnershipSource = 'manual' | 'codeowners' | 'inferred';
+
+export interface FindingOwnership {
+  owner: string;
+  ownerType: OwnerType;
+  source: OwnershipSource;
+  /** Actor who set this ownership; omitted for automatically-detected ownership. */
+  setBy?: string;
+  setAt: string; // ISO
+  /** e.g. the CODEOWNERS pattern matched, or the rationale for an inferred owner. */
+  note?: string;
+}
+
+export interface SetFindingOwnershipInput {
+  organizationId: string;
+  findingId: string;
+  owner: string;
+  ownerType: OwnerType;
+  source?: OwnershipSource;
+  setBy?: string;
+  note?: string;
 }
 
 /** A discussion comment or formal review note on a finding (#1034). */
@@ -101,6 +133,8 @@ export interface FindingListQuery {
   repositoryId?: string;
   analysisJobId?: string;
   assignedTo?: string;
+  /** Filter by accountable owner (#1032). */
+  owner?: string;
   fingerprint?: string;
   severity?: FindingSeverity | FindingSeverity[];
   status?: FindingStatus | FindingStatus[];

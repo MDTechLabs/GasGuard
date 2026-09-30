@@ -9,6 +9,7 @@ import {
   Finding,
   FindingListPage,
   FindingListQuery,
+  FindingOwnership,
   FindingSeverity,
   FindingSortField,
   FindingStatus,
@@ -16,6 +17,7 @@ import {
   MAX_PAGE_LIMIT,
   RevokeRiskAcceptanceInput,
   RiskAcceptance,
+  SetFindingOwnershipInput,
   SEVERITY_RANK,
   SortDirection,
   STATUS_TRANSITIONS,
@@ -146,6 +148,9 @@ export class FindingsRepository {
     }
     if (query.assignedTo) {
       rows = rows.filter((f) => f.assignedTo === query.assignedTo);
+    }
+    if (query.owner) {
+      rows = rows.filter((f) => f.ownership?.owner === query.owner);
     }
     if (query.ruleId) {
       rows = rows.filter((f) => f.ruleId === query.ruleId);
@@ -543,6 +548,33 @@ export class FindingsRepository {
     return [...list].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
+  }
+
+  /** Set (or replace) the accountable owner of a finding (#1032). */
+  setOwnership(input: SetFindingOwnershipInput): Finding {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    const now = new Date().toISOString();
+    const ownership: FindingOwnership = {
+      owner: input.owner.trim(),
+      ownerType: input.ownerType,
+      source: input.source ?? 'manual',
+      setBy: input.setBy?.trim() || undefined,
+      setAt: now,
+      note: input.note?.trim() || undefined,
+    };
+
+    finding.ownership = ownership;
+    finding.updatedAt = now;
+    this.upsert(finding);
+
+    return finding;
   }
 }
 

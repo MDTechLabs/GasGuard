@@ -15,6 +15,7 @@ findingsRouter.get('/:id/status-history', (req, res) => findingsController.getSt
 findingsRouter.post('/:id/risk-acceptance', (req, res) => findingsController.acceptRisk(req, res));
 findingsRouter.post('/:id/risk-acceptance/revoke', (req, res) => findingsController.revokeRiskAcceptance(req, res));
 findingsRouter.get('/:id/risk-acceptance', (req, res) => findingsController.listRiskAcceptances(req, res));
+findingsRouter.post('/:id/ownership', (req, res) => findingsController.setOwnership(req, res));
 findingsRouter.get('/:id/comments', (req, res) => findingsController.listComments(req, res));
 findingsRouter.post('/:id/comments', (req, res) => findingsController.addComment(req, res));
 findingsRouter.patch('/:id/comments/:commentId', (req, res) => findingsController.updateComment(req, res));
