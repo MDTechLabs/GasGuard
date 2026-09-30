@@ -22,6 +22,7 @@ As Web3 scales, transaction costs remain a significant barrier to entry.
 * **🤖 CI/CD Integration:** A dedicated GitHub Action that runs on every push, ensuring no "gas regressions" are introduced.
 * **📚 Educational Tooltips:** Every suggestion includes a link to documentation explaining *why* the change saves money, fostering developer growth.
 * **🧪 Rule Testing Framework:** Comprehensive testing utilities with input/output fixtures, snapshot testing, and assertion helpers for rule developers.
+* **📊 Analyzer Coverage Reporting:** Track analyzer coverage metrics across your codebase with multiple report formats (text, JSON, HTML, Markdown), threshold checking, and detailed rule breakdowns for ensuring thorough code analysis.
 
 ### 4. Roadmap for this Wave
 * **Phase 1:** Complete the Core CLI tool for local developer use (Rust/Soroban focus).
@@ -245,7 +246,61 @@ For comprehensive documentation, see:
 - [Audit Integration Guide](./docs/AUDIT_INTEGRATION_GUIDE.md)
 - [Audit Module README](./apps/api-service/src/audit/README.md)
 
-## �🚀 Getting Started
+## 📊 Analyzer Coverage Reporting
+
+GasGuard includes comprehensive analyzer coverage reporting to track how thoroughly your codebase is being analyzed and identify patterns not covered by any rules.
+
+### Key Features
+- ✅ Multiple report formats (text, JSON, HTML, Markdown)
+- ✅ Coverage metrics tracking (nodes analyzed vs. total nodes)
+- ✅ Uncovered pattern identification
+- ✅ Rule-by-rule coverage breakdown
+- ✅ Threshold checking for CI/CD pipelines
+- ✅ Beautiful interactive HTML reports
+
+### Quick Usage
+
+```typescript
+import { CoverageReporter } from './src/reporting/coverage';
+import { RuleCoverageAnalyzer } from './src/analysis/coverage';
+
+// Track coverage during analysis
+const analyzer = new RuleCoverageAnalyzer();
+// ... perform analysis ...
+
+// Generate report
+const reporter = new CoverageReporter();
+const reportData = reporter.createReportData(
+  'MyProject',
+  '1.0.0',
+  analyzer.getMetrics(),
+  10, 12, 1500
+);
+
+// Save HTML report
+await reporter.saveReport(reportData, './reports/coverage.html', {
+  format: 'html',
+  includeUncoveredDetails: true,
+  thresholdPercent: 85
+});
+```
+
+### CI/CD Integration
+
+```yaml
+# Check coverage threshold in your pipeline
+- name: Check Coverage
+  run: |
+    npm run analyze:coverage
+    # Fails if coverage < 80%
+```
+
+For comprehensive documentation, see:
+- [Analyzer Coverage Reporting Documentation](./docs/ANALYZER_COVERAGE_REPORTING.md)
+- [Coverage Module README](./src/reporting/coverage/README.md)
+- [Example Usage](./src/reporting/coverage/example.ts)
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
