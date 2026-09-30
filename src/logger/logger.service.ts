@@ -18,16 +18,21 @@ import {
   ILoggerProvider 
 } from './logger.types';
 import { LoggerConfigManager } from './logger.config';
+import { LogRedactionService, LogRedactionConfig } from './log-redaction';
 
 export class LoggerService extends EventEmitter implements ILogger {
   private static instance: LoggerService;
   private providers: Map<string, ILoggerProvider> = new Map();
   private context: Partial<LogEntry> = {};
   private configManager: LoggerConfigManager;
+  private redactionService: LogRedactionService;
 
   private constructor() {
     super();
     this.configManager = LoggerConfigManager.getInstance();
+    this.redactionService = new LogRedactionService(
+      this.buildRedactionConfig(this.configManager.getConfig())
+    );
   }
 
   static getInstance(): LoggerService {
@@ -35,6 +40,33 @@ export class LoggerService extends EventEmitter implements ILogger {
       LoggerService.instance = new LoggerService();
     }
     return LoggerService.instance;
+  }
+
+  /**
+   * Build LogRedactionService config from logger configuration.
+   */
+  private buildRedactionConfig(config: LoggerConfig): LogRedactionConfig {
+    return {
+      enabled: config.enableRedaction ?? true,
+      extraPatterns: config.redactionExtraKeys ?? [],
+    };
+  }
+
+  /**
+   * Re-apply redaction configuration after a runtime config update/reset.
+   * Call this after changing LoggerConfig via LoggerConfigManager.
+   */
+  refreshRedactionConfig(): void {
+    this.redactionService = new LogRedactionService(
+      this.buildRedactionConfig(this.configManager.getConfig())
+    );
+  }
+
+  /**
+   * Access the redaction service (for advanced callers and tests).
+   */
+  getRedactionService(): LogRedactionService {
+    return this.redactionService;
   }
 
   /**
@@ -63,13 +95,14 @@ export class LoggerService extends EventEmitter implements ILogger {
     message: string, 
     metadata?: Record<string, any>
   ): LogEntry {
+    const redacted = this.redactionService.redact({ message, metadata });
     return {
       id: randomUUID(),
       timestamp: new Date(),
       level,
       category: LogCategory.SYSTEM,
-      message,
-      metadata,
+      message: redacted.message,
+      metadata: redacted.metadata,
       ...this.context,
     };
   }
@@ -140,6 +173,10 @@ export class LoggerService extends EventEmitter implements ILogger {
       timestamp: new Date(),
       category: LogCategory.AUDIT,
       ...entry,
+      message: this.redactionService.redactMessage(entry.message),
+      metadata: entry.metadata
+        ? this.redactionService.redactMetadata(entry.metadata)
+        : undefined,
     };
 
     // Emit audit event for real-time monitoring
