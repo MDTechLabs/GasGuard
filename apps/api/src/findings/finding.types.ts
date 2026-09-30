@@ -26,8 +26,71 @@ export interface Finding {
   reassignedAt?: string;
   /** Total number of times this finding has been reassigned (#1035). */
   reassignmentCount?: number;
+  /** Stable hash identifying the same issue across analysis runs (#1031). */
+  fingerprint?: string;
+  /** createdAt of the first occurrence of this fingerprint in the repository (#1031). */
+  firstSeenAt?: string;
+  /** 1-based count of runs in which this fingerprint has appeared (#1031). */
+  occurrenceCount?: number;
+  /** ISO timestamp after which the finding (e.g. suppression/acceptance) expires (#1037). */
+  expiresAt?: string;
+  /** ISO timestamp of the last expiration notification sent (#1037). */
+  expirationNotifiedAt?: string;
   createdAt: string; // ISO
   updatedAt: string;
+}
+
+/** A discussion comment or formal review note on a finding (#1034). */
+export type FindingCommentType = 'comment' | 'review_note';
+
+export interface FindingComment {
+  id: string;
+  findingId: string;
+  organizationId: string;
+  type: FindingCommentType;
+  author: string;
+  body: string;
+  createdAt: string; // ISO
+  updatedAt: string;
+  /** Set when the comment body has been edited. */
+  editedAt?: string;
+}
+
+export interface AddFindingCommentInput {
+  organizationId: string;
+  findingId: string;
+  author: string;
+  body: string;
+  type?: FindingCommentType;
+}
+
+export interface UpdateFindingCommentInput {
+  organizationId: string;
+  findingId: string;
+  commentId: string;
+  /** Only the original author may edit. */
+  author: string;
+  body: string;
+}
+
+export const MAX_COMMENT_LENGTH = 5000;
+
+export type FindingExpirationNotificationKind = 'expiring_soon' | 'expired';
+
+export interface FindingExpirationNotification {
+  findingId: string;
+  organizationId: string;
+  kind: FindingExpirationNotificationKind;
+  title: string;
+  severity: FindingSeverity;
+  assignedTo?: string;
+  expiresAt: string;
+  createdAt: string; // ISO
+}
+
+/** Delivery sink for expiration notifications (email/Slack/webhook adapters implement this). */
+export interface FindingExpirationNotificationSink {
+  send(notification: FindingExpirationNotification): void | Promise<void>;
 }
 
 export type FindingSortField = 'createdAt' | 'severity' | 'status' | 'title';
@@ -38,6 +101,7 @@ export interface FindingListQuery {
   repositoryId?: string;
   analysisJobId?: string;
   assignedTo?: string;
+  fingerprint?: string;
   severity?: FindingSeverity | FindingSeverity[];
   status?: FindingStatus | FindingStatus[];
   ruleId?: string;

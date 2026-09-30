@@ -144,6 +144,9 @@ export class FindingsRepository {
     if (query.ruleId) {
       rows = rows.filter((f) => f.ruleId === query.ruleId);
     }
+    if (query.fingerprint) {
+      rows = rows.filter((f) => f.fingerprint === query.fingerprint);
+    }
     if (q) {
       rows = rows.filter(
         (f) =>
@@ -179,6 +182,82 @@ export class FindingsRepository {
       totalEstimate: rows.length + (query.cursor ? limit : 0), // approximate when cursor used
       limit,
     };
+  }
+
+  /** All occurrences of a fingerprint in a repository, oldest first (#1031). */
+  listByFingerprint(
+    organizationId: string,
+    repositoryId: string | undefined,
+    fingerprint: string,
+  ): Finding[] {
+    return Array.from(this.byId.values())
+      .filter(
+        (f) =>
+          f.organizationId === organizationId &&
+          f.fingerprint === fingerprint &&
+          (repositoryId === undefined || f.repositoryId === repositoryId),
+      )
+      .sort((a, b) =>
+        a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1,
+      );
+  }
+
+  /**
+   * Findings whose expiration falls before `now + windowMs` (or already passed)
+   * and that have not yet been notified for the current expiry (#1037).
+   */
+  listExpiring(organizationId: string, now: Date, windowMs: number): Finding[] {
+    const horizon = now.getTime() + windowMs;
+    return Array.from(this.byId.values()).filter((f) => {
+      if (f.organizationId !== organizationId || !f.expiresAt) return false;
+      if (f.status === 'resolved') return false;
+      if (new Date(f.expiresAt).getTime() > horizon) return false;
+      const expired = new Date(f.expiresAt).getTime() <= now.getTime();
+      // Notify once while expiring soon, and once more after it expires.
+      if (!f.expirationNotifiedAt) return true;
+      return expired && new Date(f.expirationNotifiedAt).getTime() < new Date(f.expiresAt).getTime();
+    });
+  }
+
+  markExpirationNotified(id: string, at: string): void {
+    const f = this.byId.get(id);
+    if (f) f.expirationNotifiedAt = at;
+  }
+
+  private readonly comments = new Map<string, import('./finding.types').FindingComment[]>();
+
+  addComment(
+    comment: import('./finding.types').FindingComment,
+  ): import('./finding.types').FindingComment {
+    const list = this.comments.get(comment.findingId) ?? [];
+    list.push(comment);
+    this.comments.set(comment.findingId, list);
+    return comment;
+  }
+
+  /** Comments for a finding, oldest first. Empty for cross-tenant/unknown findings. */
+  listComments(
+    findingId: string,
+    organizationId: string,
+  ): import('./finding.types').FindingComment[] {
+    if (!this.getForTenant(findingId, organizationId)) return [];
+    return [...(this.comments.get(findingId) ?? [])];
+  }
+
+  getComment(
+    findingId: string,
+    commentId: string,
+  ): import('./finding.types').FindingComment | undefined {
+    return this.comments.get(findingId)?.find((c) => c.id === commentId);
+  }
+
+  deleteComment(findingId: string, commentId: string): boolean {
+    const list = this.comments.get(findingId);
+    if (!list) return false;
+    const idx = list.findIndex((c) => c.id === commentId);
+    if (idx === -1) return false;
+    list.splice(idx, 1);
+    return true;
   }
 
   private readonly auditHistory = new Map<string, import('./finding.types').ReassignmentAuditRecord[]>();
