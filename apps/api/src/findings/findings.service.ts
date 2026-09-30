@@ -5,7 +5,9 @@ import {
   FindingListQuery,
   FindingSeverity,
   FindingStatus,
+  MAX_PAGE_LIMIT,
 } from './finding.types';
+import { findingsToCsv } from './findings.csv';
 
 export interface CreateFindingInput {
   organizationId: string;
@@ -79,6 +81,18 @@ export class FindingsService {
 
   getForTenant(id: string, organizationId: string): Finding | undefined {
     return this.repo.getForTenant(id, organizationId);
+  }
+
+  /** Export all findings matching the query (cursor/limit ignored) as CSV (#1039). */
+  exportCsv(query: FindingListQuery): string {
+    const all: Finding[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = this.repo.list({ ...query, limit: MAX_PAGE_LIMIT, cursor });
+      all.push(...page.items);
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+    return findingsToCsv(all);
   }
 
   reassign(input: import('./finding.types').ReassignFindingInput): {

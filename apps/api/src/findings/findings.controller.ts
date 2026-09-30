@@ -116,6 +116,27 @@ export class FindingsController {
     }
   }
 
+  exportCsv(req: Request, res: Response): void {
+    try {
+      const query = parseListQuery(req);
+      const csv = findingsService.exportCsv(query);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="findings.csv"',
+      );
+      res.status(200).send(csv);
+    } catch (err) {
+      const e = err as { status?: number; code?: string; message?: string };
+      res.status(e.status ?? 500).json({
+        error: {
+          code: e.code ?? 'INTERNAL_ERROR',
+          message: e.message ?? 'Unexpected error',
+        },
+      });
+    }
+  }
+
   getOne(req: Request, res: Response): void {
     try {
       const organizationId =
