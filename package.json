@@ -19,7 +19,8 @@
     "test:contracts": "hardhat test",
     "license:notices": "node scripts/generate-third-party-notices.mjs",
     "canary": "ts-node scripts/canary-release.ts",
-    "policy:validate": "ts-node scripts/policy-validate.ts"
+    "policy:validate": "ts-node scripts/policy-validate.ts",
+    "provenance:check": "ts-node scripts/check-dependency-provenance.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

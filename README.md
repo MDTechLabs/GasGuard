@@ -52,6 +52,24 @@ GasGuard/
 
 ---
 
+## 🔐 Dependency Provenance
+
+GasGuard verifies the supply-chain provenance of all npm and Cargo dependencies on every CI run. Each dependency is checked to ensure it:
+
+- Resolves from a known, trusted registry (npmjs.com or crates.io).
+- Carries a strong integrity hash (sha512 for npm, SHA-256 for Cargo).
+- Does not use deprecated or weak hash algorithms.
+
+Run the check locally with:
+
+```bash
+pnpm run provenance:check
+```
+
+See [docs/DEPENDENCY_PROVENANCE.md](./docs/DEPENDENCY_PROVENANCE.md) for the full reference.
+
+---
+
 ## 🔐 Privilege Boundaries
 
 GasGuard follows the **principle of least privilege** across all components. This section documents the trust boundaries, privilege levels, and security assumptions for each part of the system.
