@@ -26,6 +26,12 @@ export interface Finding {
   reassignedAt?: string;
   /** Total number of times this finding has been reassigned (#1035). */
   reassignmentCount?: number;
+  /** Stable hash identifying the same issue across analysis runs (#1031). */
+  fingerprint?: string;
+  /** createdAt of the first occurrence of this fingerprint in the repository (#1031). */
+  firstSeenAt?: string;
+  /** 1-based count of runs in which this fingerprint has appeared (#1031). */
+  occurrenceCount?: number;
   /** ISO timestamp after which the finding (e.g. suppression/acceptance) expires (#1037). */
   expiresAt?: string;
   /** ISO timestamp of the last expiration notification sent (#1037). */
@@ -95,6 +101,7 @@ export interface FindingListQuery {
   repositoryId?: string;
   analysisJobId?: string;
   assignedTo?: string;
+  fingerprint?: string;
   severity?: FindingSeverity | FindingSeverity[];
   status?: FindingStatus | FindingStatus[];
   ruleId?: string;

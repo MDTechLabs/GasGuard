@@ -14,6 +14,7 @@ import {
   MAX_PAGE_LIMIT,
 } from './finding.types';
 import { findingsToCsv } from './findings.csv';
+import { computeFindingFingerprint } from './finding.fingerprint';
 
 export interface CreateFindingInput {
   organizationId: string;
@@ -91,7 +92,17 @@ export class FindingsService {
 
   create(input: CreateFindingInput): Finding {
     const now = new Date().toISOString();
+    const fingerprint = computeFindingFingerprint(input);
+    // Link to earlier runs: same fingerprint in the same repository (#1031).
+    const previous = this.repo.listByFingerprint(
+      input.organizationId,
+      input.repositoryId,
+      fingerprint,
+    );
     const finding: Finding = {
+      fingerprint,
+      firstSeenAt: previous.length ? previous[0].firstSeenAt ?? previous[0].createdAt : now,
+      occurrenceCount: previous.length + 1,
       id: newId(),
       organizationId: input.organizationId,
       repositoryId: input.repositoryId,
@@ -142,6 +153,15 @@ export class FindingsService {
 
   getForTenant(id: string, organizationId: string): Finding | undefined {
     return this.repo.getForTenant(id, organizationId);
+  }
+
+  /** Every occurrence of a fingerprint across runs, oldest first (#1031). */
+  getFingerprintHistory(
+    organizationId: string,
+    fingerprint: string,
+    repositoryId?: string,
+  ): Finding[] {
+    return this.repo.listByFingerprint(organizationId, repositoryId, fingerprint);
   }
 
   addComment(input: AddFindingCommentInput): FindingComment {

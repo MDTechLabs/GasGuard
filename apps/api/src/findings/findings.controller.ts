@@ -84,6 +84,7 @@ function parseListQuery(req: Request): FindingListQuery {
     severity: parseCsv(req.query.severity, SEVERITIES),
     status: parseCsv(req.query.status, STATUSES),
     ruleId: req.query.ruleId as string | undefined,
+    fingerprint: req.query.fingerprint as string | undefined,
     q: req.query.q as string | undefined,
     sortBy: sortByRaw as FindingSortField,
     sortDir: sortDirRaw as SortDirection,
@@ -117,6 +118,28 @@ function requireOrg(req: Request, res: Response): string | undefined {
 }
 
 export class FindingsController {
+  getFingerprintHistory(req: Request, res: Response): void {
+    try {
+      const organizationId = requireOrg(req, res);
+      if (!organizationId) return;
+      const occurrences = findingsService.getFingerprintHistory(
+        organizationId,
+        req.params.fingerprint,
+        req.query.repositoryId as string | undefined,
+      );
+      res.status(200).json({
+        data: {
+          fingerprint: req.params.fingerprint,
+          occurrenceCount: occurrences.length,
+          firstSeenAt: occurrences[0]?.firstSeenAt ?? occurrences[0]?.createdAt ?? null,
+          occurrences,
+        },
+      });
+    } catch (err) {
+      sendError(res, err);
+    }
+  }
+
   addComment(req: Request, res: Response): void {
     try {
       const organizationId = requireOrg(req, res);

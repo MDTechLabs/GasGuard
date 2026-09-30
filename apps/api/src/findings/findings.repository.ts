@@ -144,6 +144,9 @@ export class FindingsRepository {
     if (query.ruleId) {
       rows = rows.filter((f) => f.ruleId === query.ruleId);
     }
+    if (query.fingerprint) {
+      rows = rows.filter((f) => f.fingerprint === query.fingerprint);
+    }
     if (q) {
       rows = rows.filter(
         (f) =>
@@ -179,6 +182,24 @@ export class FindingsRepository {
       totalEstimate: rows.length + (query.cursor ? limit : 0), // approximate when cursor used
       limit,
     };
+  }
+
+  /** All occurrences of a fingerprint in a repository, oldest first (#1031). */
+  listByFingerprint(
+    organizationId: string,
+    repositoryId: string | undefined,
+    fingerprint: string,
+  ): Finding[] {
+    return Array.from(this.byId.values())
+      .filter(
+        (f) =>
+          f.organizationId === organizationId &&
+          f.fingerprint === fingerprint &&
+          (repositoryId === undefined || f.repositoryId === repositoryId),
+      )
+      .sort((a, b) =>
+        a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1,
+      );
   }
 
   /**
