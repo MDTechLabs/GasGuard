@@ -5,6 +5,8 @@
 
 import {
   AcceptFindingRiskInput,
+  AssignFindingToRootCauseGroupInput,
+  CreateRootCauseGroupInput,
   DEFAULT_PAGE_LIMIT,
   Finding,
   FindingListPage,
@@ -15,8 +17,10 @@ import {
   FindingStatus,
   FindingStatusChangeRecord,
   MAX_PAGE_LIMIT,
+  RemoveFindingFromRootCauseGroupInput,
   RevokeRiskAcceptanceInput,
   RiskAcceptance,
+  RootCauseGroup,
   SetFindingOwnershipInput,
   SEVERITY_RANK,
   SortDirection,
@@ -151,6 +155,9 @@ export class FindingsRepository {
     }
     if (query.owner) {
       rows = rows.filter((f) => f.ownership?.owner === query.owner);
+    }
+    if (query.rootCauseGroupId) {
+      rows = rows.filter((f) => f.rootCauseGroupId === query.rootCauseGroupId);
     }
     if (query.ruleId) {
       rows = rows.filter((f) => f.ruleId === query.ruleId);
@@ -575,6 +582,106 @@ export class FindingsRepository {
     this.upsert(finding);
 
     return finding;
+  }
+
+  private readonly rootCauseGroups = new Map<string, RootCauseGroup>();
+
+  createRootCauseGroup(input: CreateRootCauseGroupInput): RootCauseGroup {
+    const now = new Date().toISOString();
+    const group: RootCauseGroup = {
+      id: `rcg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`,
+      organizationId: input.organizationId,
+      title: input.title.trim(),
+      description: input.description?.trim() || undefined,
+      createdBy: input.createdBy.trim(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.rootCauseGroups.set(group.id, group);
+    return group;
+  }
+
+  getRootCauseGroupForTenant(id: string, organizationId: string): RootCauseGroup | undefined {
+    const group = this.rootCauseGroups.get(id);
+    if (!group || group.organizationId !== organizationId) return undefined;
+    return group;
+  }
+
+  listRootCauseGroups(organizationId: string): RootCauseGroup[] {
+    return Array.from(this.rootCauseGroups.values())
+      .filter((g) => g.organizationId === organizationId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
+  }
+
+  /** Delete a group and detach any findings currently assigned to it (#1038). */
+  deleteRootCauseGroup(id: string, organizationId: string): boolean {
+    const group = this.getRootCauseGroupForTenant(id, organizationId);
+    if (!group) return false;
+    for (const finding of this.byId.values()) {
+      if (finding.organizationId === organizationId && finding.rootCauseGroupId === id) {
+        finding.rootCauseGroupId = undefined;
+        finding.updatedAt = new Date().toISOString();
+      }
+    }
+    this.rootCauseGroups.delete(id);
+    return true;
+  }
+
+  assignFindingToRootCauseGroup(
+    input: AssignFindingToRootCauseGroupInput,
+  ): { finding: Finding; group: RootCauseGroup } {
+    const group = this.getRootCauseGroupForTenant(input.groupId, input.organizationId);
+    if (!group) {
+      throw Object.assign(new Error('Root cause group not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    finding.rootCauseGroupId = group.id;
+    finding.updatedAt = new Date().toISOString();
+    this.upsert(finding);
+
+    return { finding, group };
+  }
+
+  removeFindingFromRootCauseGroup(
+    input: RemoveFindingFromRootCauseGroupInput,
+  ): Finding {
+    const finding = this.getForTenant(input.findingId, input.organizationId);
+    if (!finding) {
+      throw Object.assign(new Error('Finding not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+    if (!finding.rootCauseGroupId) {
+      throw Object.assign(
+        new Error('Finding is not part of a root cause group'),
+        { code: 'NOT_IN_GROUP', status: 409 },
+      );
+    }
+
+    finding.rootCauseGroupId = undefined;
+    finding.updatedAt = new Date().toISOString();
+    this.upsert(finding);
+
+    return finding;
+  }
+
+  /** All findings currently in a root cause group (#1038). */
+  listRootCauseGroupMembers(groupId: string, organizationId: string): Finding[] {
+    if (!this.getRootCauseGroupForTenant(groupId, organizationId)) return [];
+    return Array.from(this.byId.values())
+      .filter((f) => f.organizationId === organizationId && f.rootCauseGroupId === groupId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
   }
 }
 

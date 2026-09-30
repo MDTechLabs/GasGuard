@@ -22,6 +22,10 @@ import {
   SetFindingOwnershipInput,
   OwnerType,
   OwnershipSource,
+  CreateRootCauseGroupInput,
+  AssignFindingToRootCauseGroupInput,
+  RemoveFindingFromRootCauseGroupInput,
+  RootCauseGroup,
 } from './finding.types';
 import { findingsToCsv } from './findings.csv';
 import { computeFindingFingerprint } from './finding.fingerprint';
@@ -535,6 +539,93 @@ export class FindingsService {
       );
     }
     return this.repo.setOwnership(input);
+  }
+
+  /** Create a manual grouping of findings sharing an underlying root cause (#1038). */
+  createRootCauseGroup(input: CreateRootCauseGroupInput): RootCauseGroup {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.title || !input.title.trim()) {
+      throw Object.assign(new Error('title is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.createdBy || !input.createdBy.trim()) {
+      throw Object.assign(new Error('createdBy is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.createRootCauseGroup(input);
+  }
+
+  listRootCauseGroups(organizationId: string): RootCauseGroup[] {
+    if (!organizationId || !organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.listRootCauseGroups(organizationId);
+  }
+
+  deleteRootCauseGroup(id: string, organizationId: string): void {
+    const deleted = this.repo.deleteRootCauseGroup(id, organizationId);
+    if (!deleted) {
+      throw Object.assign(new Error('Root cause group not found'), {
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+  }
+
+  assignFindingToRootCauseGroup(
+    input: AssignFindingToRootCauseGroupInput,
+  ): { finding: Finding; group: RootCauseGroup } {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.groupId || !input.groupId.trim()) {
+      throw Object.assign(new Error('groupId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.assignFindingToRootCauseGroup(input);
+  }
+
+  removeFindingFromRootCauseGroup(input: RemoveFindingFromRootCauseGroupInput): Finding {
+    if (!input.organizationId || !input.organizationId.trim()) {
+      throw Object.assign(new Error('organizationId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    if (!input.findingId || !input.findingId.trim()) {
+      throw Object.assign(new Error('findingId is required'), {
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+    return this.repo.removeFindingFromRootCauseGroup(input);
+  }
+
+  listRootCauseGroupMembers(groupId: string, organizationId: string): Finding[] {
+    return this.repo.listRootCauseGroupMembers(groupId, organizationId);
   }
 }
 

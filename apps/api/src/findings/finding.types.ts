@@ -41,6 +41,12 @@ export interface Finding {
    * tracks who is actively working the finding right now (#1032).
    */
   ownership?: FindingOwnership;
+  /**
+   * Manual grouping of findings that share an underlying root cause, even
+   * across different fingerprints/rules — distinct from the automatic exact-match
+   * `fingerprint` grouping (#1038).
+   */
+  rootCauseGroupId?: string;
   createdAt: string; // ISO
   updatedAt: string;
 }
@@ -135,6 +141,8 @@ export interface FindingListQuery {
   assignedTo?: string;
   /** Filter by accountable owner (#1032). */
   owner?: string;
+  /** Filter by root cause group membership (#1038). */
+  rootCauseGroupId?: string;
   fingerprint?: string;
   severity?: FindingSeverity | FindingSeverity[];
   status?: FindingStatus | FindingStatus[];
@@ -252,6 +260,39 @@ export interface RevokeRiskAcceptanceInput {
 }
 
 export const MIN_RISK_JUSTIFICATION_LENGTH = 10;
+
+/**
+ * A manually-curated group of findings that share an underlying root cause,
+ * e.g. the same flawed shared library used across several call sites (#1038).
+ * Unlike `fingerprint`, membership is not automatic and can span rules/files.
+ */
+export interface RootCauseGroup {
+  id: string;
+  organizationId: string;
+  title: string;
+  description?: string;
+  createdBy: string;
+  createdAt: string; // ISO
+  updatedAt: string;
+}
+
+export interface CreateRootCauseGroupInput {
+  organizationId: string;
+  title: string;
+  description?: string;
+  createdBy: string;
+}
+
+export interface AssignFindingToRootCauseGroupInput {
+  organizationId: string;
+  groupId: string;
+  findingId: string;
+}
+
+export interface RemoveFindingFromRootCauseGroupInput {
+  organizationId: string;
+  findingId: string;
+}
 
 export interface FindingListPage {
   items: Finding[];
