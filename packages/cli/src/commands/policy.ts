@@ -1,6 +1,6 @@
 import "../commander-compat";
 import { Command } from "commander";
-import { runPolicyValidateCli } from "../../../../src/policy/cli";
+import { runPolicyValidateCli } from "../../../../src/policies/cli";
 
 const validateCommand = new Command("validate")
   .description(
