@@ -83,7 +83,7 @@ describe("ReportService", () => {
       const period: "weekly" | "monthly" = "weekly";
 
       // Mock merchant repository to return a merchant
-      jest.spyOn(merchantRepository, "findOne").mockResolvedValue({
+      jest.spyOnMerchantRepository, "findOne").mockResolved({
         id: merchantId,
         name: "Test Merchant",
         email: "test@example.com",
@@ -102,13 +102,13 @@ describe("ReportService", () => {
       };
       jest
         .spyOn(reportRepository, "save")
-        .mockResolvedValue(savedReport as any);
+        .mockResolved(savedReport as any);
 
       const result = await service.generateAdhocReport(merchantId, period);
 
       expect(result).toBeDefined();
       expect(typeof result).toBe("string"); // Should return report ID
-      expect(jest.spyOn(merchantRepository, "findOne")).toHaveBeenCalledWith({
+      expect(jest.spyOnMerchantRepository, "findOne")).toHaveBeenCalledWith({
         where: { id: merchantId },
       });
     });
@@ -127,7 +127,7 @@ describe("ReportService", () => {
         endDate: new Date(),
       } as Report;
 
-      jest.spyOn(reportRepository, "findOne").mockResolvedValue(expectedReport);
+      jest.spyOn(reportRepository, "findOne").mockResolved(expectedReport);
 
       const result = await service.getReportById(reportId);
 
@@ -158,7 +158,7 @@ describe("ReportService", () => {
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(expectedReports),
+        getMany: jest.fn().mockResolved(expectedReports),
       };
 
       jest
@@ -172,6 +172,148 @@ describe("ReportService", () => {
         "report.merchantId = :merchantId",
         { merchantId },
       );
+    });
+  });
+
+  describe("getReportHistory pagination", () => {
+    const merchantId = "test-merchant-id";
+
+    const buildQueryBuilderMock = () => {
+      const mock: any = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolved([[], 0]),
+      };
+      return mock;
+    });
+
+    it("should apply default pagination (page=1, limit=10) when not provided", async () => {
+      const qb = buildQueryBuilderMock();
+      jest
+        .spyOn(reportRepository, "createQueryBuilder")
+        .mockReturnValue(qb as any);
+
+      const result = await service.getReportHistoryPaginated(merchantId);
+
+      expect(qb.skip).toHaveBeenCalledWith(0);
+      expect(qb.take).toHaveBeenCalledWith(10);
+      expect(qb.getManyAndCount).toHaveBeenCalled();
+      expect(result).toEqual({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+      });
+    });
+
+    it("should calculate skip and take for a given page and limit", async () => {
+      const qb = buildQueryBuilderMock();
+      qb.getManyAndCount.mockResolved([[{ id: "r-1" }], 25]);
+      jest
+        .spyOn(reportRepository, "createQueryBuilder")
+        .mockReturnValue(qb as any);
+
+      const result = await service.getReportHistoryPaginated(
+        merchantId,
+        undefined,
+        3,
+        10
+      );
+
+      expect(qb.skip).toHaveBeenCalledWith(20);
+      expect(qb.take).toHaveBeenCalledWith(10);
+      expect(qb.orderBy).toHaveBeenCalledWith("report.createdAt", "DESC");
+      expect(qb.where).toHaveBeenCalledWith(
+        "report.merchantId = :merchantId",
+        { merchantId },
+      );
+      expect(result).toEqual({
+        data: [{ id: "r-1" }],
+        total: 25,
+        page: 3,
+        limit: 10,
+        totalPages: 3,
+      });
+    });
+
+    it("should filter by period when provided", async () => {
+      const qb = buildQueryBuilderMock();
+      jest
+        .spyOn(reportRepository, "createQueryBuilder")
+        .mockReturnValue(qb as any);
+
+      await service.getReportHistoryPaginated(merchantId, "weekly", 1, 5);
+
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        "report.period = :period",
+        { period: "weekly" },
+      );
+    });
+
+    it("should clamp negative or zero page to 1", async () => {
+      const qb = buildQueryBuilderMock();
+      jest
+        .spyOn(reportRepository, "createQueryBuilder")
+        .mockReturnValue(qb as any);
+
+      const result = await service.getReportHistoryPaginated(
+        merchantId,
+        undefined,
+        -5,
+        10
+      );
+
+      expect(qb.skip).toHaveBeenCalledWith(0);
+      expect(qb.take).toHaveBeenCalledWith(10);
+      expect(result.page).toBe(1);
+    });
+
+    it("should clamp limit above the maximum to 100", async () => {
+      const qb = buildQueryBuilderMock();
+      jest
+        .spyOn(reportRepository, "createQueryBuilder")
+        .mockReturnValue(qb as any);
+
+      const result = await service.getReportHistoryPaginated(
+        merchantId,
+        undefined,
+        1,
+        9999
+      );
+
+      expect(qb.take).toHaveBeenCalledWith(100);
+      expect(result.limit).toBe(100);
+    });
+
+    it("should return an empty page with correct metadata when there are no reports", async () => {
+      const qb = buildQueryBuilderMock();
+      qb.getManyAndCount.mockResolved([[], 0]);
+      jest
+        .spyOn(reportRepository, "createQueryBuilder")
+        .mockReturnValue(qb as any);
+
+      const result = await service.getReportHistoryPaginated(merchantId);
+
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
+      expect(result.totalPages).toBe(0);
+    });
+
+    it("should propagate repository errors", async () => {
+      const error = new Error("database unavailable");
+      const qb = buildQueryBuilderMock();
+      qb.getManyAndCount.mockRejected(error);
+      jest
+        .spyOn(reportRepository, "createQueryBuilder")
+        .mockReturnValue(qb as any);
+
+      await expect(
+        service.getReportHistoryPaginated(merchantId)
+      ).rejects.toThrow(error);
     });
   });
 });
