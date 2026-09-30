@@ -1,7 +1,12 @@
 import { generateSarifReport } from "./sarif-reporter";
 import { ScanResult } from "./sarif-reporter";
 import * as fs from "fs-extra";
+import os from "os";
 import * as path from "path";
+
+function tempReportPath(name: string): string {
+  return path.join(os.tmpdir(), `gasguard-${process.pid}-${name}`);
+}
 
 describe("SARIF Reporter", () => {
   const mockScanResult: ScanResult = {
@@ -39,7 +44,7 @@ describe("SARIF Reporter", () => {
   };
 
   it("should generate a valid SARIF report", async () => {
-    const outputPath = path.join(__dirname, "test-output.sarif.json");
+    const outputPath = tempReportPath("test-output.sarif.json");
 
     await generateSarifReport(mockScanResult, outputPath);
 
@@ -107,7 +112,7 @@ describe("SARIF Reporter", () => {
       },
     };
 
-    const outputPath = path.join(__dirname, "test-empty.sarif.json");
+    const outputPath = tempReportPath("test-empty.sarif.json");
 
     await generateSarifReport(emptyResult, outputPath);
 
@@ -151,14 +156,38 @@ describe("SARIF Reporter", () => {
           gasSavings: 100,
           confidence: 0.7,
         },
+        {
+          file: "/test/path/contract.sol",
+          line: 40,
+          ruleId: "SOL-004",
+          ruleName: "loop increment",
+          severity: "high",
+          message: "High severity issue",
+        },
+        {
+          file: "/test/path/contract.sol",
+          line: 50,
+          ruleId: "SOL-005",
+          ruleName: "storage access",
+          severity: "medium",
+          message: "Medium severity issue",
+        },
+        {
+          file: "/test/path/contract.sol",
+          line: 60,
+          ruleId: "SOL-006",
+          ruleName: "unchecked call",
+          severity: "low",
+          message: "Low severity issue",
+        },
       ],
       summary: {
-        totalViolations: 3,
+        totalViolations: 6,
         bySeverity: {
           critical: 1,
-          high: 0,
-          medium: 0,
-          low: 0,
+          high: 1,
+          medium: 1,
+          low: 1,
           info: 1,
         },
         byRule: {
@@ -170,7 +199,7 @@ describe("SARIF Reporter", () => {
       },
     };
 
-    const outputPath = path.join(__dirname, "test-severity.sarif.json");
+    const outputPath = tempReportPath("test-severity.sarif.json");
 
     await generateSarifReport(multiSeverityResult, outputPath);
 
@@ -180,6 +209,9 @@ describe("SARIF Reporter", () => {
     expect(results[0].level).toBe("error"); // critical -> error
     expect(results[1].level).toBe("warning"); // warning -> warning
     expect(results[2].level).toBe("note"); // info -> note
+    expect(results[3].level).toBe("error"); // high -> error
+    expect(results[4].level).toBe("warning"); // medium -> warning
+    expect(results[5].level).toBe("warning"); // low -> warning
 
     await fs.remove(outputPath);
   });
