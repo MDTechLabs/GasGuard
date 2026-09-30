@@ -277,7 +277,7 @@ export function parseSolidity(source: string, filePath: string): UnifiedAST {
           })
         : [];
 
-      const vis = (fnMatch[4] ?? 'internal') as FunctionNode['visibility'];
+      const vis = fnMatch[4] ?? 'internal';
       contract.functions.push({
         name: fnMatch[2],
         params,

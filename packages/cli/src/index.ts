@@ -8,6 +8,7 @@ import { initCommand } from "./commands/init";
 import { configCommand } from "./commands/config";
 import { versionCommand } from "./commands/version";
 import { policyCommand } from "./commands/policy";
+import { setCliOptions } from "./output";
 
 const program = new Command();
 
@@ -18,7 +19,14 @@ program
   .version("1.0.0")
   .option("-v, --verbose", "Enable verbose output")
   .option("--debug", "Enable debug mode for troubleshooting")
+  .option("-q, --quiet", "Suppress informational output")
+  .option("--no-progress", "Disable progress indicators")
+  .option("-c, --config <file>", "Use a specific configuration file")
   .option("--no-color", "Disable colored output");
+
+program.hook("preAction", (_thisCommand, actionCommand) => {
+  setCliOptions(actionCommand.optsWithGlobals());
+});
 
 // Global error handling
 if (typeof (program as any).configureOutput === "function") {

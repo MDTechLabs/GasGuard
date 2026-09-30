@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { annotateFile, Annotation } from "../../../src/reporting/annotator";
+import { annotateFile, Annotation } from "../../../../src/reporting/annotator";
+import { logInfo } from "../output";
 
 export const annotateCommand = new Command("annotate")
   .description("Annotate source files with inline issue comments")
@@ -20,9 +21,7 @@ export const annotateCommand = new Command("annotate")
       ];
 
       const result = annotateFile(file, annotations, options.output);
-      console.log(
-        chalk.green(`✓ Annotated file written to ${result.filePath}`),
-      );
+      logInfo(chalk.green(`✓ Annotated file written to ${result.filePath}`));
     } catch (err) {
       console.error(chalk.red(`Error annotating file: ${err}`));
       process.exit(1);

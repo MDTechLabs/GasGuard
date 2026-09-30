@@ -1,6 +1,7 @@
 import "../commander-compat";
 import { Command } from "commander";
 import { runPolicyValidateCli } from "../../../../src/policy/cli";
+import { getCliOptions } from "../output";
 
 const validateCommand = new Command("validate")
   .description(
@@ -17,7 +18,7 @@ const validateCommand = new Command("validate")
     if (options.strict) {
       args.push("--strict");
     }
-    const code = runPolicyValidateCli(args);
+    const code = runPolicyValidateCli(args, { quiet: getCliOptions().quiet });
     process.exit(code);
   });
 
