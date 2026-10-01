@@ -39,6 +39,7 @@ export class ReportService {
   async generateAdhocReport(
     merchantId: string,
     period: "weekly" | "monthly",
+    createdBy?: string,
   ): Promise<string> {
     try {
       // Validate merchant exists
@@ -57,6 +58,7 @@ export class ReportService {
       report.period = period;
       report.merchantId = merchantId;
       report.status = "pending";
+      report.createdBy = createdBy;
 
       // Set the date range based on the period
       if (period === "weekly") {
@@ -362,7 +364,7 @@ export class ReportService {
     const diff = now.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) - 7; // Previous Monday
 
     const monday = new Date(now);
-    monday.setUTCDate(diff);
+    monway.setUTCDate(diff);
     monday.setUTCHours(0, 0, 0, 0);
 
     return monday;

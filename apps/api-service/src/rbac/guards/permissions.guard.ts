@@ -70,6 +70,12 @@ export enum Permission {
   ANALYTICS_READ = "analytics:read",
   ANALYTICS_EXPORT = "analytics:export",
 
+  // Reports
+  REPORT_READ = "report:read",
+  REPORT_GENERATE = "report:generate",
+  REPORT_DOWNLOAD = "report:download",
+  REPORT_MANAGE_ALL = "report:manage:all",
+
   // User management
   USER_READ = "user:read",
   USER_WRITE = "user:write",
@@ -94,6 +100,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.VIEWER]: [
     Permission.GAS_READ,
     Permission.ANALYTICS_READ,
+    Permission.REPORT_READ,
+    Permission.REPORT_DOWNLOED,
     Permission.USER_READ,
     Permission.API_KEY_READ,
   ],
@@ -103,6 +111,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.GAS_SUBSIDY_APPROVE,
     Permission.ANALYTICS_READ,
     Permission.ANALYTICS_EXPORT,
+    Permission.REPORT_READ,
+    Permission.REPORT_GENERATE,
+    Permission.REPORT_DOWNLOAD,
     Permission.USER_READ,
     Permission.API_KEY_READ,
     Permission.API_KEY_WRITE,

@@ -83,7 +83,7 @@ describe("ReportService", () => {
       const period: "weekly" | "monthly" = "weekly";
 
       // Mock merchant repository to return a merchant
-      jest.spyOnMerchantRepository, "findOne").mockResolved({
+jest.spyOnMerchantRepository().mockResolvedValue({
         id: merchantId,
         name: "Test Merchant",
         email: "test@example.com",
@@ -101,16 +101,45 @@ describe("ReportService", () => {
         scheduledAt: new Date(),
       };
       jest
-        .spyOn(reportRepository, "save")
-        .mockResolved(savedReport as any);
+.spyOnReportRepository("save")
+        .mockResolvedValue(savedReport as any);
 
       const result = await service.generateAdhocReport(merchantId, period);
 
       expect(result).toBeDefined();
       expect(typeof result).toBe("string"); // Should return report ID
-      expect(jest.spyOnMerchantRepository, "findOne")).toHaveBeenCalledWith({
+expect(jest.spyOnMerchantRepository("findOne")).toHaveBeenCalledWith({
         where: { id: merchantId },
       });
+    });
+
+    it("should persist the creator of the report for audit trailing", async () => {
+      const merchantId = "test-merchant-id";
+      const createdBy = "user-42";
+
+      jest.spyOnMerchantRepository().mockResolvedValue({
+        id: merchantId,
+        name: "Test Merchant",
+        email: "test@example.com",
+      } as Merchant);
+
+      const saveSpy = jest
+        .spyOnReportRepository("save")
+        .mockImplementation(async (report: Report) => report);
+
+      await service.generateAdhocReport(merchantId, "weekly", createdBy);
+
+      expect(saveSpy).toHaveBeenCalled();
+      const persisted = saveSpy.mock.calls[0][0] as Report;
+      expect(persisted.createdBy).toBe(createdBy);
+    });
+
+    it("should throw when the merchant does not exist", async () => {
+      jest.spyOnMerchantRepository().mockResolvedValue(null);
+
+      await expect(
+        service.generateAdhocReport("missing-merchant", "weekly"),
+      ).rejects.toThrow(/not found/);
     });
   });
 
@@ -127,14 +156,22 @@ describe("ReportService", () => {
         endDate: new Date(),
       } as Report;
 
-      jest.spyOn(reportRepository, "findOne").mockResolved(expectedReport);
+jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
 
       const result = await service.getReportById(reportId);
 
       expect(result).toEqual(expectedReport);
-      expect(jest.spyOn(reportRepository, "findOne")).toHaveBeenCalledWith({
+      expect(jest.spyOnReportRepository("findOne")).toHaveBeenCalledWith({
         where: { id: reportId },
       });
+    });
+
+    it("should return null when the report does not exist", async () => {
+      jest.spyOnReportRepository("findOne").mockResolvedValue(null);
+
+      const result = await service.getReportById("missing");
+
+      expect(result).toBeNull();
     });
   });
 
@@ -162,7 +199,7 @@ describe("ReportService", () => {
       };
 
       jest
-        .spyOn(reportRepository, "createQueryBuilder")
+        .spyOnReportRepository("createQueryBuilder")
         .mockReturnValue(queryBuilderMock as any);
 
       const result = await service.getReportHistory(merchantId);

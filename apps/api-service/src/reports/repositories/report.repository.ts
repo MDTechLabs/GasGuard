@@ -1,6 +1,27 @@
 import { EntityRepository, Repository } from "typeorm";
 import { Report } from "../entities/report.entity";
 
+/**
+ * Access context used to enforce report access controls.
+ * The repository must never return reports that are not visible to the
+ * requesting principal.
+ */
+export interface ReportAccessContext {
+  /** The user requesting access. */
+  userId: string;
+  /** Roles assigned to the user (e.g. "admin", "merchant", "auditor"). */
+  roles: string[];
+  /** Merchant the user belongs to, if any. */
+  merchantId?: string;
+  /** Optional explicit grants for specific report IDs. */
+  grantedReportIds?: string[];
+}
+
+/**
+ * Roles that are allowed to read any report regardless of ownership.
+ */
+const PRIVILEGED_ROLES = ["admin", "auditor"] as const;
+
 export interface PaginationParams {
   /** Maximum number of row to return. Defaults to 50. */
   limit?: number;
@@ -42,6 +63,53 @@ function normalizePagination(params?: PaginationParams): {
 @EntityRepository(Report)
 export class ReportRepository extends Repository<Report> {
   /**
+   * Applies access control filters to a report query builder.
+   *
+   * The filter is fail-closed: if the context is missing or invalid,
+   * the query will return no results.
+   */
+  private applyAccessControl(
+    query: any,
+    access?: ReportAccessContext,
+  ): any {
+    if (!access || !access.userId || !Array.isArray(access.roles)) {
+      // Fail closed: no access context means no results.
+      return query.andWhere("1 = 0");
+    }
+
+    const isPrivileged = access.roles.some((role) =>
+      PRIVILEGED_ROLES.includes(role as (typeof PRIVILEGED_ROLES)[number]),
+    );
+
+    if (isPrivileged) {
+      return query;
+    }
+
+    const grantedIds = Array.isArray(access.grantedReportIds)
+      ? access.grantedReportIds.filter((id) => typeof id === "string" && id.length > 0)
+      : [];
+
+    // Non-privileged users may only see reports they own or were explicitly
+    // granted access to.
+    const conditions: string[] = [];
+    const params: Record<string, unknown> = { userId: access.userId };
+
+    conditions.push("report.createdBy = :userId");
+
+    if (access.merchantId) {
+      conditions.push("report.merchantId = :merchantId");
+      params.merchantId = access.merchantId;
+    }
+
+    if (grantedIds.length > 0) {
+      conditions.push("report.id IN (:...grantedIds)");
+      params.grantedIds = grantedIds;
+    }
+
+    return query.andWhere(`(${conditions.join(" OR ")})`, params);
+  }
+
+  /**
    * Find reports by merchant ID and period
    */
   async findByMerchantAndPeriod(
@@ -50,6 +118,7 @@ export class ReportRepository extends Repository<Report> {
     startDate?: Date,
     endDate?: Date,
     pagination?: PaginationParams,
+    access?: ReportAccessContext,
   ): Promise<PaginatedResult<Report>> {
     const { limit, offset } = normalizePagination(pagination);
 
@@ -66,6 +135,8 @@ export class ReportRepository extends Repository<Report> {
         },
       );
     }
+
+    this.applyAccessControl(query, access);
 
     const [data, total] = await query
       .orderBy("report.createdAt", "DESC")
@@ -88,11 +159,16 @@ export class ReportRepository extends Repository<Report> {
   async findByStatus(
     status: string,
     pagination?: PaginationParams,
+    access?: ReportAccessContext,
   ): Promise<PaginatedResult<Report>> {
     const { limit, offset } = normalizePagination(pagination);
 
-    const [data, total] = await this.createQueryBuilder("report")
-      .where("report.status = :status", { status })
+    const query = this.createQueryBuilder("report")
+      .where("report.status = :status", { status });
+
+    this.applyAccessControl(query, access);
+
+    const [data, total] = await query
       .orderBy("report.createdAt", "ASC")
       .skip(offset)
       .take(limit)
@@ -112,15 +188,20 @@ export class ReportRepository extends Repository<Report> {
    */
   async findPendingScheduledReports(
     pagination?: PaginationParams,
+    access?: ReportAccessContext,
   ): Promise<PaginatedResult<Report>> {
     const { limit, offset } = normalizePagination(pagination);
 
-    const [data, total] = await this.createQueryBuilder("report")
+    const query = this.createQueryBuilder("report")
       .where("report.type = :type", { type: "scheduled" })
       .andWhere("report.status = :status", { status: "pending" })
       .andWhere("(report.scheduledAt IS NULL or report.scheduledAt <= :now)", {
         now: new Date(),
-      })
+      });
+
+    this.applyAccessControl(query, access);
+
+    const [data, total] = await query
       .orderBy("report.createdAt", "ASC")
       .skip(offset)
       .take(limit)
@@ -133,6 +214,22 @@ export class ReportRepository extends Repository<Report> {
       offset,
       hasMore: offset + data.length < total,
     };
+  }
+
+  /**
+   * Find a single report by ID enforcing access controls.
+   */
+  async findAccessibleById(
+    reportId: string,
+    access?: ReportAccessContext,
+  ): Promise<Report | undefined> {
+    const query = this.createQueryBuilder("report").where("report.id = :reportId", {
+      reportId,
+    });
+
+    this.applyAccessControl(query, access);
+
+    return query.getOne();
   }
 
   /**
