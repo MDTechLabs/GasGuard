@@ -133,20 +133,26 @@ export class WebhookDispatcherService {
     const body = JSON.stringify(payload);
     const signature = this.sign(body, sub.secret);
 
+    const { createSafeAgent } = require('../../security/dns');
+    const axios = require('axios');
+    const httpAgent = createSafeAgent('http');
+    const httpsAgent = createSafeAgent('https');
+
     for (let attempt = 1; attempt <= WEBHOOK_MAX_RETRIES; attempt++) {
       try {
-        const response = await fetch(sub.url, {
-          method: 'POST',
+        const response = await axios.post(sub.url, payload, {
+          httpAgent,
+          httpsAgent,
+          validateStatus: () => true,
           headers: {
             'Content-Type': 'application/json',
             'X-GasGuard-Signature': `${WEBHOOK_HMAC_ALGO}=${signature}`,
             'X-GasGuard-Subscription-ID': sub.id,
             'X-GasGuard-Timestamp': String(payload.timestamp),
           },
-          body,
         });
 
-        if (response.ok) {
+        if (response.status >= 200 && response.status < 300) {
           this.logger.log(
             `Webhook ${sub.id} dispatched successfully (attempt ${attempt})`,
           );

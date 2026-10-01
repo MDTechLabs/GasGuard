@@ -7,6 +7,7 @@
 
 import axios, { AxiosInstance, AxiosError } from "axios";
 import { SimulationConfig } from "./types";
+import { createSafeAgent } from "../../security/dns";
 
 /**
  * JSON-RPC 2.0 request structure
@@ -54,6 +55,8 @@ export class StellarRpcClient {
     this.client = axios.create({
       baseURL: rpcUrl,
       timeout: this.config.timeout,
+      httpAgent: createSafeAgent("http"),
+      httpsAgent: createSafeAgent("https"),
       headers: {
         "Content-Type": "application/json",
         ...this.config.headers,
