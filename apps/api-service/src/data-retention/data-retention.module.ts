@@ -7,6 +7,7 @@ import { AuditModule } from "../audit/audit.module";
 import { DataRetentionCleanupService } from "./services/data-retention-cleanup.service";
 import { UserDataDeletionService } from "./services/user-data-deletion.service";
 import { DataRetentionController } from "./controllers/data-retention.controller";
+import { TemporaryDirectoryService } from "./services/temporary-directory.service";
 
 @Module({
   imports: [
@@ -15,7 +16,15 @@ import { DataRetentionController } from "./controllers/data-retention.controller
     AuditModule,
   ],
   controllers: [DataRetentionController],
-  providers: [DataRetentionCleanupService, UserDataDeletionService],
-  exports: [DataRetentionCleanupService, UserDataDeletionService],
+  providers: [
+    DataRetentionCleanupService,
+    UserDataDeletionService,
+    TemporaryDirectoryService,
+  ],
+  exports: [
+    DataRetentionCleanupService,
+    UserDataDeletionService,
+    TemporaryDirectoryService,
+  ],
 })
 export class DataRetentionModule {}

@@ -67,7 +67,7 @@ export class DataRetentionCleanupService {
     const result = await this.analysisResultRepo
       .createQueryBuilder()
       .delete()
-      .where("createdAt < :cutoff", { cutoff: cutoffDate })
+      .where("createdAt < cutoff", { cutoff: cutoffDate })
       .execute();
 
     return result.affected || 0;

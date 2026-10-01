@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { randomUUID } from "crypto";
 import { User } from "../../database/entities/user.entity";
 import { AnalysisResult } from "../../database/entities/analysis-result.entity";
@@ -19,6 +19,7 @@ export class UserDataDeletionService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(AnalysisResult)
     private readonly analysisResultRepo: Repository<AnalysisResult>,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -52,15 +53,28 @@ export class UserDataDeletionService {
    * a merchant. Distinct from time-based retention: this is triggered
    * explicitly, e.g. on merchant offboarding or an erasure request that
    * extends to submitted repositories.
+   *
+   * The deletion runs inside a transaction so that a partial failure
+   * cannot leave the merchant's data half-purged; the transaction is rolled
+   * back and the error is re-thrown for the caller to handle.
    */
   async purgeAnalysisResultsForMerchant(
     merchantId: string,
   ): Promise<{ merchantId: string; deleted: number }> {
-    const result = await this.analysisResultRepo.delete({ merchantId });
-    const deleted = result.affected || 0;
-    this.logger.log(
-      `Purged ${deleted} analysis result(s) for merchant ${merchantId}`,
-    );
-    return { merchantId, deleted };
+    try {
+      const deleted = await this.dataSource.transaction(async (manager) => {
+        const result = await manager.delete(AnalysisResult, { merchantId });
+        return result.affected || 0;
+      });
+      this.logger.log(
+        `Purged ${deleted} analysis result(s) for merchant ${merchantId}`,
+      );
+      return { merchantId, deleted };
+    } catch (error) {
+      this.logger.error(
+        `Failed to purge analysis results for merchant ${merchantId}: ${(error as Error).message}`,
+      );
+      throw error;
+    }
   }
 }
