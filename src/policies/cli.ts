@@ -162,18 +162,16 @@ export function runPolicyValidateCli(
   }
 
   const started = now();
-  if (!io.quiet) {
-    stderr(
-      logLine({
-        level: "info",
-        event: "policy.validate.start",
-        correlationId,
-        message: "Validating policy file",
-        file: parsed.file,
-        strict: parsed.strict,
-      }),
-    );
-  }
+  stderr(
+    logLine({
+      level: "info",
+      event: "policy.validate.start",
+      correlationId,
+      message: "Validating policy file",
+      file: parsed.file,
+      strict: parsed.strict,
+    }),
+  );
 
   try {
     const loaded = load(parsed.file);
@@ -192,24 +190,22 @@ export function runPolicyValidateCli(
         ? formatPolicyReportJson(report)
         : formatPolicyReportText(report),
     );
-    if (!io.quiet || !report.valid) {
-      stderr(
-        logLine({
-          level: report.valid ? "info" : "error",
-          event: "policy.validate.complete",
-          correlationId,
-          message: report.valid
-            ? "Policy validation passed"
-            : "Policy validation failed",
-          file: parsed.file,
-          outcome: report.metrics.outcome,
-          errorCount: report.metrics.errorCount,
-          warningCount: report.metrics.warningCount,
-          durationMs,
-          strict: parsed.strict,
-        }),
-      );
-    }
+    stderr(
+      logLine({
+        level: report.valid ? "info" : "error",
+        event: "policy.validate.complete",
+        correlationId,
+        message: report.valid
+          ? "Policy validation passed"
+          : "Policy validation failed",
+        file: parsed.file,
+        outcome: report.metrics.outcome,
+        errorCount: report.metrics.errorCount,
+        warningCount: report.metrics.warningCount,
+        durationMs,
+        strict: parsed.strict,
+      }),
+    );
     return report.valid ? 0 : 1;
   } catch (error) {
     const durationMs = Math.max(0, now() - started);

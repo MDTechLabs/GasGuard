@@ -13,6 +13,8 @@ pub mod memory;
 pub mod parser;
 pub mod rule_engine;
 pub mod unnecessary_cloning;
+pub mod storage;
+pub mod unbounded_iteration;
 
 pub use analyzer::*;
 pub use event_emission::EventEmissionCostRule;
@@ -23,24 +25,12 @@ pub use memory::MemoryAllocationRule;
 pub use parser::*;
 pub use rule_engine::*;
 pub use unnecessary_cloning::UnnecessaryCloningRule;
-pub mod storage;
-pub mod unbounded_iteration;
-pub mod unnecessary_cloning;
-
-pub use self::analyzer::*;
-pub use self::event_emission::EventEmissionCostRule;
-pub use self::inefficient_error_construction::InefficientErrorConstructionRule;
-pub use self::interface_rules::*;
-pub use self::memory::{InefficientBytesAllocationRule, MemoryAllocationRule};
-pub use self::parser::*;
-pub use crate::soroban::rule_engine::*;
 pub use crate::soroban::rule_engine::{
     SorobanDeadCodeRule, SorobanDeepNestingRule, SorobanFunctionComplexityRule,
-    SorobanRepeatedComputationsRule,
+    SorobanRepeatedComputationsRule, PolicySimulationResult,
 };
-pub use self::storage::{SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule};
-pub use self::unbounded_iteration::UnboundedIterationRule;
-pub use self::unnecessary_cloning::UnnecessaryCloningRule;
+pub use storage::{SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule};
+pub use unbounded_iteration::UnboundedIterationRule;
 
 /// Represents a Soroban contract structure
 #[derive(Debug, Clone, PartialEq)]

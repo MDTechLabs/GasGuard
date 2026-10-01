@@ -32,6 +32,7 @@ pub use soroban::{
     SorobanImpl, SorobanParam, SorobanParser, SorobanRepeatedComputationsRule, SorobanResult,
     SorobanRuleEngine, SorobanStruct, UnnecessaryCloningRule,
     SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule,
+    PolicySimulationResult,
 };
 
 // Export Vyper types (keeping glob here is fine if Vyper module is clean, but let's be safe)

@@ -12,6 +12,10 @@ declare module "class-validator" {
   export function IsOptional(validationOptions?: any): PropertyDecorator;
   export function Min(min: number, validationOptions?: any): PropertyDecorator;
   export function Max(max: number, validationOptions?: any): PropertyDecorator;
+  export function MaxLength(
+    max: number,
+    validationOptions?: any,
+  ): PropertyDecorator;
   export function IsIn(
     values: any[],
     validationOptions?: any,

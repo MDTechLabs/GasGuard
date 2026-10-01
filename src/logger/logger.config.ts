@@ -19,6 +19,9 @@ export const DEFAULT_LOGGER_CONFIG: LoggerConfig = {
   enableStackTrace: true,
   auditRetentionDays: 365,
   compressionEnabled: true,
+  enableRedaction: true,
+  redactionExtraKeys: [],
+  redactionAllowlist: [],
 };
 
 export class LoggerConfigManager {
@@ -81,6 +84,22 @@ export class LoggerConfigManager {
     
     if (process.env.LOG_COMPRESSION_ENABLED) {
       this.config.compressionEnabled = process.env.LOG_COMPRESSION_ENABLED === 'true';
+    }
+
+    if (process.env.LOG_ENABLE_REDACTION) {
+      this.config.enableRedaction = process.env.LOG_ENABLE_REDACTION === 'true';
+    }
+
+    if (process.env.LOG_REDACTION_EXTRA_KEYS) {
+      this.config.redactionExtraKeys = process.env.LOG_REDACTION_EXTRA_KEYS.split(',')
+        .map((key) => key.trim())
+        .filter((key) => key.length > 0);
+    }
+
+    if (process.env.LOG_REDACTION_ALLOWLIST) {
+      this.config.redactionAllowlist = process.env.LOG_REDACTION_ALLOWLIST.split(',')
+        .map((key) => key.trim())
+        .filter((key) => key.length > 0);
     }
   }
 

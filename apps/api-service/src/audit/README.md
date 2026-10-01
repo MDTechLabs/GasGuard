@@ -5,10 +5,10 @@ Comprehensive audit logging system for GasGuard providing traceability and accou
 ## Quick Summary
 
 - **Purpose**: Track all API requests, API key lifecycle events, and gas transactions
-- **Storage**: PostgreSQL with immutable append-only logs
+- -**Storage**: PostgreSQL with immutable append-only logs
 - **Access**: REST API endpoints with admin-only access
 - **Export**: CSV and JSON export capabilities
-- **Integrity**: SHA256 hashing for tamper-detection
+- -**Integrity**: SHA256 hashing for tamper-detection
 
 ## Key Files
 
@@ -91,6 +91,38 @@ The `AuditInterceptor` automatically logs all API requests including:
 - Error messages on failures
 - Excludes: /health, /metrics, /swagger, /api-docs
 
+## Privilege Boundary
+
+The audit module operates across three privilege tiers. Understanding these boundaries is required when extending the module or integrating new consumers.
+
+| Tier | Actor | Allowed operations | Forbidden operations |
+|------|-------|--------------------|--------------------|
+| T0 - Public | Unauthenticated client | None (audit endpoints require auth) | Read or write any audit record |
+| T1 - Authenticated | API key holder (role: `user`) | Emit own audit events via interceptor; query own logs via scoped filters | Read other merchants' logs; export global data; delete or mutate logs |
+| T2 - Admin | API key holder (role: `admin`) | Query all logs, export CSV/JSON, read stats, manage API key lifecycle | Mutate or delete existing log records; disable integrity hashing |
+
+### Enforcement points
+
+- `AuditController` guards every route with the admin role guard. There is no route that serves audit data to a T0 or T1 actor directly.
+- `AuditInterceptor` runs after authentication and attributes every event to the authenticated principal. It never trusts a client-supplied user identifier.
+- `AuditLogRepository` exposes only append and read operations. Update and delete are not implemented and must not be added.
+- The `SHA256` integrity digest is computed inside the service layer from the persisted record. Calling code cannot override it.
+- Export endpoints are admin-only and are rate-limited to prevent bulk exfiltration.
+
+### Trust boundaries
+
+- The audit module trusts the authentication layer to verify API keys and attach a role. It does not re-verify keys itself.
+- The audit module does not trust any client-supplied field used for authorization decisions (user id, merchant id, role).
+- The audit module does not trust downstream consumers to preserve immutability; enforcement is at the repository layer.
+- The audit module does not trust the database role to reject mutations. The application role must be granted only `INSERT | SELECT` on `audit_logs`.
+
+### Cross-component dependencies
+
+- Authentication guard must attach a role to the request before `AuditInterceptor` runs. If the role is missing, the interceptor records the event as `unauthenticated` and does not elevate privileges.
+- Database migrations must grant only `INSERT` and `SELECT` on `audit_logs` to the application role. Review this grant in any migration that touches the audit schema.
+- Export consumers (dashboards, reporting jobs) must authenticate as admin. There is no service-to-service bypass.
+- Any new event type must be added to the `EventType` enum and covered by the admin-only query path. Events that carry sensitive data must document their redaction rules.
+
 ## Usage Examples
 
 ### Emit API Key Event
@@ -162,6 +194,7 @@ const csv = await auditLogService.exportLogs('csv', {
 - ✅ Automatic request capture via interceptor
 - ✅ Audit trail for all key operations
 - ✅ Multi-chain support
+- ✅ Privilege boundaries documented and enforced at the controller and repository layers
 
 ## Performance
 
@@ -194,6 +227,16 @@ npm test -- audit
 npm run test:cov -- src/audit
 npm run test:e2e -- audit.controller.e2e.spec.ts
 ```
+
+## Troubleshooting
+
+| Symptom | Likely cause | Resolution |
+|--------|-------------|------------|
+| Audit logs missing for a route | Route excluded by interceptor or interceptor not registered in `main.ts` | Confirm the route is not in the exclusion list and that `AuditInterceptor` is bound globally |
+| `403` on `/audit/logs` | Caller is not admin | Authenticate with an admin API key; T1 keys cannot query audit data |
+| Integrity check fails for a record | Record mutated outside the application or digest computed with a different normalization | Treat as a tamper incident; review database grants and audit the `audit_logs` table access paths |
+| Export times out for large ranges | Unbounded query window | Narrow the `from`/`to` range or paginate; export endpoints are rate-limited |
+| API key events not recorded | Event emitter not injected into the calling service | Inject `AuditEventEmitter` and confirm the caller awaits the emit call |
 
 ## Future Enhancements
 

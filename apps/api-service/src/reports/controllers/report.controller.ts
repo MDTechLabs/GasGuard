@@ -17,10 +17,14 @@ import {
   ApiParam,
 } from "@nestjs/swagger";
 import { ReportService } from "../services/report.service";
+import { ReportAccessService } from "../services/report-access.service";
 import { Report } from "../entities/report.entity";
-import { Roles, ViewerAndAbove, OperatorAndAbove } from "../../rbac/decorators";
+import { OperatorAndAbove, ViewerAndAbove } from "../../rbac/decorators";
 import { RolesGuard } from "../../rbac/guards";
-import { UserRole } from "../../rbac/enums";
+import {
+  CurrentUser,
+  AuthenticatedUser,
+} from "../../rbac/decorators/current-user.decorator";
 
 @ApiTags("Reports")
 @Controller("reports")
@@ -28,7 +32,10 @@ import { UserRole } from "../../rbac/enums";
 export class ReportController {
   private readonly logger = new Logger(ReportController.name);
 
-  constructor(private readonly reportService: ReportService) {}
+  constructor(
+    private readonly reportService: ReportService,
+    private readonly reportAccessService: ReportAccessService,
+  ) {}
 
   @Post("gas")
   @OperatorAndAbove()
@@ -57,15 +64,20 @@ export class ReportController {
   async generateGasReport(
     @Query("merchantId") merchantId: string,
     @Query("period") period: "weekly" | "monthly",
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ reportId: string; message: string }> {
     try {
       this.logger.log(
-        `Request to generate ${period} gas report for merchant ${merchantId}`,
+        `Request to generate ${period} gas report for merchant ${merchantId} by user ${user?.id}`,
       );
+
+      // Enforce merchant-level access before generating anything.
+      this.reportAccessService.assertMerchantAccess(merchantId, user);
 
       const reportId = await this.reportService.generateAdhocReport(
         merchantId,
         period,
+        user?.id,
       );
 
       return {
@@ -99,9 +111,14 @@ export class ReportController {
     status: 403,
     description: "Forbidden - requires authentication",
   })
-  async getReportStatus(@Param("reportId") reportId: string): Promise<Report> {
+  async getReportStatus(
+    @Param("reportId") reportId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<Report> {
     try {
-      this.logger.log(`Request to check status of report ${reportId}`);
+this.logger.log(
+        `Request to check status of report ${reportId} by user ${user?.id}`,
+      );
 
       const report = await this.reportService.getReportById(reportId);
 
@@ -109,7 +126,11 @@ export class ReportController {
         throw new Error(`Report with ID ${reportId} not found`);
       }
 
-      return report;
+      return await this.reportAccessService.assertAccess(
+        reportId,
+        user,
+        "read",
+      );
     } catch (error) {
       this.logger.error(
         `Error getting report status for report ${reportId}`,
@@ -134,8 +155,14 @@ export class ReportController {
     required: false,
   })
   @ApiQuery({
+    name: "page",
+    description: "Page number (1-based)",
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
     name: "limit",
-    description: "Number of reports to return",
+    description: "Number of reports to return per page",
     required: false,
     type: Number,
   })
@@ -151,12 +178,17 @@ export class ReportController {
   async getReportHistory(
     @Query("merchantId") merchantId: string,
     @Query("period") period?: "weekly" | "monthly",
+    @Query("page") page?: number,
     @Query("limit") limit?: number,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<Report[]> {
     try {
       this.logger.log(
-        `Request to get report history for merchant ${merchantId}`,
+        `Request to get report history for merchant ${merchantId} by user ${user?.id}`,
       );
+
+      // Enforce merchant-level access before returning history.
+      this.reportAccessService.assertMerchantListAccess(merchantId, user);
 
       return await this.reportService.getReportHistory(
         merchantId,
@@ -166,6 +198,66 @@ export class ReportController {
     } catch (error) {
       this.logger.error(
         `Error getting report history for merchant ${merchantId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  @Get("gas/history/paginated")
+  @ViewerAndAbove()
+  @ApiOperation({ summary: "Get paginated report history for a merchant" })
+  @ApiQuery({
+    name: "merchantId",
+    description: "ID of the merchant",
+    required: true,
+  })
+  @ApiQuery({
+    name: "period",
+    description: "Report period (weekly or monthly)",
+    enum: ["weekly", "monthly"],
+    required: false,
+  })
+  @ApiQuery({
+    name: "page",
+    description: "Page number (1-based)",
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: "limit",
+    description: "Number of reports to return per page",
+    required: false,
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Paginated report history retrieved successfully",
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - requires authentication",
+  })
+  async getPaginatedReportHistory(
+    @Query("merchantId") merchantId: string,
+    @Query("period") period?: "weekly" | "monthly",
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    try {
+      this.logger.log(
+        `Request to get paginated report history for merchant ${merchantId}`,
+      );
+
+      return await this.reportService.getReportHistoryPaginated(
+        merchantId,
+        period,
+        page ? parseInt(page.toString()) : 1,
+        limit ? parseInt(limit.toString()) : 10,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error getting paginated report history for merchant ${merchantId}`,
         error,
       );
       throw error;
@@ -186,15 +278,20 @@ export class ReportController {
     status: 403,
     description: "Forbidden - requires authentication",
   })
-  async downloadReport(@Param("reportId") reportId: string): Promise<any> {
+  async downloadReport(
+    @Param("reportId") reportId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<any> {
     try {
-      this.logger.log(`Request to download report ${reportId}`);
+      this.logger.log(
+        `Request to download report ${reportId} by user ${user?.id}`,
+      );
 
-      const report = await this.reportService.getReportById(reportId);
-
-      if (!report) {
-        throw new Error(`Report with ID ${reportId} not found`);
-      }
+      const report = await this.reportAccessService.assertAccess(
+        reportId,
+        user,
+        "download",
+      );
 
       if (report.status !== "completed") {
         throw new Error(
@@ -204,7 +301,7 @@ export class ReportController {
 
       if (!report.reportUrl) {
         throw new Error(
-          `Report with ID ${reportId} does not have a downloadable file`,
+          `Report with ID {reportId} does not have a downloadable file`,
         );
       }
 

@@ -327,6 +327,58 @@ jobs:
         run: cargo audit
         continue-on-error: true
 
+  dependency-provenance:
+    name: Dependency Provenance Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.10.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run dependency provenance check (npm)
+        run: |
+          ts-node scripts/check-dependency-provenance.ts \
+            --npm pnpm-lock.yaml \
+            --fail-on high \
+            --json > provenance-npm.json || true
+          cat provenance-npm.json
+        continue-on-error: true
+
+      - name: Run dependency provenance check (Cargo)
+        run: |
+          if [ -f "Cargo.lock" ]; then
+            ts-node scripts/check-dependency-provenance.ts \
+              --cargo Cargo.lock \
+              --fail-on high \
+              --json > provenance-cargo.json || true
+            cat provenance-cargo.json
+          else
+            echo "No Cargo.lock found. Skipping Cargo provenance check."
+          fi
+        continue-on-error: true
+
+      - name: Upload provenance reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: provenance-reports
+          path: |
+            provenance-npm.json
+            provenance-cargo.json
+          if-no-files-found: ignore
+
   artifact-checksums:
     name: Artifact Checksums
     runs-on: ubuntu-latest

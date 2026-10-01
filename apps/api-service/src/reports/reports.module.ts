@@ -5,11 +5,13 @@ import { ConfigService } from "@nestjs/config";
 import { Report } from "./entities/report.entity";
 import { ReportRepository } from "./repositories/report.repository";
 import { ReportService } from "./services/report.service";
+import { ReportAccessService } from "./services/report-access.service";
 import { DataAggregationService } from "./services/data-aggregation.service";
 import { ReportGenerationService } from "./services/report-generation.service";
 import { EmailNotificationService } from "./services/email-notification.service";
 import { SchedulingService } from "./services/scheduling.service";
 import { ReportController } from "./controllers/report.controller";
+import { ReportPaginationService } from "./services/report-pagination.service";
 import { Transaction } from "../database/entities/transaction.entity";
 import { Merchant } from "../database/entities/merchant.entity";
 import { Chain } from "../database/entities/chain.entity";
@@ -29,11 +31,13 @@ import { Chain } from "../database/entities/chain.entity";
     },
     // Services
     ReportService,
+ReportPaginationService,
+    ReportAccessService,
     DataAggregationService,
     ReportGenerationService,
     EmailNotificationService,
     SchedulingService,
   ],
-  exports: [ReportService, DataAggregationService],
+exports: [ReportService, ReportAccessService, ReportPaginationService, DataAggregationService],
 })
 export class ReportsModule {}

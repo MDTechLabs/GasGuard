@@ -16,7 +16,7 @@
 //!   read hoisting, and read batching.
 
 use crate::soroban::rule_engine::SorobanRule;
-use crate::soroban::{SorobanContract, SorobanFunction, SorobanImpl};
+use crate::soroban::{SorobanContract, SorobanFunction};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
 
@@ -76,7 +76,7 @@ impl SorobanLedgerReadCostRule {
         let lines: Vec<&str> = body.lines().collect();
 
         let mut in_loop = false;
-        let mut loop_depth = 0;
+        let mut loop_depth: i32 = 0;
 
         for (idx, line) in lines.iter().enumerate() {
             let line_trimmed = line.trim();
@@ -104,7 +104,7 @@ impl SorobanLedgerReadCostRule {
                 let open_braces = line_trimmed.chars().filter(|&c| c == '{').count();
                 let close_braces = line_trimmed.chars().filter(|&c| c == '}').count();
                 if close_braces > open_braces {
-                    loop_depth = loop_depth.saturating_sub(close_braces - open_braces);
+                    loop_depth = loop_depth.saturating_sub((close_braces - open_braces) as i32);
                     if loop_depth == 0 {
                         in_loop = false;
                     }

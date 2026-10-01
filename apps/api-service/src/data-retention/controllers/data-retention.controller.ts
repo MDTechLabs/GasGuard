@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { DataRetentionCleanupService } from "../services/data-retention-cleanup.service";
@@ -26,6 +27,8 @@ import { RolesGuard } from "../../rbac/guards";
 @UseGuards(RolesGuard)
 @AdminOnly()
 export class DataRetentionController {
+  private readonly logger = new Logger(DataRetentionController.name);
+
   constructor(
     private readonly cleanupService: DataRetentionCleanupService,
     private readonly userDataDeletionService: UserDataDeletionService,
@@ -35,7 +38,18 @@ export class DataRetentionController {
   @Post("purge")
   @HttpCode(HttpStatus.OK)
   async runCleanup() {
-    return this.cleanupService.runCleanup();
+    this.logger.log("Manual data-retention purge triggered");
+    try {
+      const result = await this.cleanupService.runCleanup();
+      this.logger.log("Manual data-retention purge completed");
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Manual data-retention purge failed: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw error;
+    }
   }
 
   /** Anonymizes a user's PII in place; audit log entries keep referencing the same id. */
@@ -46,7 +60,18 @@ export class DataRetentionController {
     @Body() body: ConfirmDeletionDto,
   ) {
     this.assertConfirmed(body);
-    return this.userDataDeletionService.anonymizeUser(userId);
+    this.logger.log(`Manual user anonymization requested for userId=${userId}`);
+    try {
+      const result = await this.userDataDeletionService.anonymizeUser(userId);
+      this.logger.log(`User anonymization completed for userId=${userId}`);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `User anonymization failed for userId=${userId}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw error;
+    }
   }
 
   /** Deletes scanned source code and findings for a merchant. */
@@ -57,9 +82,25 @@ export class DataRetentionController {
     @Body() body: ConfirmDeletionDto,
   ) {
     this.assertConfirmed(body);
-    return this.userDataDeletionService.purgeAnalysisResultsForMerchant(
-      merchantId,
+    this.logger.log(
+      `Manual analysis-results purge requested for merchantId=${merchantId}`,
     );
+    try {
+      const result =
+        await this.userDataDeletionService.purgeAnalysisResultsForMerchant(
+          merchantId,
+        );
+      this.logger.log(
+        `Analysis-results purge completed for merchantId=${merchantId}`,
+      );
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Analysis-results purge failed for merchantId=${merchantId}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw error;
+    }
   }
 
   private assertConfirmed(body: ConfirmDeletionDto): void {

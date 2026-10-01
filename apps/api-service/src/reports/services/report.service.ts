@@ -8,6 +8,17 @@ import { EmailNotificationService } from "./email-notification.service";
 import { Merchant } from "../../database/entities/merchant.entity";
 import { v4 as uuidv4 } from "uuid";
 
+export const REPORT_HISTORY_DEFAULT_PAGE_SIZE = 10;
+export const REPORT_HISTORY_MAX_PAGE_SIZE = 100;
+
+export interface PaginatedReportHistory {
+  data: Report[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 @Injectable()
 export class ReportService {
   private readonly logger = new Logger(ReportService.name);
@@ -28,6 +39,7 @@ export class ReportService {
   async generateAdhocReport(
     merchantId: string,
     period: "weekly" | "monthly",
+    createdBy?: string,
   ): Promise<string> {
     try {
       // Validate merchant exists
@@ -36,7 +48,7 @@ export class ReportService {
       });
 
       if (!merchant) {
-        throw new Error(`Merchant with ID ${merchantId} not found`);
+        throw new Error(`Merchant with ID {merchantId} not found`);
       }
 
       // Create a new report record
@@ -46,6 +58,7 @@ export class ReportService {
       report.period = period;
       report.merchantId = merchantId;
       report.status = "pending";
+      report.createdBy = createdBy;
 
       // Set the date range based on the period
       if (period === "weekly") {
@@ -84,7 +97,7 @@ export class ReportService {
 
       if (!report) {
         this.logger.error(
-          `Report with ID ${reportId} not found for processing`,
+          `Report with ID {reportId} not found for processing`,
         );
         return;
       }
@@ -236,19 +249,57 @@ export class ReportService {
   async getReportHistory(
     merchantId: string,
     period?: "weekly" | "monthly",
-    limit: number = 10,
+    limit: number = REPORT_HISTORY_DEFAULT_PAGE_SIZE,
   ): Promise<Report[]> {
+    const safePageSize = this.normalizePageSize(limit);
     const query = this.reportRepository
       .createQueryBuilder("report")
       .where("report.merchantId = :merchantId", { merchantId })
       .orderBy("report.createdAt", "DESC")
-      .limit(limit);
+      .limit(safePageSize);
 
     if (period) {
       query.andWhere("report.period = :period", { period });
     }
 
     return query.getMany();
+  }
+
+  /**
+   * Get paginated report history for a merchant.
+   * Page is 1-based. Limit is clamped between 1 and REPORT_HISTORY_MAX_PAGE_SIZE.
+   */
+  async getReportHistoryPaginated(
+    merchantId: string,
+    period?: "weekly" | "monthly",
+    page: number = 1,
+    limit: number = REPORT_HISTORY_DEFAULT_PAGE_SIZE,
+  ): Promise<PaginatedReportHistory> {
+    const safePage = this.normalizePageNumber(page);
+    const safePageSize = this.normalizePageSize(limit);
+    const skip = (safePage - 1) * safePageSize;
+
+    const query = this.reportRepository
+      .createQueryBuilder("report")
+      .where("report.merchantId = :merchantId", { merchantId })
+      .orderBy("report.createdAt", "DESC")
+      .skip(skip)
+      .take(safePageSize);
+
+    if (period) {
+      query.andWhere("report.period = :period", { period });
+    }
+
+    const [data, total] = await query.getManyAndCount();
+    const totalPages = total === 0 ? 0 : Math.ceil(total / safePageSize);
+
+    return {
+      data,
+      total,
+      page: safePage,
+      limit: safePageSize,
+      totalPages,
+    };
   }
 
   /**
@@ -285,6 +336,26 @@ export class ReportService {
   }
 
   /**
+   * Normalize a page number to a valid 1-based integer.
+   */
+  private normalizePageNumber(page: number): number {
+    if (!Number.isFinite(page) || page < 1) {
+      return 1;
+    }
+    return Math.floor(page);
+  }
+
+  /**
+   * Normalize a page size to a valid integer between 1 and the maximum.
+   */
+  private normalizePageSize(limit: number): number {
+    if (!Number.isFinite(limit) || limit < 1) {
+      return REPORT_HISTORY_DEFAULT_PAGE_SIZE;
+    }
+    return Math.min(Math.floor(limit), REPORT_HISTORY_MAX_PAGE_SIZE);
+  }
+
+  /**
    * Helper method to get the start date of the previous week (Monday)
    */
   private getPreviousWeekStart(): Date {
@@ -293,7 +364,7 @@ export class ReportService {
     const diff = now.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) - 7; // Previous Monday
 
     const monday = new Date(now);
-    monday.setUTCDate(diff);
+    monway.setUTCDate(diff);
     monday.setUTCHours(0, 0, 0, 0);
 
     return monday;

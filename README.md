@@ -22,6 +22,7 @@ As Web3 scales, transaction costs remain a significant barrier to entry.
 * **🤖 CI/CD Integration:** A dedicated GitHub Action that runs on every push, ensuring no "gas regressions" are introduced.
 * **📚 Educational Tooltips:** Every suggestion includes a link to documentation explaining *why* the change saves money, fostering developer growth.
 * **🧪 Rule Testing Framework:** Comprehensive testing utilities with input/output fixtures, snapshot testing, and assertion helpers for rule developers.
+* **🔬 Policy Simulation Mode:** Dry-run feature to preview policy violations before deployment with detailed violation reports and metrics.
 
 ### 4. Roadmap for this Wave
 * **Phase 1:** Complete the Core CLI tool for local developer use (Rust/Soroban focus).
@@ -49,6 +50,62 @@ GasGuard/
 ├── .gitignore             # Optimized for Node.js and Rust
 └── LICENSE                # MIT Licensed
 ```
+
+---
+
+## 🔐 Dependency Provenance
+
+GasGuard verifies the supply-chain provenance of all npm and Cargo dependencies on every CI run. Each dependency is checked to ensure it:
+
+- Resolves from a known, trusted registry (npmjs.com or crates.io).
+- Carries a strong integrity hash (sha512 for npm, SHA-256 for Cargo).
+- Does not use deprecated or weak hash algorithms.
+
+Run the check locally with:
+
+```bash
+pnpm run provenance:check
+```
+
+See [docs/DEPENDENCY_PROVENANCE.md](./docs/DEPENDENCY_PROVENANCE.md) for the full reference.
+
+---
+
+## 🔐 Privilege Boundaries
+
+GasGuard follows the **principle of least privilege** across all components. This section documents the trust boundaries, privilege levels, and security assumptions for each part of the system.
+
+### Trust Boundary Overview
+
+| Component | Privilege Level | Trust Boundary | Notes |
+|-----------|----------------|----------------|-------|
+| **CLI (`libs/engine`)** | Local user | Runs with invoking user's privileges | No network access required; reads local files only |
+| **API (`apps/api`)** | Unprivileged service | Public network boundary | Rate-limited; no filesystem write access |
+| **API Service (`apps/api-service`)** | Unprivileged service | Public network + DB boundary | Scoped DB credentials; no shell execution |
+| **Rules (`packages/rules`)** | Sandboxed | Executed in-process | Must not perform I/O or network calls |
+| **CI/CD Action** | Repository-scoped | GitHub Actions runner | Read-only token by default; no secret exposure |
+
+### Security Assumptions
+
+- **No implicit trust between components.** Each service validates inputs independently.
+- **Secrets are never logged.** API keys, tokens, and credentials are redacted from all log output.
+- **Database access is least-privilege.** Each service uses a dedicated role with only the permissions it requires.
+- **Rule execution is pure.** Optimization rules must be deterministic and side-effect free.
+- **Network egress is restricted.** Services only communicate with explicitly allowlisted upstreams.
+
+### Upstream & Cross-Component Dependencies
+
+| Dependency | Purpose | Privilege Impact |
+|------------|---------|------------------|
+| `@nestjs/throttler` | Rate limiting | Prevents abuse of public endpoints |
+| PostgreSQL | Audit log storage | Append-only role; no DDL in runtime |
+| Redis | Rate-limit state | Ephemeral; no PII stored |
+| Hardhat (test only) | Local chain simulation | Never used in production |
+| Cargo-Audit / Slither | Security scanning | Read-only analysis |
+
+### Reporting a Privilege Issue
+
+If you discover a privilege escalation or boundary violation, please follow the process in [SECURITY.md](./SECURITY.md) and **do not** open a public issue.
 
 ---
 
@@ -206,8 +263,63 @@ For comprehensive documentation, see:
 - [Audit Logging System Documentation](./docs/AUDIT_LOGGING_SYSTEM.md)
 - [Audit Integration Guide](./docs/AUDIT_INTEGRATION_GUIDE.md)
 - [Audit Module README](./apps/api-service/src/audit/README.md)
+- [Policy Simulation Mode Documentation](./docs/POLICY_SIMULATION_MODE.md)
 
-## �🚀 Getting Started
+## 📊 Analyzer Coverage Reporting
+
+GasGuard includes comprehensive analyzer coverage reporting to track how thoroughly your codebase is being analyzed and identify patterns not covered by any rules.
+
+### Key Features
+- ✅ Multiple report formats (text, JSON, HTML, Markdown)
+- ✅ Coverage metrics tracking (nodes analyzed vs. total nodes)
+- ✅ Uncovered pattern identification
+- ✅ Rule-by-rule coverage breakdown
+- ✅ Threshold checking for CI/CD pipelines
+- ✅ Beautiful interactive HTML reports
+
+### Quick Usage
+
+```typescript
+import { CoverageReporter } from './src/reporting/coverage';
+import { RuleCoverageAnalyzer } from './src/analysis/coverage';
+
+// Track coverage during analysis
+const analyzer = new RuleCoverageAnalyzer();
+// ... perform analysis ...
+
+// Generate report
+const reporter = new CoverageReporter();
+const reportData = reporter.createReportData(
+  'MyProject',
+  '1.0.0',
+  analyzer.getMetrics(),
+  10, 12, 1500
+);
+
+// Save HTML report
+await reporter.saveReport(reportData, './reports/coverage.html', {
+  format: 'html',
+  includeUncoveredDetails: true,
+  thresholdPercent: 85
+});
+```
+
+### CI/CD Integration
+
+```yaml
+# Check coverage threshold in your pipeline
+- name: Check Coverage
+  run: |
+    npm run analyze:coverage
+    # Fails if coverage < 80%
+```
+
+For comprehensive documentation, see:
+- [Analyzer Coverage Reporting Documentation](./docs/ANALYZER_COVERAGE_REPORTING.md)
+- [Coverage Module README](./src/reporting/coverage/README.md)
+- [Example Usage](./src/reporting/coverage/example.ts)
+
+## 🚀 Getting Started
 
 ### Prerequisites
 

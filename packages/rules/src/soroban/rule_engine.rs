@@ -5,15 +5,23 @@
 
 use super::{
     InefficientBytesAllocationRule, InefficientInterfaceParamsRule, InterfaceConsistencyRule,
-    SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult, UnsafeCallTargetRule,
-    memory::InefficientBytesAllocationRule, InefficientInterfaceParamsRule,
-    InterfaceConsistencyRule, SorobanAnalyzer, SorobanContract, SorobanFunction,
-    SorobanParser, SorobanResult, UnsafeCallTargetRule,
-    UnvalidatedContractAddressRule,
+    SorobanAnalyzer, SorobanContract, SorobanFunction, SorobanParser, SorobanResult,
+    UnsafeCallTargetRule, UnvalidatedContractAddressRule,
 };
 use crate::soroban::storage::{SorobanLedgerReadCostRule, SorobanLedgerWriteCostRule};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
+
+/// Result of a policy simulation analysis
+#[derive(Debug, Clone)]
+pub struct PolicySimulationResult {
+    /// Violations detected during simulation
+    pub violations: Vec<RuleViolation>,
+    /// Whether this is a simulation result
+    pub simulation_mode: bool,
+    /// Timestamp of the simulation
+    pub timestamp: u64,
+}
 
 /// Soroban-specific rule engine
 pub struct SorobanRuleEngine {
@@ -21,6 +29,8 @@ pub struct SorobanRuleEngine {
     rules: HashMap<String, Box<dyn SorobanRule>>,
     /// Whether to enable all rules by default
     enable_all_by_default: bool,
+    /// Whether the engine is in simulation mode (dry-run mode for policy checks)
+    simulation_mode: bool,
 }
 
 impl SorobanRuleEngine {
@@ -36,7 +46,19 @@ impl SorobanRuleEngine {
         Self {
             rules: HashMap::new(),
             enable_all_by_default: true,
+            simulation_mode: false,
         }
+    }
+
+    /// Set simulation mode (dry-run mode for policy checks)
+    /// When enabled, rules are evaluated but violations are only reported, not enforced
+    pub fn set_simulation_mode(&mut self, enabled: bool) {
+        self.simulation_mode = enabled;
+    }
+
+    /// Check if the engine is in simulation mode
+    pub fn is_simulation_mode(&self) -> bool {
+        self.simulation_mode
     }
 
     /// Add a rule to the engine
@@ -87,7 +109,34 @@ impl SorobanRuleEngine {
             }
         }
 
+        // In simulation mode, tag violations with simulation metadata
+        if self.simulation_mode {
+            // Mark as simulation result - this could be extended with more metadata
+            // For now, we'll rely on the caller to know the mode
+        }
+
         Ok(all_violations)
+    }
+
+    /// Analyze in simulation mode (dry-run) and return policy simulation results
+    pub fn analyze_simulation(&self, source: &str, file_path: &str) -> SorobanResult<PolicySimulationResult> {
+        // Log simulation start
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        println!("[{}] Policy simulation started for file: {}", timestamp, file_path);
+
+        let violations = self.analyze(source, file_path)?;
+
+        // Log simulation completion
+        println!("[{}] Policy simulation completed. Violations found: {}", timestamp, violations.len());
+
+        Ok(PolicySimulationResult {
+            violations,
+            simulation_mode: true,
+            timestamp,
+        })
     }
 
     /// Get all registered rules
@@ -813,12 +862,12 @@ impl SorobanRule for GovernanceVotingRule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_soroban_rule_engine_creation() {
         let engine = SorobanRuleEngine::with_default_rules();
         assert!(!engine.get_rules().is_empty());
-        
+
         let rule_ids: Vec<_> = engine.get_rules().iter().map(|r| r.id()).collect();
         assert!(rule_ids.contains(&"soroban-unused-state-variables"));
         assert!(rule_ids.contains(&"soroban-inefficient-storage"));
@@ -830,7 +879,7 @@ mod tests {
         assert!(rule_ids.contains(&"soroban-interface-consistency"));       // #863
         assert!(rule_ids.contains(&"soroban-inefficient-interface-params")); // #864
     }
-    
+
     #[test]
     fn test_unused_state_variables_rule() {
         let source = r#"
@@ -846,6 +895,125 @@ pub struct TestContract {
         let rule = UnusedStateVariablesRule::default();
         let violations = rule.apply(&contract);
         assert!(!violations.is_empty());
+    }
+
+    // Tests for policy simulation mode (#1065)
+    #[test]
+    fn test_simulation_mode_default() {
+        let engine = SorobanRuleEngine::new();
+        assert!(!engine.is_simulation_mode());
+    }
+
+    #[test]
+    fn test_set_simulation_mode() {
+        let mut engine = SorobanRuleEngine::new();
+        assert!(!engine.is_simulation_mode());
+
+        engine.set_simulation_mode(true);
+        assert!(engine.is_simulation_mode());
+
+        engine.set_simulation_mode(false);
+        assert!(!engine.is_simulation_mode());
+    }
+
+    #[test]
+    fn test_analyze_simulation_mode() {
+        let source = r#"
+use soroban_sdk::{contract, contractimpl, contracttype, Address};
+
+#[contracttype]
+pub struct TestContract {
+    pub admin: Address,
+    pub unused_counter: u64,
+}
+
+#[contractimpl]
+impl TestContract {
+    pub fn new() -> Self {
+        Self {
+            admin: Address::from([0u8; 32]),
+            unused_counter: 0,
+        }
+    }
+}
+"#;
+
+        let mut engine = SorobanRuleEngine::with_default_rules();
+        engine.set_simulation_mode(true);
+
+        let result = engine.analyze_simulation(source, "test.rs");
+        assert!(result.is_ok());
+
+        let sim_result = result.unwrap();
+        assert!(sim_result.simulation_mode);
+        assert!(sim_result.timestamp > 0);
+        assert!(!sim_result.violations.is_empty());
+    }
+
+    #[test]
+    fn test_analyze_with_default_rules_in_simulation_mode() {
+        let source = r#"
+use soroban_sdk::{contract, contractimpl, contracttype, Address};
+
+#[contracttype]
+pub struct TestContract {
+    pub admin: Address,
+    pub unused_counter: u64,
+}
+
+#[contractimpl]
+impl TestContract {
+    pub fn new() -> Self {
+        Self {
+            admin: Address::from([0u8; 32]),
+            unused_counter: 0,
+        }
+    }
+}
+"#;
+
+        let mut engine = SorobanRuleEngine::with_default_rules();
+        engine.set_simulation_mode(true);
+
+        let result = engine.analyze(source, "test.rs");
+        assert!(result.is_ok());
+
+        let violations = result.unwrap();
+        // Should still detect violations in simulation mode
+        assert!(!violations.is_empty());
+    }
+
+    #[test]
+    fn test_simulation_mode_does_not_change_rule_behavior() {
+        let source = r#"
+use soroban_sdk::{contract, contractimpl, contracttype, Address};
+
+#[contracttype]
+pub struct TestContract {
+    pub admin: Address,
+    pub unused_counter: u64,
+}
+
+#[contractimpl]
+impl TestContract {
+    pub fn new() -> Self {
+        Self {
+            admin: Address::from([0u8; 32]),
+            unused_counter: 0,
+        }
+    }
+}
+"#;
+
+        let engine_normal = SorobanRuleEngine::with_default_rules();
+        let mut engine_sim = SorobanRuleEngine::with_default_rules();
+        engine_sim.set_simulation_mode(true);
+
+        let violations_normal = engine_normal.analyze(source, "test.rs").unwrap();
+        let violations_sim = engine_sim.analyze(source, "test.rs").unwrap();
+
+        // Should detect the same violations regardless of simulation mode
+        assert_eq!(violations_normal.len(), violations_sim.len());
     }
 }
 
