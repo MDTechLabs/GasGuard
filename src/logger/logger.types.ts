@@ -73,6 +73,15 @@ export interface LoggerConfig {
   enableStackTrace?: boolean;
   auditRetentionDays?: number;
   compressionEnabled?: boolean;
+  /**
+   * Redact secrets from log messages and metadata before they reach
+   * providers. Enabled by default (secure by default).
+   */
+  enableRedaction?: boolean;
+  /** Additional case-insensitive metadata key substrings to redact. */
+  redactionExtraKeys?: string[];
+  /** Metadata keys that must never be redacted (case-insensitive). */
+  redactionAllowlist?: string[];
 }
 
 export interface LogFilter {

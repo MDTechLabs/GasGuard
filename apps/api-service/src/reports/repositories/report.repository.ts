@@ -1,1 +1,249 @@
-aW1wb3J0IHsgRW50aXR5UmVwb3NpdG9yeSwgUmVwb3NpdG9yeSB9IGZyb20gInR5cGVvcm0iOwppbXBvcnQgeyBSZXBvcnQgfSBmcm9tICIuLi9lbnRpdGllcy9yZXBvcnQuZW50aXR5IjsKCi8qKgogKiBBY2Nlc3MgY29udGV4dCB1c2VkIHRvIGVuZm9yY2UgcmVwb3J0IGFjY2VzcyBjb250cm9scy4KICogVGhlIHJlcG9zaXRvcnkgbXVzdCBuZXZlciByZXR1cm4gcmVwb3J0cyB0aGF0IGFyZSBub3QgdmlzaWJsZSB0byB0aGUKICogcmVxdWVzdGluZyBwcmluY2lwYWwuCiAqLwpleHBvcnQgaW50ZXJmYWNlIFJlcG9ydEFjY2Vzc0NvbnRleHQgewogIC8qKiBUaGUgdXNlciByZXF1ZXN0aW5nIGFjY2Vzcy4gKi8KICB1c2VySWQ6IHN0cmluZzsKICAvKiogUm9sZXMgYXNzaWduZWQgdG8gdGhlIHVzZXIgKGUuZy4gImFkbWluIiwgIm1lcmNoYW50IiwgImF1ZGl0b3IiKS4gKi8KICByb2xlczogc3RyaW5nW107CiAgLyoqIE1lcmNoYW50IHRoZSB1c2VyIGJlbG9uZ3MgdG8sIGlmIGFueS4gKi8KICBtZXJjaGFudElkPzogc3RyaW5nOwogIC8qKiBPcHRpb25hbCBleHBsaWNpdCBncmFudHMgZm9yIHNwZWNpZmljIHJlcG9ydCBJRHMuICovCiAgZ3JhbnRlZFJlcG9ydElkcz86IHN0cmluZ1tdOwp9CgovKioKICogUm9sZXMgdGhhdCBhcmUgYWxsb3dlZCB0byByZWFkIGFueSByZXBvcnQgcmVnYXJkbGVzcyBvZiBvd25lcnNoaXAuCiAqLwpjb25zdCBQUklWSUxFR0VEX1JPTEVTID0gWyJhZG1pbiIsICJhdWRpdG9yIl0gYXMgY29uc3Q7CgpA RW50aXR5UmVwb3NpdG9yeShSZXBvcnQpCmV4cG9ydCBjbGFzcyBSZXBvcnRSZXBvc2l0b3J5IGV4dGVuZHMgUmVwb3NpdG9yeTxSZXBvcnQ+IHsKICAvKioKICAgKiBBcHBsaWVzIGFjY2VzcyBjb250cm9sIGZpbHRlcnMgdG8gYSByZXBvcnQgcXVlcnkgYnVpbGRlci4KICAgKgogICAqIFRoZSBmaWx0ZXIgaXMgZmFpbC1jbG9zZWQ6IGlmIHRoZSBjb250ZXh0IGlzIG1pc3Npbmcgb3IgaW52YWxpZCwKICAgKiB0aGUgcXVlcnkgd2lsbCByZXR1cm4gbm8gcmVzdWx0cy4KICAgKi8KICBwcml2YXRlIGFwcGx5QWNjZXNzQ29udHJvbCgKICAgIHF1ZXJ5OiBhbnksCiAgICBhY2Nlc3M/OiBSZXBvcnRBY2Nlc3NDb250ZXh0LAogICk6IGFueSB7CiAgICBpZiAoIWFjY2VzcyB8fCAhYWNjZXNzLnVzZXJJZCB8fCAhQXJyYXkuaXNBcnJheShhY2Nlc3Mucm9sZXMpKSB7CiAgICAgIC8vIEZhaWwgY2xvc2VkOiBubyBhY2Nlc3MgY29udGV4dCBtZWFucyBubyByZXN1bHRzLgogICAgICByZXR1cm4gcXVlcnkuYW5kV2hlcmUoIjEgPSAwIik7CiAgICB9CgogICAgY29uc3QgaXNQcml2aWxlZ2VkID0gYWNjZXNzLnJvbGVzLnNvbWUoKHJvbGUpID0+CiAgICAgIFBSSVZJTEVHRURfUk9MRVMuaW5jbHVkZXMocm9sZSBhcyAodHlwZW9mIFBSSVZJTEVHRURfUk9MRVMpW251bWJlcl0pLAogICAgKTsKCiAgICBpZiAoaXNQcml2aWxlZ2VkKSB7CiAgICAgIHJldHVybiBxdWVyeTsKICAgIH0KCiAgICBjb25zdCBncmFudGVkSWRzID0gQXJyYXkuaXNBcnJheShhY2Nlc3MuZ3JhbnRlZFJlcG9ydElkcykKICAgICAgPyBhY2Nlc3MuZ3JhbnRlZFJlcG9ydElkcy5maWx0ZXIoKGlkKSA9PiB0eXBlb2YgaWQgPT09ICJzdHJpbmciICYmIGlkLmxlbmd0aCA+IDApCiAgICAgIDogW107CgogICAgLy8gTm9uLXByaXZpbGVnZWQgdXNlcnMgbWF5IG9ubHkgc2VlIHJlcG9ydHMgdGhleSBvd24gb3Igd2VyZSBleHBsaWNpdGx5CiAgICAvLyBncmFudGVkIGFjY2VzcyB0by4KICAgIGNvbnN0IGNvbmRpdGlvbnM6IHN0cmluZ1tdID0gW107CiAgICBjb25zdCBwYXJhbXM6IFJlY29yZDxzdHJpbmcsIHVua25vd24+ID0geyB1c2VySWQ6IGFjY2Vzcy51c2VySWQgfTsKCiAgICBjb25kaXRpb25zLnB1c2goInJlcG9ydC5jcmVhdGVkQnkID0gOnVzZXJJZCIpOwoKICAgIGlmIChhY2Nlc3MubWVyY2hhbnRJZCkgewogICAgICBjb25kaXRpb25zLnB1c2goInJlcG9ydC5tZXJjaGFudElkID0gOm1lcmNoYW50SWQiKTsKICAgICAgcGFyYW1zLm1lcmNoYW50SWQgPSBhY2Nlc3MubWVyY2hhbnRJZDsKICAgIH0KCiAgICBpZiAoZ3JhbnRlZElkcy5sZW5ndGggPiAwKSB7CiAgICAgIGNvbmRpdGlvbnMucHVzaCgicmVwb3J0LmlkIElOICg6Li5ncmFudGVkSWRzKSIpOwogICAgICBwYXJhbXMuZ3JhbnRlZElkcyA9IGdyYW50ZWRJZHM7CiAgICB9CgogICAgcmV0dXJuIHF1ZXJ5LmFuZFdoZXJlKGAoJHtjb25kaXRpb25zLmpvaW4oIiBPUiAiKX0pYCwgcGFyYW1zKTsKICB9CgogIC8qKgogICAqIEZpbmQgcmVwb3J0cyBieSBtZXJjaGFudCBJRCBhbmQgcGVyaW9kLgogICAqLwogIGFzeW5jIGZpbmRCeU1lcmNoYW50QW5kUGVyaW9kKAogICAgbWVyY2hhbnRJZDogc3RyaW5nLAogICAgcGVyaW9kOiBzdHJpbmcsCiAgICBzdGFydERhdGU/OiBEYXRlLAogICAgZW5kRGF0ZT86IERhdGUsCiAgICBhY2Nlc3M/OiBSZXBvcnRBY2Nlc3NDb250ZXh0LAogICk6IFByb21pc2U8UmVwb3J0W10+IHsKICAgIGNvbnN0IHF1ZXJ5ID0gdGhpcy5jcmVhdGVRdWVyeUJ1aWxkZXIoInJlcG9ydCIpCiAgICAgIC53aGVyZSgicmVwb3J0Lm1lcmNoYW50SWQgPSA6bWVyY2hhbnRJZCIsIHsgbWVyY2hhbnRJZCB9KQogICAgICAuYW5kV2hlcmUoInJlcG9ydC5wZXJpb2QgPSA6cGVyaW9kIiwgeyBwZXJpb2QgfSk7CgogICAgaWYgKHN0YXJ0RGF0ZSAmJiBlbmREYXRlKSB7CiAgICAgIHF1ZXJ5LmFuZFdoZXJlKAogICAgICAgICJyZXBvcnQuc3RhcnREYXRlID49IDpzdGFydERhdGUgQU5EIHJlcG9ydC5lbmREYXRlIDw9IDplbmREYXRlIiwKICAgICAgICB7CiAgICAgICAgICBzdGFydERhdGUsCiAgICAgICAgICBlbmREYXRlLAogICAgICAgIH0sCiAgICAgICk7CiAgICB9CgogICAgdGhpcy5hcHBseUFjY2Vzc0NvbnRyb2wocXVlcnksIGFjY2Vzcyk7CgogICAgcmV0dXJuIHF1ZXJ5Lm9yZGVyQnk6ICJyZXBvcnQuY3JlYXRlZEF0IiwgIkRFU0MiKS5nZXRNYW55KCk7CiAgfQoKICAvKioKICAgKiBGaW5kIHJlcG9ydHMgYnkgc3RhdHVzLgogICAqLwogIGFzeW5jIGZpbmRCeVN0YXR1cygKICAgIHN0YXR1czogc3RyaW5nLAogICAgYWNjZXNzPzogUmVwb3J0QWNjZXNzQ29udGV4dCwKICApOiBQcm9taXNlPFJlcG9ydFtdPiB7CiAgICBjb25zdCBxdWVyeSA9IHRoaXMuY3JlYXRlUXVlcnlCdWlsZGVyKCJyZXBvcnQiKQogICAgICAud2hlcmUoInJlcG9ydC5zdGF0dXMgPSA6c3RhdHVzIiwgeyBzdGF0dXMgfSk7CgogICAgdGhpcy5hcHBseUFjY2Vzc0NvbnRyb2wocXVlcnksIGFjY2Vzcyk7CgogICAgcmV0dXJuIHF1ZXJ5Lm9yZGVyQnk6ICJyZXBvcnQuY3JlYXRlZEF0IiwgIkFTQyIpLmdldE1hbnkoKTsKICB9CgogIC8qKgogICAqIEZpbmQgcGVuZGluZyBzY2hlZHVsZWQgcmVwb3J0cy4KICAgKi8KICBhc3luYyBmaW5kUGVuZGluZ1NjaGVkdWxlZFJlcG9ydHMoCiAgICBhY2Nlc3M/OiBSZXBvcnRBY2Nlc3NDb250ZXh0LAogICk6IFByb21pc2U8UmVwb3J0W10+IHsKICAgIGNvbnN0IHF1ZXJ5ID0gdGhpcy5jcmVhdGVRdWVyeUJ1aWxkZXIoInJlcG9ydCIpCiAgICAgIC53aGVyZSgicmVwb3J0LnR5cGUgPSA6dHlwZSIsIHsgdHlwZTogInNjaGVkdWxlZCIgfSkKICAgICAgLmFuZFdoZXJlKCJyZXBvcnQuc3RhdHVzID0gOnN0YXR1cyIsIHsgc3RhdHVzOiAicGVuZGluZyIgfSkKICAgICAgLmFuZFdoZXJlKCIocmVwb3J0LnNjaGVkdWxlZEF0IElTIE5VTEwgT1IgcmVwb3J0LnNjaGVkdWxlZEF0IDw9IDpub3cpIiwgewogICAgICAgIG5vdzogbmV3IERhdGUoKSwKICAgICAgfSk7CgogICAgdGhpcy5hcHBseUFjY2Vzc0NvbnRyb2wocXVlcnksIGFjY2Vzcyk7CgogICAgcmV0dXJuIHF1ZXJ5LmdldE1hbnkoKTsKICB9CgogIC8qKgogICAqIEZpbmQgYSBzaW5nbGUgcmVwb3J0IGJ5IElEIGVuZm9yY2luZyBhY2Nlc3MgY29udHJvbHMuCiAgICovCiAgYXN5bmMgZmluZEFjY2Vzc2libGVCeUlkKAogICAgcmVwb3J0SWQ6IHN0cmluZywKICAgIGFjY2Vzcz86IFJlcG9ydEFjY2Vzc0NvbnRleHQsCiAgKTogUHJvbWlzZTxSZXBvcnQgfCB1bmRlZmluZWQ+IHsKICAgIGNvbnN0IHF1ZXJ5ID0gdGhpcy5jcmVhdGVRdWVyeUJ1aWxkZXIoInJlcG9ydCIpLndoZXJlKCJyZXBvcnQuaWQgPSA6cmVwb3J0SWQiLCB7CiAgICAgIHJlcG9ydElkLAogICAgfSk7CgogICAgdGhpcy5hcHBseUFjY2Vzc0NvbnRyb2wocXVlcnksIGFjY2Vzcyk7CgogICAgcmV0dXJuIHF1ZXJ5LmdldE9uZSgpOwogIH0KCiAgLyoqCiAgICogVXBkYXRlIHJlcG9ydCBzdGF0dXMuCiAgICovCiAgYXN5bmMgdXBkYXRlUmVwb3J0U3RhdHVzKAogICAgcmVwb3J0SWQ6IHN0cmluZywKICAgIHN0YXR1czogc3RyaW5nLAogICAgc2VudEF0PzogRGF0ZSwKICApOiBQcm9taXNlPHZvaWQ+IHsKICAgIGNvbnN0IHVwZGF0ZURhdGE6IGFueSA9IHsgc3RhdHVzIH07CiAgICBpZiAoc2VudEF0KSB7CiAgICAgIHVwZGF0ZURhdGEuc2VudEF0ID0gc2VudEF0OwogICAgfQogICAgYXdhaXQgdGhpcy51cGRhdGUocmVwb3J0SWQsIHVwZGF0ZURhdGEpOwogIH0KfQo=
+import { EntityRepository, Repository } from "typeorm";
+import { Report } from "../entities/report.entity";
+
+/**
+ * Access context used to enforce report access controls.
+ * The repository must never return reports that are not visible to the
+ * requesting principal.
+ */
+export interface ReportAccessContext {
+  /** The user requesting access. */
+  userId: string;
+  /** Roles assigned to the user (e.g. "admin", "merchant", "auditor"). */
+  roles: string[];
+  /** Merchant the user belongs to, if any. */
+  merchantId?: string;
+  /** Optional explicit grants for specific report IDs. */
+  grantedReportIds?: string[];
+}
+
+/**
+ * Roles that are allowed to read any report regardless of ownership.
+ */
+const PRIVILEGED_ROLES = ["admin", "auditor"] as const;
+
+export interface PaginationParams {
+  /** Maximum number of row to return. Defaults to 50. */
+  limit?: number;
+  /** Number of rows to skip. Defaults to 0. */
+  offset?: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 500;
+
+function normalizePagination(params?: PaginationParams): {
+  limit: number;
+  offset: number;
+} {
+  const rawLimit = params?.limit;
+  const rawOffset = params?.offset;
+
+  const limit =
+    typeof rawLimit === "number" && Number.isFinite(rawLimit) && rawLimit > 0
+      ? Math.min(Math.floor(rawLimit), MAX_LIMIT)
+      : DEFAULT_LIMIT;
+
+  const offset =
+    typeof rawOffset === "number" && Number.isFinite(rawOffset) && rawOffset > 0
+      ? Math.floor(rawOffset)
+      : 0;
+
+  return { limit, offset };
+}
+
+@EntityRepository(Report)
+export class ReportRepository extends Repository<Report> {
+  /**
+   * Applies access control filters to a report query builder.
+   *
+   * The filter is fail-closed: if the context is missing or invalid,
+   * the query will return no results.
+   */
+  private applyAccessControl(
+    query: any,
+    access?: ReportAccessContext,
+  ): any {
+    if (!access || !access.userId || !Array.isArray(access.roles)) {
+      // Fail closed: no access context means no results.
+      return query.andWhere("1 = 0");
+    }
+
+    const isPrivileged = access.roles.some((role) =>
+      PRIVILEGED_ROLES.includes(role as (typeof PRIVILEGED_ROLES)[number]),
+    );
+
+    if (isPrivileged) {
+      return query;
+    }
+
+    const grantedIds = Array.isArray(access.grantedReportIds)
+      ? access.grantedReportIds.filter((id) => typeof id === "string" && id.length > 0)
+      : [];
+
+    // Non-privileged users may only see reports they own or were explicitly
+    // granted access to.
+    const conditions: string[] = [];
+    const params: Record<string, unknown> = { userId: access.userId };
+
+    conditions.push("report.createdBy = :userId");
+
+    if (access.merchantId) {
+      conditions.push("report.merchantId = :merchantId");
+      params.merchantId = access.merchantId;
+    }
+
+    if (grantedIds.length > 0) {
+      conditions.push("report.id IN (:...grantedIds)");
+      params.grantedIds = grantedIds;
+    }
+
+    return query.andWhere(`(${conditions.join(" OR ")})`, params);
+  }
+
+  /**
+   * Find reports by merchant ID and period
+   */
+  async findByMerchantAndPeriod(
+    merchantId: string,
+    period: string,
+    startDate?: Date,
+    endDate?: Date,
+    pagination?: PaginationParams,
+    access?: ReportAccessContext,
+  ): Promise<PaginatedResult<Report>> {
+    const { limit, offset } = normalizePagination(pagination);
+
+    const query = this.createQueryBuilder("report")
+      .where("report.merchantId = :merchantId", { merchantId })
+      .andWhere("report.period = :period", { period });
+
+    if (startDate && endDate) {
+      query.andWhere(
+        "report.startDate >= :startDate AND report.endDate <= :endDate",
+        {
+          startDate,
+          endDate,
+        },
+      );
+    }
+
+    this.applyAccessControl(query, access);
+
+    const [data, total] = await query
+      .orderBy("report.createdAt", "DESC")
+      .skip(offset)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data,
+      total,
+      limit,
+      offset,
+      hasMore: offset + data.length < total,
+    };
+  }
+
+  /**
+   * Find reports by status
+   */
+  async findByStatus(
+    status: string,
+    pagination?: PaginationParams,
+    access?: ReportAccessContext,
+  ): Promise<PaginatedResult<Report>> {
+    const { limit, offset } = normalizePagination(pagination);
+
+    const query = this.createQueryBuilder("report")
+      .where("report.status = :status", { status });
+
+    this.applyAccessControl(query, access);
+
+    const [data, total] = await query
+      .orderBy("report.createdAt", "ASC")
+      .skip(offset)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data,
+      total,
+      limit,
+      offset,
+      hasMore: offset + data.length < total,
+    };
+  }
+
+  /**
+   * Find pending scheduled reports
+   */
+  async findPendingScheduledReports(
+    pagination?: PaginationParams,
+    access?: ReportAccessContext,
+  ): Promise<PaginatedResult<Report>> {
+    const { limit, offset } = normalizePagination(pagination);
+
+    const query = this.createQueryBuilder("report")
+      .where("report.type = :type", { type: "scheduled" })
+      .andWhere("report.status = :status", { status: "pending" })
+      .andWhere("(report.scheduledAt IS NULL or report.scheduledAt <= :now)", {
+        now: new Date(),
+      });
+
+    this.applyAccessControl(query, access);
+
+    const [data, total] = await query
+      .orderBy("report.createdAt", "ASC")
+      .skip(offset)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data,
+      total,
+      limit,
+      offset,
+      hasMore: offset + data.length < total,
+    };
+  }
+
+  /**
+   * Find a single report by ID enforcing access controls.
+   */
+  async findAccessibleById(
+    reportId: string,
+    access?: ReportAccessContext,
+  ): Promise<Report | undefined> {
+    const query = this.createQueryBuilder("report").where("report.id = :reportId", {
+      reportId,
+    });
+
+    this.applyAccessControl(query, access);
+
+    return query.getOne();
+  }
+
+  /**
+   * Update report status
+   */
+  async updateReportStatus(
+    reportId: string,
+    status: string,
+    sentAt?: Date,
+  ): Promise<void> {
+    const updateData: any = { status };
+    if (sentAt) {
+      updateData.sentAt = sentAt;
+    }
+    await this.update(reportId, updateData);
+  }
+}

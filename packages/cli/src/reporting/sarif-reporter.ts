@@ -270,9 +270,12 @@ function convertFinding(finding: Finding): SarifResult {
 function severityToLevel(severity: string): string {
   switch (severity.toLowerCase()) {
     case "critical":
+    case "high":
     case "error":
       return "error";
     case "warning":
+    case "medium":
+    case "low":
       return "warning";
     case "info":
       return "note";
@@ -285,6 +288,12 @@ function severityToSecurityLevel(severity: string): string {
   switch (severity.toLowerCase()) {
     case "critical":
       return "9.0";
+    case "high":
+      return "7.0";
+    case "medium":
+      return "5.0";
+    case "low":
+      return "2.0";
     case "error":
       return "7.0";
     case "warning":
