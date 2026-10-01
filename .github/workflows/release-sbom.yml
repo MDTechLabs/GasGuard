@@ -1,0 +1,66 @@
+name: Release SBOM Generation
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  generate-sbom:
+    name: Generate & Attach SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Generate Local SBOM Artifacts
+        run: |
+          mkdir -p sbom-dist
+          bash scripts/generate-sbom.sh sbom-dist
+
+      - name: Generate CycloneDX SBOM (Anchore Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: 'cyclonedx-json'
+          output-file: 'sbom-dist/gasguard-syft.cyclonedx.json'
+
+      - name: Generate SPDX SBOM (Anchore Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: 'spdx-json'
+          output-file: 'sbom-dist/gasguard-syft.spdx.json'
+
+      - name: Upload SBOM Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gasguard-sbom-packages
+          path: sbom-dist/*
+          retention-days: 90
+
+      - name: Attach SBOM to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            sbom-dist/gasguard-syft.cyclonedx.json
+            sbom-dist/gasguard-syft.spdx.json
+            sbom-dist/gasguard-sbom.cyclonedx.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
