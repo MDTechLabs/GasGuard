@@ -7,6 +7,7 @@
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { GitHubAuthConfig, GitHubRepository, AccessDiagnosticResult } from './types';
+import { createSafeAgent } from '../../security/dns';
 
 export class GitHubClient {
   private client: AxiosInstance;
@@ -16,6 +17,8 @@ export class GitHubClient {
     this.auth = auth;
     this.client = axios.create({
       baseURL: 'https://api.github.com',
+      httpAgent: createSafeAgent('http'),
+      httpsAgent: createSafeAgent('https'),
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         ...(auth.token && { 'Authorization': `Bearer ${auth.token}` }),
