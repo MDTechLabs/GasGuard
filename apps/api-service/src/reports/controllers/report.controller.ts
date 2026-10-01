@@ -106,7 +106,7 @@ export class ReportController {
       const report = await this.reportService.getReportById(reportId);
 
       if (!report) {
-        throw new Error(`Report with ID ${reportId} not found`);
+        throw new Error(`Report with ID {reportId} not found`);
       }
 
       return report;
@@ -134,8 +134,14 @@ export class ReportController {
     required: false,
   })
   @ApiQuery({
+    name: "page",
+    description: "Page number (1-based)",
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
     name: "limit",
-    description: "Number of reports to return",
+    description: "Number of reports to return per page",
     required: false,
     type: Number,
   })
@@ -151,6 +157,7 @@ export class ReportController {
   async getReportHistory(
     @Query("merchantId") merchantId: string,
     @Query("period") period?: "weekly" | "monthly",
+    @Query("page") page?: number,
     @Query("limit") limit?: number,
   ): Promise<Report[]> {
     try {
@@ -166,6 +173,66 @@ export class ReportController {
     } catch (error) {
       this.logger.error(
         `Error getting report history for merchant ${merchantId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  @Get("gas/history/paginated")
+  @ViewerAndAbove()
+  @ApiOperation({ summary: "Get paginated report history for a merchant" })
+  @ApiQuery({
+    name: "merchantId",
+    description: "ID of the merchant",
+    required: true,
+  })
+  @ApiQuery({
+    name: "period",
+    description: "Report period (weekly or monthly)",
+    enum: ["weekly", "monthly"],
+    required: false,
+  })
+  @ApiQuery({
+    name: "page",
+    description: "Page number (1-based)",
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: "limit",
+    description: "Number of reports to return per page",
+    required: false,
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Paginated report history retrieved successfully",
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden - requires authentication",
+  })
+  async getPaginatedReportHistory(
+    @Query("merchantId") merchantId: string,
+    @Query("period") period?: "weekly" | "monthly",
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    try {
+      this.logger.log(
+        `Request to get paginated report history for merchant ${merchantId}`,
+      );
+
+      return await this.reportService.getReportHistoryPaginated(
+        merchantId,
+        period,
+        page ? parseInt(page.toString()) : 1,
+        limit ? parseInt(limit.toString()) : 10,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error getting paginated report history for merchant ${merchantId}`,
         error,
       );
       throw error;
@@ -204,7 +271,7 @@ export class ReportController {
 
       if (!report.reportUrl) {
         throw new Error(
-          `Report with ID ${reportId} does not have a downloadable file`,
+          `Report with ID {reportId} does not have a downloadable file`,
         );
       }
 

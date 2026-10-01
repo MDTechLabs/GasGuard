@@ -10,6 +10,7 @@ import { ReportGenerationService } from "./services/report-generation.service";
 import { EmailNotificationService } from "./services/email-notification.service";
 import { SchedulingService } from "./services/scheduling.service";
 import { ReportController } from "./controllers/report.controller";
+import { ReportPaginationService } from "./services/report-pagination.service";
 import { Transaction } from "../database/entities/transaction.entity";
 import { Merchant } from "../database/entities/merchant.entity";
 import { Chain } from "../database/entities/chain.entity";
@@ -29,11 +30,12 @@ import { Chain } from "../database/entities/chain.entity";
     },
     // Services
     ReportService,
+    ReportPaginationService,
     DataAggregationService,
     ReportGenerationService,
     EmailNotificationService,
     SchedulingService,
   ],
-  exports: [ReportService, DataAggregationService],
+  exports: [ReportService, ReportPaginationService, DataAggregationService],
 })
 export class ReportsModule {}
