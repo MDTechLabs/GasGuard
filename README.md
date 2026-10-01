@@ -22,7 +22,7 @@ As Web3 scales, transaction costs remain a significant barrier to entry.
 * **🤖 CI/CD Integration:** A dedicated GitHub Action that runs on every push, ensuring no "gas regressions" are introduced.
 * **📚 Educational Tooltips:** Every suggestion includes a link to documentation explaining *why* the change saves money, fostering developer growth.
 * **🧪 Rule Testing Framework:** Comprehensive testing utilities with input/output fixtures, snapshot testing, and assertion helpers for rule developers.
-* **📊 Analyzer Coverage Reporting:** Track analyzer coverage metrics across your codebase with multiple report formats (text, JSON, HTML, Markdown), threshold checking, and detailed rule breakdowns for ensuring thorough code analysis.
+* **🔬 Policy Simulation Mode:** Dry-run feature to preview policy violations before deployment with detailed violation reports and metrics.
 
 ### 4. Roadmap for this Wave
 * **Phase 1:** Complete the Core CLI tool for local developer use (Rust/Soroban focus).
@@ -263,6 +263,7 @@ For comprehensive documentation, see:
 - [Audit Logging System Documentation](./docs/AUDIT_LOGGING_SYSTEM.md)
 - [Audit Integration Guide](./docs/AUDIT_INTEGRATION_GUIDE.md)
 - [Audit Module README](./apps/api-service/src/audit/README.md)
+- [Policy Simulation Mode Documentation](./docs/POLICY_SIMULATION_MODE.md)
 
 ## 📊 Analyzer Coverage Reporting
 
