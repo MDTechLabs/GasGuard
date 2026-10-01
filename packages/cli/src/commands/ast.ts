@@ -2,13 +2,14 @@ import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
 import path from "path";
+import { logInfo } from "../output";
 
 import {
   parseAndSnapshot,
   renderTree,
   snapshotToJson,
   ASTSnapshot,
-} from "../../../../libs/ast/index";
+} from "../../../../src/config";
 
 export const astCommand = new Command("ast")
   .description("Inspect the AST of a smart contract source file")
@@ -83,7 +84,7 @@ export const astCommand = new Command("ast")
       if (options.output) {
         const outPath = path.resolve(options.output);
         await fs.outputFile(outPath, output, "utf-8");
-        console.log(chalk.green(`✓ AST snapshot written to ${outPath}`));
+        logInfo(chalk.green(`✓ AST snapshot written to ${outPath}`));
       } else {
         // Colour the tree output; leave JSON uncoloured for piping
         if (!useJson) {

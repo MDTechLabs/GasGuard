@@ -19,6 +19,7 @@ import { validatePolicy } from "./validate";
 export interface PolicyCliIo {
   stdout?: (chunk: string) => void;
   stderr?: (chunk: string) => void;
+  quiet?: boolean;
   now?: () => number;
   load?: (filePath: string) => LoadedPolicy;
   correlationId?: string;

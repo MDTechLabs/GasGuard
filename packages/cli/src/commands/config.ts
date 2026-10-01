@@ -4,15 +4,17 @@ import { Command } from "commander";
 import chalk from "chalk";
 import fs from "fs-extra";
 import path from "path";
+import { loadCliConfig } from "../config/config-loader";
+import { logInfo, resolveConfigPath } from "../output";
 
 const showConfigCommand = new Command("show")
   .description("Show current configuration")
   .action(async () => {
     try {
-      const configPath = path.join(process.cwd(), "gasguard.config.json");
+      const configPath = path.resolve(process.cwd(), resolveConfigPath());
 
       if (!(await fs.pathExists(configPath))) {
-        console.log(
+        logInfo(
           chalk.yellow(
             'No configuration file found. Run "gasguard init" to create one.',
           ),
@@ -20,9 +22,9 @@ const showConfigCommand = new Command("show")
         return;
       }
 
-      const config = await fs.readJson(configPath);
-      console.log(chalk.blue("Current Configuration:"));
-      console.log(JSON.stringify(config, null, 2));
+      const config = await loadCliConfig(resolveConfigPath());
+      logInfo(chalk.blue("Current Configuration:"));
+      logInfo(JSON.stringify(config, null, 2));
     } catch (error) {
       console.error(chalk.red(`Error reading configuration: ${error}`));
       process.exit(1);
@@ -34,10 +36,10 @@ const setConfigCommand = new Command("set")
   .arguments("<key> <value>")
   .action(async (key: string, value: string) => {
     try {
-      const configPath = path.join(process.cwd(), "gasguard.config.json");
+      const configPath = path.resolve(process.cwd(), resolveConfigPath());
 
       if (!(await fs.pathExists(configPath))) {
-        console.log(
+        logInfo(
           chalk.yellow(
             'No configuration file found. Run "gasguard init" to create one.',
           ),
@@ -67,7 +69,7 @@ const setConfigCommand = new Command("set")
       current[keys[keys.length - 1]] = parsedValue;
 
       await fs.writeJson(configPath, config, { spaces: 2 });
-      console.log(chalk.green(`✓ Set ${key} = ${JSON.stringify(parsedValue)}`));
+      logInfo(chalk.green(`✓ Set ${key} = ${JSON.stringify(parsedValue)}`));
     } catch (error) {
       console.error(chalk.red(`Error setting configuration: ${error}`));
       process.exit(1);

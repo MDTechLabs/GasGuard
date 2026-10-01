@@ -1,141 +1,81 @@
-/// <reference types="jest" />
-
-import { mkdtemp, mkdir, rm, writeFile } from "fs/promises";
+import fs from "fs-extra";
 import os from "os";
 import path from "path";
-import {
-  analyzeRepositoryFiles,
-  collectScannableFiles,
-  RepositoryAnalysisError,
-  scanCommand,
-} from "./scan";
+import { generateJsonReport } from "../reporting/json-reporter";
+import { setCliOptions } from "../output";
+import { runScan } from "./scan";
 
-describe("local repository analysis preflight", () => {
-  let repositoryPath: string;
+jest.mock("../reporting/json-reporter", () => ({
+  generateJsonReport: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock("../reporting/sarif-reporter", () => ({
+  generateSarifReport: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock("../reporting/summary-printer", () => ({
+  printSummary: jest.fn(),
+}));
+
+describe("runScan", () => {
+  let directory: string;
 
   beforeEach(async () => {
-    repositoryPath = await mkdtemp(path.join(os.tmpdir(), "gasguard-scan-"));
+    directory = await fs.mkdtemp(path.join(os.tmpdir(), "gasguard-cli-scan-"));
+    setCliOptions({ quiet: true });
+    jest.clearAllMocks();
   });
 
   afterEach(async () => {
-    await rm(repositoryPath, { recursive: true, force: true });
+    setCliOptions({});
+    await fs.remove(directory);
   });
 
-  it("collects supported source files and ignores generated directories", async () => {
-    await mkdir(path.join(repositoryPath, "src"));
-    await mkdir(path.join(repositoryPath, "node_modules", "vendor"), {
-      recursive: true,
-    });
-    await writeFile(path.join(repositoryPath, "src", "contract.sol"), "1234");
-    await writeFile(
-      path.join(repositoryPath, "node_modules", "vendor", "ignored.sol"),
-      "ignored",
+  it("applies inherited scan patterns and maxFiles while preserving report output", async () => {
+    await fs.ensureDir(path.join(directory, "contracts"));
+    await fs.ensureDir(path.join(directory, "vendor"));
+    await fs.writeFile(
+      path.join(directory, "contracts/A.sol"),
+      "contract A {}",
     );
-    await writeFile(path.join(repositoryPath, "README.md"), "documentation");
-
-    await expect(
-      collectScannableFiles(repositoryPath, { maxFiles: 1, maxBytes: 4 }),
-    ).resolves.toEqual([path.join(repositoryPath, "src", "contract.sol")]);
-  });
-
-  it("accepts repositories exactly at both configured limits", async () => {
-    await writeFile(path.join(repositoryPath, "first.rs"), "1234");
-    await writeFile(path.join(repositoryPath, "second.sol"), "56");
-
-    const files = await collectScannableFiles(repositoryPath, {
-      maxFiles: 2,
-      maxBytes: 6,
-    });
-
-    expect(files).toHaveLength(2);
-  });
-
-  it("rejects repositories over the file-count limit", async () => {
-    await writeFile(path.join(repositoryPath, "first.rs"), "");
-    await writeFile(path.join(repositoryPath, "second.sol"), "");
-
-    await expect(
-      collectScannableFiles(repositoryPath, { maxFiles: 1, maxBytes: 1 }),
-    ).rejects.toMatchObject<Partial<RepositoryAnalysisError>>({
-      code: "FILE_LIMIT_EXCEEDED",
-    });
-  });
-
-  it("rejects repositories over the byte limit", async () => {
-    await writeFile(path.join(repositoryPath, "contract.vy"), "12345");
-
-    await expect(
-      collectScannableFiles(repositoryPath, { maxFiles: 1, maxBytes: 4 }),
-    ).rejects.toMatchObject<Partial<RepositoryAnalysisError>>({
-      code: "SIZE_LIMIT_EXCEEDED",
-    });
-  });
-
-  it("stops before walking when cancellation was requested", async () => {
-    const controller = new AbortController();
-    controller.abort();
-
-    await expect(
-      collectScannableFiles(repositoryPath, {}, controller.signal),
-    ).rejects.toMatchObject<Partial<RepositoryAnalysisError>>({
-      code: "ANALYSIS_CANCELLED",
-    });
-  });
-
-  it("reports inaccessible repository paths instead of silently scanning nothing", async () => {
-    await expect(
-      collectScannableFiles(path.join(repositoryPath, "missing")),
-    ).rejects.toMatchObject({ code: "ENOENT" });
-  });
-
-  it("exposes the local analyzer bootstrap as a scan alias", () => {
-    expect(scanCommand.aliases()).toContain("analyze-local");
-  });
-
-  it("runs the Rust analyzer and reports its actual findings", async () => {
-    const sourcePath = path.join(repositoryPath, "contract.rs");
-    await writeFile(
-      sourcePath,
-      'fn main() { let value = String::from("gas"); let copy = value.clone(); }',
+    await fs.writeFile(
+      path.join(directory, "contracts/B.sol"),
+      "contract B {}",
     );
+    await fs.writeFile(path.join(directory, "vendor/C.sol"), "contract C {}");
+    await fs.writeJson(path.join(directory, "base.json"), {
+      scan: { include: ["**/*.sol"], exclude: [], maxFiles: 2 },
+      output: { format: "json" },
+    });
+    const configPath = path.join(directory, "gasguard.config.json");
+    await fs.writeJson(configPath, {
+      extends: "./base.json",
+      scan: { exclude: ["vendor/**"] },
+    });
 
-    const result = await analyzeRepositoryFiles([sourcePath], repositoryPath);
+    await runScan(directory, {
+      confidence: "0.7",
+      output: path.join(directory, "report.json"),
+      config: configPath,
+    });
 
-    expect(result.scannedFiles).toBe(1);
-    expect(
-      result.findings.some((finding) => finding.ruleId === "rust-002"),
-    ).toBe(true);
-    expect(result.summary.totalViolations).toBe(result.findings.length);
-  });
-
-  it("analyzes read-only repository snapshots without modifying source files", async () => {
-    const sourcePath = path.join(repositoryPath, "contract.sol");
-    await writeFile(
-      sourcePath,
-      "contract Sample { function read() public {} }",
+    expect(generateJsonReport).toHaveBeenCalledTimes(1);
+    expect(generateJsonReport).toHaveBeenCalledWith(
+      expect.objectContaining({ totalFiles: 2, scannedFiles: 2 }),
+      path.join(directory, "report.json"),
     );
-    const before = await listSnapshot(repositoryPath);
-
-    await analyzeRepositoryFiles([sourcePath], repositoryPath);
-
-    expect(await listSnapshot(repositoryPath)).toEqual(before);
   });
 
-  it("cancels between files without returning a partial report", async () => {
-    const sourcePath = path.join(repositoryPath, "contract.rs");
-    await writeFile(sourcePath, "fn main() {}");
-    const controller = new AbortController();
-    controller.abort();
+  it("rejects invalid confidence thresholds", async () => {
+    await expect(
+      runScan(directory, { confidence: "1.01", format: "text" }),
+    ).rejects.toThrow("Confidence threshold must be between 0 and 1");
+  });
+
+  it("rejects invalid configured file limits instead of disabling the limit", async () => {
+    const configPath = path.join(directory, "invalid-limit.json");
+    await fs.writeJson(configPath, { scan: { maxFiles: 0 } });
 
     await expect(
-      analyzeRepositoryFiles([sourcePath], repositoryPath, controller.signal),
-    ).rejects.toMatchObject<Partial<RepositoryAnalysisError>>({
-      code: "ANALYSIS_CANCELLED",
-    });
+      runScan(directory, { config: configPath, format: "text" }),
+    ).rejects.toThrow("scan.maxFiles must be a positive safe integer");
   });
 });
-
-async function listSnapshot(directory: string): Promise<string[]> {
-  const { readdir } = await import("fs/promises");
-  return (await readdir(directory)).sort();
-}

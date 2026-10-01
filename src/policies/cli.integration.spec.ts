@@ -103,6 +103,32 @@ describe("policy validate command", () => {
     expect(result.stderr).not.toContain(SECRET);
   });
 
+  it("quiet mode suppresses success logs but retains reports and failure logs", () => {
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const successCode = runPolicyValidateCli([productionPolicy], {
+      quiet: true,
+      stdout: (chunk) => stdout.push(chunk),
+      stderr: (chunk) => stderr.push(chunk),
+    });
+
+    expect(successCode).toBe(0);
+    expect(stdout.join("")).toContain("Policy validation passed");
+    expect(stderr).toEqual([]);
+
+    const failureCode = runPolicyValidateCli(
+      [path.join(os.tmpdir(), "missing-quiet-policy.json"), "--format", "json"],
+      {
+        quiet: true,
+        stdout: (chunk) => stdout.push(chunk),
+        stderr: (chunk) => stderr.push(chunk),
+      },
+    );
+
+    expect(failureCode).toBe(2);
+    expect(stderr.join("")).toContain('"level":"error"');
+  });
+
   it("returns JSON for a schema failure and exits 1", () => {
     const filePath = writePolicy(
       "broken.policy.json",
