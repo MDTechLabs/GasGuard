@@ -1,0 +1,6 @@
+{
+  "users": [
+    { "id": 1, "login": "leighmcculloch", "kind": "user", "name": "Leigh" },
+    { "id": 2, "login": "github:stellar:core", "kind": "team", "name": "core" }
+  ]
+}

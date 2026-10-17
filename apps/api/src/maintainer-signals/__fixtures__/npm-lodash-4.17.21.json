@@ -1,0 +1,16 @@
+{
+  "name": "lodash",
+  "version": "4.17.21",
+  "description": "Lodash modular utilities.",
+  "license": "MIT",
+  "maintainers": [
+    { "name": "mathias", "email": "mathias@example.org" },
+    { "name": "jdalton", "email": "john.david.dalton@example.com" },
+    { "name": "bnjmnt4n", "email": "benjamin@example.net" }
+  ],
+  "_npmUser": { "name": "bnjmnt4n", "email": "benjamin@example.net" },
+  "dist": {
+    "tarball": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz",
+    "shasum": "679591c564c3bffaae8454cf0b3df370c3d6911c"
+  }
+}

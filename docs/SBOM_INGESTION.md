@@ -292,3 +292,8 @@ npx jest apps/api/src/sbom/sbom-ingestion.load.spec.ts        # 400-job load, se
 
 The fault tests use a seeded PRNG (`mulberry32`, seeds 1–3), so every injected
 storage failure and worker crash is reproducible.
+
+## Related
+
+[Package maintainer change signals](./MAINTAINER_CHANGE_SIGNALS.md) can take a
+scan's package list from its ingested SBOM (`fromSbom: true`).

@@ -1,0 +1,2 @@
+../../etc/passwd
+src/../../outside-repository.txt

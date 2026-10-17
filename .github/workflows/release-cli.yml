@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -71,6 +72,11 @@ jobs:
           binary="dist/release/gasguard-${{ matrix.asset }}${{ matrix.target == 'win-x64' && '.exe' || '' }}"
           cosign sign-blob --yes --bundle "${binary}.sigstore.json" "$binary"
 
+      - name: Attest executable provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/release/gasguard-${{ matrix.asset }}${{ matrix.target == 'win-x64' && '.exe' || '' }}
+
       - name: Upload signed executable
         uses: actions/upload-artifact@v4
         with:
@@ -100,3 +106,58 @@ jobs:
           files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-smoke:
+    name: Smoke-test ${{ matrix.asset }} release binary
+    if: github.event_name == 'release'
+    needs: attach-release-assets
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      attestations: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            asset: linux-x64
+            binary: gasguard-linux-x64
+          - runner: macos-15-intel
+            asset: macos-x64
+            binary: gasguard-macos-x64
+          - runner: macos-14
+            asset: macos-arm64
+            binary: gasguard-macos-arm64
+          - runner: windows-latest
+            asset: windows-x64
+            binary: gasguard-windows-x64.exe
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download published binary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          BINARY_NAME: ${{ matrix.binary }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$BINARY_NAME" \
+            --dir "$RUNNER_TEMP/release"
+
+      - name: Verify build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BINARY_NAME: ${{ matrix.binary }}
+        run: gh attestation verify "$RUNNER_TEMP/release/$BINARY_NAME" --repo "$GITHUB_REPOSITORY"
+
+      - name: Run release binary smoke checks
+        env:
+          BINARY_NAME: ${{ matrix.binary }}
+        run: |
+          binary="$RUNNER_TEMP/release/$BINARY_NAME"
+          chmod +x "$binary"
+          "$binary" --help
+          "$binary" version

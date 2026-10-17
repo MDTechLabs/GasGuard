@@ -1,10 +1,10 @@
 # Public Release Checklist
 
-This is the checklist every GasGuard release runs through before it ships.
-Copy the [Checklist](#checklist) section into the release PR or tracking
-issue, check items off with a link to the evidence (CI run, dashboard
-screenshot, doc), and do not tag the release until every box is checked and
-every sign-off is recorded.
+This is the checklist every GasGuard release runs through. Copy the
+[Checklist](#checklist) section into the release PR or tracking issue and check
+items off with links to evidence (CI run, dashboard, or document). Complete all
+pre-release checks and record every sign-off before tagging; complete the
+post-release section after publication.
 
 For the one-time mainnet launch specifically, also see
 [PRODUCTION_READINESS_REVIEW.md](PRODUCTION_READINESS_REVIEW.md), which
@@ -69,7 +69,29 @@ No release ships until every row below is filled in by the named person, not on 
 | Operations / on-call | | | |
 | Release manager (final go) | | | |
 
+### 7. Post-release verification
+
+Complete these checks after publication and record the evidence in the release
+tracking issue. A failure requires a release-manager decision on remediation,
+rollback, or a corrected release.
+
+- [ ] `CLI Release Builds` completed and all expected platform binaries and
+	Sigstore signature bundles are attached to the release
+- [ ] `release-smoke` passed for Linux x64, macOS x64, macOS arm64, and Windows
+	x64; the published binaries' `--help` and `version` commands both ran
+- [ ] GitHub build provenance attestations can be verified for each published
+	CLI executable; see [RELEASE_ARTIFACT_POLICY.md](RELEASE_ARTIFACT_POLICY.md)
+- [ ] Release SBOM workflow completed and its expected SBOM files are attached
+- [ ] Published announcement is accurate, links to the release and relevant
+	upgrade/security notes, and contains no secrets or private production data
+- [ ] Production health checks, error rates, and service metrics are normal
+	after deployment; record the observation window and dashboard or CI evidence
+- [ ] Any regression, failed smoke check, or unexpected operational signal has
+	an owner and tracked follow-up; escalate rollback decisions to the release
+	manager
+
 ## Notes
 
 - This checklist is intentionally generic so it applies to every release, not just the first mainnet launch. Update it as new CI jobs or operational tooling are added — if a checklist item's evidence source moves or is renamed, fix the link here in the same PR.
-- If any box can't be checked, the release does not proceed until it's fixed or the release manager explicitly accepts the risk in writing in the sign-off table.
+- If any pre-release box can't be checked, the release does not proceed until it's fixed or the release manager explicitly accepts the risk in writing in the sign-off table.
+- Post-release checks are necessarily completed after publication; keep the release under active observation until those checks and any required decisions are recorded.

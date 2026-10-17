@@ -1,0 +1,10 @@
+{
+  "name": "@openzeppelin/contracts",
+  "version": "5.0.2",
+  "license": "MIT",
+  "maintainers": [
+    { "name": "frangio", "email": "frangio@example.com" },
+    { "name": "openzeppelin-npm", "email": "npm@example.com" }
+  ],
+  "_npmUser": { "name": "openzeppelin-npm", "email": "npm@example.com" }
+}

@@ -6,3 +6,6 @@ export * from './findings.repository';
 export * from './findings.service';
 export * from './findings.controller';
 export * from './findings.routes';
+
+// Symbol-aware finding context (#1164)
+export * from './symbol-context';
