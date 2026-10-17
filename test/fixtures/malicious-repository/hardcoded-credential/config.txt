@@ -1,0 +1,2 @@
+# Fixture only. The value below is synthetic, not a real credential.
+API_KEY=fixture-Zx9Qm2Kd7Vp1Lr4Tb8Nw

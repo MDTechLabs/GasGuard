@@ -26,3 +26,6 @@ export * from "./rule-lifecycle";
 
 // Analyzer compatibility matrix (#1025)
 export * from "./compatibility-matrix";
+
+// Analyzer plugin contract and lifecycle (#1154)
+export * from "./analyzer-plugin-contract";

@@ -39,3 +39,6 @@ export class SourceMappingEngine {
     return this.findings.get(findingId);
   }
 }
+
+// Source-map-aware finding locations (#1171)
+export * from './finding-location-resolver';

