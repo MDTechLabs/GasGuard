@@ -29,6 +29,13 @@ import {
 } from './finding.types';
 import { findingsToCsv } from './findings.csv';
 import { computeFindingFingerprint } from './finding.fingerprint';
+import {
+  RelocateFindingsInput,
+  RelocateFindingsResult,
+  planFindingRelocation,
+  buildRelocationContext,
+} from './finding-location';
+import type { LocationAnchor } from './finding.types';
 
 export interface CreateFindingInput {
   organizationId: string;
@@ -41,6 +48,8 @@ export interface CreateFindingInput {
   ruleId: string;
   filePath?: string;
   line?: number;
+  /** Content anchor captured at `line`; enables relocation across revisions. */
+  locationAnchor?: LocationAnchor;
   expiresAt?: string;
 }
 
@@ -128,6 +137,9 @@ export class FindingsService {
       ruleId: input.ruleId,
       filePath: input.filePath,
       line: input.line,
+      ...(input.locationAnchor
+        ? { locationAnchor: input.locationAnchor, locationStatus: 'exact' as const }
+        : {}),
       expiresAt: input.expiresAt,
       createdAt: now,
       updatedAt: now,
@@ -163,6 +175,66 @@ export class FindingsService {
 
   list(query: FindingListQuery): FindingListPage {
     return this.repo.list(query);
+  }
+
+  /**
+   * Re-point anchored findings of one repository at their new lines after the
+   * files changed. Scoped to (organizationId, repositoryId); idempotent for the
+   * same file contents. Files absent from `files` are left untouched, so a
+   * partial snapshot never marks findings as lost.
+   */
+  relocateFindings(input: RelocateFindingsInput): RelocateFindingsResult {
+    for (const field of ['organizationId', 'repositoryId'] as const) {
+      if (typeof input?.[field] !== 'string' || !input[field].trim()) {
+        throw Object.assign(new Error(`${field} is required`), {
+          code: 'VALIDATION_ERROR',
+          status: 400,
+        });
+      }
+    }
+    const ctx = buildRelocationContext(input);
+    const targets: Finding[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = this.repo.list({
+        organizationId: input.organizationId,
+        repositoryId: input.repositoryId,
+        limit: MAX_PAGE_LIMIT,
+        cursor,
+      });
+      targets.push(...page.items);
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+
+    const result: RelocateFindingsResult = {
+      examined: targets.length,
+      unchanged: 0,
+      relocated: 0,
+      lost: 0,
+      skippedNoAnchor: 0,
+      skippedFileNotProvided: 0,
+    };
+    const now = new Date().toISOString();
+    for (const finding of targets) {
+      const plan = planFindingRelocation(finding, ctx);
+      if (plan.kind === 'skip') {
+        if (plan.reason === 'no-anchor') result.skippedNoAnchor++;
+        else result.skippedFileNotProvided++;
+        continue;
+      }
+      if (!plan.changed) {
+        result.unchanged++;
+        continue;
+      }
+      finding.line = plan.line;
+      finding.locationAnchor = plan.anchor;
+      finding.locationStatus = plan.status;
+      finding.updatedAt = now;
+      this.repo.upsert(finding);
+      if (plan.status === 'lost') result.lost++;
+      else result.relocated++;
+    }
+    return result;
   }
 
   getForTenant(id: string, organizationId: string): Finding | undefined {

@@ -9,3 +9,6 @@ export * from './findings.routes';
 
 // Symbol-aware finding context (#1164)
 export * from './symbol-context';
+
+// Stable location mapping
+export * from './finding-location';

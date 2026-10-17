@@ -1,0 +1,43 @@
+{
+  "analyzerVersion": "1.4.0",
+  "filesAnalyzed": 4,
+  "analysisTime": 183,
+  "findings": [
+    {
+      "ruleId": "cmd-001",
+      "message": "User input reaches child_process.exec",
+      "severity": "critical",
+      "location": { "file": "src\\services\\runner.ts", "startLine": 42, "endLine": 42, "startColumn": 5, "endColumn": 38 }
+    },
+    {
+      "ruleId": "cmd-004",
+      "message": "Command built with template literal\r\nuse execFile with an argument array",
+      "severity": "ERROR",
+      "location": { "file": "./src/services/runner.ts", "startLine": 57, "endLine": 55 }
+    },
+    {
+      "ruleId": "cmd-001",
+      "message": "User input reaches child_process.exec",
+      "severity": "high",
+      "location": { "file": "src/services/runner.ts", "startLine": 42, "endLine": 42, "startColumn": 5, "endColumn": 38 }
+    },
+    {
+      "ruleId": "cmd-002",
+      "message": "shell: true enabled on dynamic input",
+      "severity": "warning",
+      "file": "scripts/deploy/../deploy.py",
+      "line": 9
+    },
+    {
+      "ruleId": "gas-007",
+      "message": "Storage read inside loop",
+      "severity": "medium",
+      "location": { "file": "contracts/Vault.sol", "startLine": 120, "endLine": 131 },
+      "estimatedGasSavings": 2100,
+      "metadata": { "z": 1, "a": { "y": 2, "b": 3 } }
+    }
+  ],
+  "errors": [
+    { "file": "docs\\broken.md", "message": "unsupported encoding" }
+  ]
+}

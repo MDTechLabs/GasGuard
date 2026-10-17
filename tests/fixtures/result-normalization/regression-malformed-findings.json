@@ -1,0 +1,12 @@
+{
+  "findings": [
+    null,
+    "not-a-finding",
+    { "message": "no rule id", "severity": "high", "location": { "file": "a.ts", "startLine": 1 } },
+    { "ruleId": "r-1", "message": "escapes the repo", "severity": "high", "location": { "file": "../../etc/passwd", "startLine": 1 } },
+    { "ruleId": "r-2", "message": "host path leak", "severity": "high", "location": { "file": "/home/runner/work/app/src/a.ts", "startLine": 1 } },
+    { "ruleId": "r-3", "message": "", "severity": "bogus", "location": { "file": "src/a.ts", "startLine": 0, "endLine": -4, "startColumn": 9, "endColumn": 2 }, "estimatedGasSavings": -50 },
+    { "ruleId": "r-4", "message": "ok", "severity": "low", "location": { "file": "src/b.ts", "startLine": 7.9 } }
+  ],
+  "errors": [{ "file": "../outside.ts", "message": "bad" }, "junk"]
+}

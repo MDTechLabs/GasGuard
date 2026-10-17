@@ -2,6 +2,10 @@
  * Finding domain types and list query contract (#992).
  */
 
+import type { LocationAnchor, LocationStatus } from '@engine/core/location-mapper';
+
+export type { LocationAnchor, LocationStatus };
+
 export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type FindingStatus = 'open' | 'suppressed' | 'resolved' | 'accepted';
 
@@ -18,6 +22,13 @@ export interface Finding {
   ruleId: string;
   filePath?: string;
   line?: number;
+  /**
+   * Content anchor for `line`, used to follow the code as the file changes.
+   * Absent on findings created before location mapping existed.
+   */
+  locationAnchor?: LocationAnchor;
+  /** Result of the last relocation against a newer revision of the file. */
+  locationStatus?: LocationStatus;
   /** Current assignee (user/team/module) (#1035). */
   assignedTo?: string;
   /** Actor who performed the last assignment/reassignment (#1035). */
