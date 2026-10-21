@@ -35,3 +35,9 @@ export * from "./location-mapper";
 
 // Analyzer plugin contract and lifecycle (#1154)
 export * from "./analyzer-plugin-contract";
+
+// Rule pack dependency lockfile support
+export * from "./rule-pack-lockfile";
+
+// Language-specific analyzer capability registry
+export * from "./language-capability-registry";
