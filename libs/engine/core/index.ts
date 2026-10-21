@@ -41,3 +41,6 @@ export * from "./rule-pack-lockfile";
 
 // Language-specific analyzer capability registry
 export * from "./language-capability-registry";
+
+// Cross-file reference resolution
+export * from "./cross-file-resolver";
