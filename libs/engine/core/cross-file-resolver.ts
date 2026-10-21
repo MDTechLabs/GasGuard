@@ -492,6 +492,14 @@ function mask(text: string, language: CrossFileLanguage, keepStrings: boolean): 
   return out.join("");
 }
 
+/**
+ * Blanks comments and string contents for a supported language, keeping every
+ * offset and newline. Shared with the lexical parser fallback.
+ */
+export function maskSource(text: string, language: CrossFileLanguage): string {
+  return mask(text, language, false);
+}
+
 function lineStarts(text: string): number[] {
   const starts = [0];
   for (let i = 0; i < text.length; i++) if (text[i] === "\n") starts.push(i + 1);
