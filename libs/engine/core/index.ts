@@ -44,3 +44,6 @@ export * from "./language-capability-registry";
 
 // Cross-file reference resolution
 export * from "./cross-file-resolver";
+
+// Rule-level confidence calibration
+export * from "./confidence-calibration";

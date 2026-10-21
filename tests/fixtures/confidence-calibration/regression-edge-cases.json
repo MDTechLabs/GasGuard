@@ -1,0 +1,117 @@
+{
+  "description": "Edge cases: stale and malformed profiles, duplicates, saturated counts, bad raw confidence, overrides.",
+  "config": {
+    "rulePackVersion": "2.1.0",
+    "minSamples": 5,
+    "profiles": [
+      {
+        "ruleId": "stale-rule",
+        "truePositives": 0,
+        "falsePositives": 50,
+        "rulePackVersion": "2.0.0"
+      },
+      {
+        "ruleId": "bad-counts",
+        "truePositives": -1,
+        "falsePositives": 3,
+        "rulePackVersion": "2.1.0"
+      },
+      {
+        "ruleId": "bad-prior",
+        "truePositives": 5,
+        "falsePositives": 3,
+        "priorConfidence": 1.5,
+        "rulePackVersion": "2.1.0"
+      },
+      {
+        "ruleId": "dup-rule",
+        "truePositives": 1,
+        "falsePositives": 1,
+        "rulePackVersion": "2.1.0"
+      },
+      {
+        "ruleId": "dup-rule",
+        "truePositives": 90,
+        "falsePositives": 10,
+        "rulePackVersion": "2.1.0"
+      },
+      {
+        "ruleId": "always-wrong",
+        "truePositives": 0,
+        "falsePositives": 200,
+        "rulePackVersion": "2.1.0"
+      },
+      {
+        "ruleId": "always-right",
+        "truePositives": 200,
+        "falsePositives": 0,
+        "rulePackVersion": "2.1.0"
+      }
+    ],
+    "ruleOverrides": {
+      "pinned-rule": {
+        "confidence": 0.95
+      },
+      "noisy-rule": {
+        "minConfidence": 0.9
+      }
+    },
+    "minConfidence": 0.3
+  },
+  "findings": [
+    {
+      "ruleId": "stale-rule",
+      "message": "m"
+    },
+    {
+      "ruleId": "bad-counts",
+      "message": "m"
+    },
+    {
+      "ruleId": "bad-prior",
+      "message": "m"
+    },
+    {
+      "ruleId": "dup-rule",
+      "message": "m"
+    },
+    {
+      "ruleId": "always-wrong",
+      "message": "m",
+      "metadata": {
+        "confidence": 0.99
+      }
+    },
+    {
+      "ruleId": "always-right",
+      "message": "m",
+      "metadata": {
+        "confidence": 0.01
+      }
+    },
+    {
+      "ruleId": "pinned-rule",
+      "message": "m",
+      "metadata": {
+        "confidence": 0.1
+      }
+    },
+    {
+      "ruleId": "noisy-rule",
+      "message": "m",
+      "metadata": {
+        "confidence": 0.8
+      }
+    },
+    {
+      "ruleId": "garbage-confidence",
+      "message": "m",
+      "metadata": {
+        "confidence": "high"
+      }
+    },
+    {
+      "message": "no rule id"
+    }
+  ]
+}

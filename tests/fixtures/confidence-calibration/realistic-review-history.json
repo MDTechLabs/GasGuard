@@ -1,0 +1,639 @@
+{
+  "description": "Review history from a quarter of scans plus the findings of a new scan.",
+  "rulePackVersion": "2.1.0",
+  "outcomes": [
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "ignored",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "ignored",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "ignored",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unused-import",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unused-import",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unused-import",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.1.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "true_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    },
+    {
+      "ruleId": "unchecked-return",
+      "verdict": "false_positive",
+      "rulePackVersion": "2.0.0"
+    }
+  ],
+  "findings": [
+    {
+      "ruleId": "unchecked-return",
+      "message": "return value ignored",
+      "location": {
+        "file": "contracts/Vault.sol",
+        "startLine": 42
+      }
+    },
+    {
+      "ruleId": "unchecked-return",
+      "message": "return value ignored",
+      "location": {
+        "file": "contracts/Pool.sol",
+        "startLine": 88
+      },
+      "metadata": {
+        "confidence": 0.9
+      }
+    },
+    {
+      "ruleId": "storage-in-loop",
+      "message": "SLOAD inside loop",
+      "location": {
+        "file": "contracts/Vault.sol",
+        "startLine": 57
+      }
+    },
+    {
+      "ruleId": "unused-import",
+      "message": "import never used",
+      "location": {
+        "file": "contracts/Vault.sol",
+        "startLine": 5
+      }
+    },
+    {
+      "ruleId": "new-rule",
+      "message": "no history yet",
+      "location": {
+        "file": "contracts/Pool.sol",
+        "startLine": 3
+      },
+      "metadata": {
+        "confidence": 0.7
+      }
+    }
+  ]
+}
