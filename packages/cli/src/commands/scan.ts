@@ -18,7 +18,7 @@ import type {
   Finding as EngineFinding,
 } from "../../../../libs/engine/core/analyzer-interface";
 import { ScanWatcher } from "../../../../src/analysis/watch/watcher";
-import { glob } from "glob";
+import { globIterate } from "glob";
 import { loadCliConfig } from "../config/config-loader";
 import {
   finishProgress,
@@ -132,7 +132,11 @@ export const scanCommand = new Command("scan")
         process.exitCode = 130;
         return;
       }
-      console.error(chalk.red(`Error during scan: ${error}`));
+      const message =
+        error instanceof RepositoryAnalysisError
+          ? `${error.code}: ${error.message}`
+          : String(error);
+      console.error(chalk.red(`Error during scan: ${message}`));
       process.exitCode = 1;
     } finally {
       process.removeListener("SIGINT", abort);
@@ -298,16 +302,16 @@ export async function collectScannableFiles(
   const patterns = limits.include?.length
     ? limits.include
     : ["**/*.sol", "**/*.vy", "**/*.rs"];
-  const discovered = await glob(patterns, {
+  const discovered = globIterate(patterns, {
     cwd: path.resolve(dirPath),
     absolute: true,
     nodir: true,
     ignore: [...defaultExcludes, ...(limits.exclude ?? [])],
   });
-  for (const file of discovered
-    .filter((candidate) => extensions.includes(path.extname(candidate)))
-    .sort()) {
+  const seen = new Set<string>();
+  for await (const file of discovered) {
     checkCancelled();
+    if (!extensions.includes(path.extname(file)) || seen.has(file)) continue;
     if (files.length >= maxFiles) {
       throw new RepositoryAnalysisError(
         `Repository exceeds the ${maxFiles} file limit.`,
@@ -323,8 +327,9 @@ export async function collectScannableFiles(
     }
     totalBytes += fileStats.size;
     files.push(file);
+    seen.add(file);
   }
-  return files;
+  return files.sort();
 }
 
 function asConfigObject(value: unknown): Record<string, unknown> {

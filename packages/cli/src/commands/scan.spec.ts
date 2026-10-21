@@ -114,4 +114,42 @@ describe("runScan", () => {
       code: "SIZE_LIMIT_EXCEEDED",
     });
   });
+
+  it("accepts repositories exactly at the file and source-byte limits", async () => {
+    const sourceFiles = ["contract A {}", "contract B {}"];
+    await fs.writeFile(path.join(directory, "A.sol"), sourceFiles[0]);
+    await fs.writeFile(path.join(directory, "B.sol"), sourceFiles[1]);
+    const totalBytes = sourceFiles.reduce(
+      (total, source) => total + Buffer.byteLength(source),
+      0,
+    );
+
+    await expect(
+      collectScannableFiles(directory, {
+        maxFiles: sourceFiles.length,
+        maxBytes: totalBytes,
+      }),
+    ).resolves.toHaveLength(sourceFiles.length);
+  });
+
+  it("rejects the first file or byte beyond the configured preflight limit", async () => {
+    const sourceFiles = ["contract A {}", "contract B {}"];
+    await fs.writeFile(path.join(directory, "A.sol"), sourceFiles[0]);
+    await fs.writeFile(path.join(directory, "B.sol"), sourceFiles[1]);
+    const totalBytes = sourceFiles.reduce(
+      (total, source) => total + Buffer.byteLength(source),
+      0,
+    );
+
+    await expect(
+      collectScannableFiles(directory, { maxFiles: sourceFiles.length - 1 }),
+    ).rejects.toMatchObject<Partial<RepositoryAnalysisError>>({
+      code: "FILE_LIMIT_EXCEEDED",
+    });
+    await expect(
+      collectScannableFiles(directory, { maxBytes: totalBytes - 1 }),
+    ).rejects.toMatchObject<Partial<RepositoryAnalysisError>>({
+      code: "SIZE_LIMIT_EXCEEDED",
+    });
+  });
 });
