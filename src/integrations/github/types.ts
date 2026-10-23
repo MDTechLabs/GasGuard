@@ -17,6 +17,8 @@ export interface GitHubAuthConfig {
   appId?: string;
   installationId?: string;
   privateKey?: string;
+  /** GitHub Enterprise Server URL; defaults to github.com */
+  baseUrl?: string;
 }
 
 export interface BranchProtectionRule {

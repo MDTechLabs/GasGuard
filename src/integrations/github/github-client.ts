@@ -8,6 +8,12 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { GitHubAuthConfig, GitHubRepository, AccessDiagnosticResult } from './types';
 import { createSafeAgent } from '../../security/dns';
+import { resolveGitHubApiBaseUrl } from './enterprise-config';
+import {
+  TOKEN_EXPIRATION_HEADER,
+  TokenExpirationDiagnostic,
+  diagnoseTokenExpiration,
+} from './token-expiration';
 
 export class GitHubClient {
   private client: AxiosInstance;
@@ -16,7 +22,7 @@ export class GitHubClient {
   constructor(auth: GitHubAuthConfig = {}) {
     this.auth = auth;
     this.client = axios.create({
-      baseURL: 'https://api.github.com',
+      baseURL: resolveGitHubApiBaseUrl(auth.baseUrl),
       httpAgent: createSafeAgent('http'),
       httpsAgent: createSafeAgent('https'),
       headers: {
@@ -215,6 +221,18 @@ export class GitHubClient {
       remaining: rateData.remaining,
       reset: new Date(rateData.reset * 1000),
     };
+  }
+
+  /**
+   * Report when the configured token expires
+   */
+  async getTokenExpiration(warnDays?: number): Promise<TokenExpirationDiagnostic> {
+    const response = await this.client.get('/user');
+    return diagnoseTokenExpiration(
+      response.headers[TOKEN_EXPIRATION_HEADER],
+      new Date(),
+      warnDays,
+    );
   }
 
   /**
