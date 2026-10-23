@@ -6,6 +6,7 @@ This module provides comprehensive GitHub repository integration features for Ga
 - **Private Repository Access Diagnostics** (#1048) - Comprehensive diagnostics for accessing private GitHub repositories
 - **Branch Protection Awareness** (#1044) - Understand and work with GitHub branch protection rules
 - **Repository Language Detection** (#1046) - Detect and analyze programming languages used in repositories
+- **GitHub App Permission Minimization Checks** (#1244) - Flag GitHub App installations granted more access than GasGuard actually uses
 
 ## Installation
 
@@ -477,6 +478,29 @@ const result = await validator.validateRepositoryInstallation('MDTechLabs', 'Gas
 if (!result.valid) {
   console.error('Installation invalid:', result.errors);
   console.log('Remediation:', result.details);
+}
+```
+
+### 8. GitHub App Permission Minimization Checks (#1244)
+
+`InstallationValidator` (above) checks that an installation has *at least*
+the permissions GasGuard needs. `PermissionMinimizationChecker` checks the
+opposite — that it doesn't have *more* than GasGuard needs — against a
+fixed baseline (`GASGUARD_BASELINE_PERMISSIONS`) kept in sync with what
+`GitHubClient` actually calls. An installation can pass one check and fail
+the other; they're independent.
+
+```typescript
+import { PermissionMinimizationChecker, GitHubClient } from '@/integrations/github';
+
+const checker = new PermissionMinimizationChecker(client);
+const result = await checker.checkRepositoryInstallation('MDTechLabs', 'GasGuard');
+
+if (!result.isMinimized) {
+  console.warn('Over-privileged installation:', result.recommendations);
+  // result.excessPermissions:  granted above the level GasGuard uses
+  // result.unusedPermissions:  granted but never used at all
+  // result.broadRepositorySelection: installed on 'all' repos, not 'selected'
 }
 ```
 
