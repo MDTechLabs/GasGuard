@@ -9,11 +9,12 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
-import { RegisterWebhookDto, UpdateWebhookDto, AlertConfigDto } from '../dto/gas-spike-alert.dto';
-import { WebhookDispatcherService } from '../services/webhook-dispatcher.service';
-import { GasMonitorService } from '../services/gas-monitor.service';
-import { SpikeClassifierService } from '../services/spike-classifier.service';
+import { RegisterWebhookDto, UpdateWebhookDto, AlertConfigDto } from './gas-spike-alert.dto';
+import { WebhookDispatcherService } from './webhook-dispatcher.service';
+import { GasMonitorService } from './gas-monitor.service';
+import { SpikeClassifierService } from './spike-classifier.service';
 
 @Controller('alerts')
 export class AlertsController {
@@ -51,6 +52,64 @@ export class AlertsController {
       secret: '***redacted***',
     }));
     return { subscriptions };
+  }
+
+  // ─── Dead-Letter Endpoints (#1243) ────────────────────────────────
+  // Registered before the generic `webhook/:id` routes below: Nest/Express
+  // match routes in registration order, and `webhook/dead-letter` would
+  // otherwise be captured by `webhook/:id` with id="dead-letter".
+
+  /**
+   * GET /alerts/webhook/dead-letter
+   * List deliveries that exhausted all retries, optionally filtered by
+   * subscription (?subscriptionId=...).
+   */
+  @Get('webhook/dead-letter')
+  listDeadLetters(@Query('subscriptionId') subscriptionId?: string) {
+    return { entries: this.dispatcher.listDeadLetters(subscriptionId) };
+  }
+
+  /**
+   * GET /alerts/webhook/dead-letter/:id
+   */
+  @Get('webhook/dead-letter/:id')
+  getDeadLetter(@Param('id') id: string) {
+    return this.dispatcher.getDeadLetter(id);
+  }
+
+  /**
+   * POST /alerts/webhook/dead-letter/:id/replay
+   * Re-attempt one dead-lettered delivery against the subscription's
+   * current URL/secret. Removed from the queue on success.
+   */
+  @Post('webhook/dead-letter/:id/replay')
+  async replayDeadLetter(@Param('id') id: string) {
+    return this.dispatcher.replayDeadLetter(id);
+  }
+
+  /**
+   * POST /alerts/webhook/dead-letter/replay
+   * Replay every dead-lettered delivery, optionally scoped to one
+   * subscription via { "subscriptionId": "..." } in the body.
+   */
+  @Post('webhook/dead-letter/replay')
+  async replayAllDeadLetters(@Body() body: { subscriptionId?: string }) {
+    const results = await this.dispatcher.replayAllDeadLetters(body?.subscriptionId);
+    return {
+      replayed: results.length,
+      succeeded: results.filter((r) => r.succeeded).length,
+      results,
+    };
+  }
+
+  /**
+   * DELETE /alerts/webhook/dead-letter/:id
+   * Permanently discard a dead-lettered delivery without replaying it.
+   */
+  @Delete('webhook/dead-letter/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  discardDeadLetter(@Param('id') id: string): void {
+    this.dispatcher.discardDeadLetter(id);
   }
 
   /**

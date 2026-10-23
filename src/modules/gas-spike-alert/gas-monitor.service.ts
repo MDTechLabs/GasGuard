@@ -7,9 +7,9 @@ import {
 import {
   AlertPayload,
   GasSnapshot,
-} from '../interfaces/gas-spike.interface';
-import { Severity } from '../enums/severity.enum';
-import { RECOMMENDATIONS, MONITOR_INTERVAL_MS } from '../constants/thresholds';
+} from './gas-spike.interface';
+import { Severity } from './severity.enum';
+import { RECOMMENDATIONS, MONITOR_INTERVAL_MS } from './thresholds';
 import { SpikeClassifierService } from './spike-classifier.service';
 import { ThresholdEngineService } from './threshold-engine.service';
 import { WebhookDispatcherService } from './webhook-dispatcher.service';
