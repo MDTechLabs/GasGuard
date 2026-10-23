@@ -9,6 +9,7 @@
  * - Pull request changed-file discovery (#1043)
  * - GitHub organization allowlists (#1042)
  * - GitHub repository installation validation (#1041)
+ * - GitHub App permission minimization checks (#1244)
  */
 
 export * from './types';
@@ -20,6 +21,7 @@ export * from './language-detection';
 export * from './pull-request-discovery';
 export * from './organization-allowlist';
 export * from './installation-validator';
+export * from './permission-minimization';
 export * from './enterprise-config';
 export * from './token-expiration';
 
@@ -31,6 +33,7 @@ import { LanguageDetector } from './language-detection';
 import { PullRequestFileDiscovery } from './pull-request-discovery';
 import { OrganizationAllowlist } from './organization-allowlist';
 import { InstallationValidator } from './installation-validator';
+import { PermissionMinimizationChecker } from './permission-minimization';
 import {
   GitHubRepository,
   GitHubIntegrationConfig,
@@ -54,6 +57,7 @@ export class GitHubIntegration {
   private prDiscovery: PullRequestFileDiscovery;
   private allowlist?: OrganizationAllowlist;
   private installationValidator: InstallationValidator;
+  private permissionMinimizationChecker: PermissionMinimizationChecker;
 
   constructor(config: ExtendedGitHubIntegrationConfig) {
     this.repository = config.repository;
@@ -64,6 +68,7 @@ export class GitHubIntegration {
     this.languageDetector = new LanguageDetector(this.client, config.repository);
     this.prDiscovery = new PullRequestFileDiscovery(this.client, config.repository);
     this.installationValidator = new InstallationValidator(this.client, config.repository);
+    this.permissionMinimizationChecker = new PermissionMinimizationChecker(this.client);
 
     if (config.organizationAllowlist) {
       this.allowlist = new OrganizationAllowlist(config.organizationAllowlist, this.client);
@@ -127,6 +132,13 @@ export class GitHubIntegration {
   }
 
   /**
+   * Get the GitHub App permission minimization checker (#1244)
+   */
+  getPermissionMinimizationChecker(): PermissionMinimizationChecker {
+    return this.permissionMinimizationChecker;
+  }
+
+  /**
    * Run a comprehensive repository analysis
    */
   async analyzeRepository(): Promise<{
@@ -135,6 +147,7 @@ export class GitHubIntegration {
     branchProtection: any;
     access: any;
     installation: any;
+    permissionMinimization: any;
   }> {
     const results = {
       monorepo: false,
@@ -142,6 +155,7 @@ export class GitHubIntegration {
       branchProtection: null,
       access: null,
       installation: null,
+      permissionMinimization: null,
     };
 
     try {
@@ -171,6 +185,15 @@ export class GitHubIntegration {
       // Validate installation
       if (this.installationValidator) {
         results.installation = await this.installationValidator.validateRepositoryInstallation();
+      }
+
+      // Check installation permission minimization
+      if (this.permissionMinimizationChecker) {
+        results.permissionMinimization =
+          await this.permissionMinimizationChecker.checkRepositoryInstallation(
+            this.repository.owner,
+            this.repository.repo,
+          );
       }
     } catch (error) {
       console.error('Repository analysis failed:', error);

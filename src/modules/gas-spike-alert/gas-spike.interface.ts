@@ -1,4 +1,4 @@
-import { Severity, SpikeType } from '../enums/severity.enum';
+import { Severity, SpikeType } from './severity.enum';
 
 /** Raw gas price snapshot fetched per chain */
 export interface GasSnapshot {

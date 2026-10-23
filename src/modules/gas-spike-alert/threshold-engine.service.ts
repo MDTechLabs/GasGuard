@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Severity, SpikeType } from '../enums/severity.enum';
-import { DEFAULT_THRESHOLDS } from '../constants/thresholds';
+import { Severity, SpikeType } from './severity.enum';
+import { DEFAULT_THRESHOLDS } from './thresholds';
 import {
   EnrichedSnapshot,
   ThresholdResult,
-} from '../interfaces/gas-spike.interface';
+} from './gas-spike.interface';
 import { SpikeClassifierService } from './spike-classifier.service';
 
 /**

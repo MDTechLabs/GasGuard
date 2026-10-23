@@ -12,7 +12,7 @@ import {
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Severity } from '../enums/severity.enum';
+import { Severity } from './severity.enum';
 
 export class RegisterWebhookDto {
   @IsUrl({ require_tld: false, require_protocol: true })

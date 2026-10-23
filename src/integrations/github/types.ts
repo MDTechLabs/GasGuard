@@ -147,3 +147,35 @@ export interface InstallationValidationOptions {
   requiredPermissions?: Record<string, string>;
   checkAccess?: boolean;
 }
+
+// --- GitHub App Permission Minimization (#1244) ---
+export interface ExcessPermission {
+  permission: string;
+  grantedLevel: string;
+  requiredLevel: string;
+}
+
+export interface PermissionMinimizationOptions {
+  /**
+   * Override GasGuard's default baseline (GASGUARD_BASELINE_PERMISSIONS) —
+   * e.g. a stricter environment-specific policy, or for testing.
+   */
+  baselinePermissions?: Record<string, string>;
+}
+
+export interface PermissionMinimizationResult {
+  installationId?: number;
+  /** True only when there is no excess permission, no unused permission, and repository selection is not 'all'. */
+  isMinimized: boolean;
+  /** Permissions granted at a higher level than GasGuard's baseline requires. */
+  excessPermissions: ExcessPermission[];
+  /** Permissions granted that do not appear in GasGuard's baseline at all. */
+  unusedPermissions: string[];
+  /** True when the installation is scoped to 'all' repositories rather than a selected subset. */
+  broadRepositorySelection: boolean;
+  repositorySelection: 'all' | 'selected';
+  grantedPermissions: Record<string, string>;
+  baselinePermissions: Record<string, string>;
+  /** Human-readable remediation steps, one per finding. */
+  recommendations: string[];
+}

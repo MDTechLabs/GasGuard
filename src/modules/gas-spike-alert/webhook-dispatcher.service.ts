@@ -8,14 +8,19 @@ import { createHmac, randomBytes } from 'crypto';
 import {
   AlertPayload,
   WebhookSubscription,
-} from '../interfaces/gas-spike.interface';
-import { Severity } from '../enums/severity.enum';
+} from './gas-spike.interface';
+import { Severity } from './severity.enum';
 import {
   WEBHOOK_HMAC_ALGO,
   WEBHOOK_MAX_RETRIES,
   WEBHOOK_BACKOFF_BASE_MS,
-} from '../constants/thresholds';
-import { RegisterWebhookDto, UpdateWebhookDto } from '../dto/gas-spike-alert.dto';
+} from './thresholds';
+import { RegisterWebhookDto, UpdateWebhookDto } from './gas-spike-alert.dto';
+import {
+  DeadLetterEntry,
+  ReplayResult,
+  WebhookDeadLetterService,
+} from './webhook-dead-letter.service';
 
 /**
  * WebhookDispatcherService
@@ -45,6 +50,8 @@ export class WebhookDispatcherService {
 
   /** In-memory subscription store (replace with DB entity in production) */
   private readonly subscriptions = new Map<string, WebhookSubscription>();
+
+  constructor(private readonly deadLetterService: WebhookDeadLetterService) {}
 
   // ─── Subscription management ─────────────────────────────────────
 
@@ -124,9 +131,53 @@ export class WebhookDispatcherService {
   }
 
   /**
-   * Dispatch to a single subscription with retry + back-off.
+   * Dispatch to a single subscription with retry + back-off. Once
+   * WEBHOOK_MAX_RETRIES is exhausted, the delivery is handed to the
+   * dead-letter queue instead of being dropped (#1243) so it can be
+   * inspected and replayed later via replayDeadLetter().
    */
   async dispatchOne(
+    sub: WebhookSubscription,
+    payload: AlertPayload,
+  ): Promise<void> {
+    let lastError = 'Unknown error';
+
+    for (let attempt = 1; attempt <= WEBHOOK_MAX_RETRIES; attempt++) {
+      try {
+        await this.attemptDelivery(sub, payload);
+        this.logger.log(
+          `Webhook ${sub.id} dispatched successfully (attempt ${attempt})`,
+        );
+        return;
+      } catch (err) {
+        lastError = (err as Error).message;
+        this.logger.warn(
+          `Webhook ${sub.id} attempt ${attempt} failed: ${lastError}`,
+        );
+      }
+
+      if (attempt < WEBHOOK_MAX_RETRIES) {
+        await this.sleep(WEBHOOK_BACKOFF_BASE_MS * Math.pow(2, attempt - 1));
+      }
+    }
+
+    this.logger.error(
+      `Webhook ${sub.id} failed after ${WEBHOOK_MAX_RETRIES} attempts`,
+    );
+    this.deadLetterService.record({
+      subscription: sub,
+      payload,
+      attempts: WEBHOOK_MAX_RETRIES,
+      lastError,
+    });
+  }
+
+  /**
+   * A single delivery attempt: sign + POST, throwing on a network error or
+   * a non-2xx response. Shared by dispatchOne's retry loop and by
+   * replayDeadLetter, so both paths sign and send identically.
+   */
+  private async attemptDelivery(
     sub: WebhookSubscription,
     payload: AlertPayload,
   ): Promise<void> {
@@ -138,43 +189,68 @@ export class WebhookDispatcherService {
     const httpAgent = createSafeAgent('http');
     const httpsAgent = createSafeAgent('https');
 
-    for (let attempt = 1; attempt <= WEBHOOK_MAX_RETRIES; attempt++) {
-      try {
-        const response = await axios.post(sub.url, payload, {
-          httpAgent,
-          httpsAgent,
-          validateStatus: () => true,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-GasGuard-Signature': `${WEBHOOK_HMAC_ALGO}=${signature}`,
-            'X-GasGuard-Subscription-ID': sub.id,
-            'X-GasGuard-Timestamp': String(payload.timestamp),
-          },
-        });
+    const response = await axios.post(sub.url, payload, {
+      httpAgent,
+      httpsAgent,
+      validateStatus: () => true,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-GasGuard-Signature': `${WEBHOOK_HMAC_ALGO}=${signature}`,
+        'X-GasGuard-Subscription-ID': sub.id,
+        'X-GasGuard-Timestamp': String(payload.timestamp),
+      },
+    });
 
-        if (response.status >= 200 && response.status < 300) {
-          this.logger.log(
-            `Webhook ${sub.id} dispatched successfully (attempt ${attempt})`,
-          );
-          return;
-        }
-
-        this.logger.warn(
-          `Webhook ${sub.id} attempt ${attempt} returned HTTP ${response.status}`,
-        );
-      } catch (err) {
-        this.logger.warn(
-          `Webhook ${sub.id} attempt ${attempt} network error: ${(err as Error).message}`,
-        );
-      }
-
-      if (attempt < WEBHOOK_MAX_RETRIES) {
-        await this.sleep(WEBHOOK_BACKOFF_BASE_MS * Math.pow(2, attempt - 1));
-      }
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`HTTP ${response.status}`);
     }
+  }
 
-    this.logger.error(
-      `Webhook ${sub.id} failed after ${WEBHOOK_MAX_RETRIES} attempts`,
+  // ─── Dead-letter replay (#1243) ───────────────────────────────────
+
+  /** List dead-lettered deliveries, optionally scoped to one subscription. */
+  listDeadLetters(subscriptionId?: string): DeadLetterEntry[] {
+    return this.deadLetterService.list(subscriptionId);
+  }
+
+  getDeadLetter(id: string): DeadLetterEntry {
+    return this.deadLetterService.get(id);
+  }
+
+  discardDeadLetter(id: string): void {
+    this.deadLetterService.discard(id);
+  }
+
+  /**
+   * Replay a single dead-lettered delivery against the subscription's
+   * *current* record (so a URL/secret fix since the original failure takes
+   * effect); the payload itself is replayed unchanged from the original
+   * failure. Throws NotFoundException if the subscription was deleted —
+   * discard the entry instead in that case, there is nothing to deliver to.
+   */
+  async replayDeadLetter(id: string): Promise<ReplayResult> {
+    const entry = this.deadLetterService.get(id);
+    const subscription = this.findById(entry.subscriptionId);
+    return this.deadLetterService.replay(id, subscription, (sub, payload) =>
+      this.attemptDelivery(sub, payload),
+    );
+  }
+
+  /**
+   * Replay every dead-lettered delivery, optionally scoped to one
+   * subscription. Runs replays concurrently; one failure doesn't block the
+   * others — inspect the returned results to see which succeeded.
+   */
+  async replayAllDeadLetters(subscriptionId?: string): Promise<ReplayResult[]> {
+    const entries = this.deadLetterService.list(subscriptionId);
+    const results = await Promise.allSettled(
+      entries.map((entry) => this.replayDeadLetter(entry.id)),
+    );
+
+    return results.map((result, i) =>
+      result.status === 'fulfilled'
+        ? result.value
+        : { id: entries[i].id, succeeded: false, error: (result.reason as Error).message },
     );
   }
 

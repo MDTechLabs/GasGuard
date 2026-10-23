@@ -1,4 +1,4 @@
-import { Severity, SpikeType } from '../enums/severity.enum';
+import { Severity, SpikeType } from './severity.enum';
 
 export interface SeverityBand {
   min: number;

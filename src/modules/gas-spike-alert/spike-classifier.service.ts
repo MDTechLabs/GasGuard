@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { Severity, SpikeType } from '../enums/severity.enum';
+import { Severity, SpikeType } from './severity.enum';
 import {
   DEFAULT_THRESHOLDS,
   MOVING_AVERAGE_WINDOW,
   MAX_HISTORY_POINTS,
-} from '../constants/thresholds';
+} from './thresholds';
 import {
   GasSnapshot,
   EnrichedSnapshot,
   CustomThresholdConfig,
-} from '../interfaces/gas-spike.interface';
+} from './gas-spike.interface';
 
 /**
  * SpikeClassifierService
