@@ -6,3 +6,4 @@
 
 export * from './wallets/stellar';
 export * from './github';
+export * from './webhooks';
