@@ -25,6 +25,15 @@ import {
   UsageStats,
   MAX_TRANSACTION_LIMITS,
 } from "../schemas/rate-limit.schema";
+import { Roles, Role } from "../../auth/decorators";
+
+/**
+ * Per-API-key quota/usage/reset management (Issue #1240). These operate on
+ * another caller's token, not the current caller's own — without the admin
+ * role restriction below, any authenticated user could inflate their own
+ * limits or degrade another tenant's by targeting its API key here, which
+ * would defeat the per-token isolation this module exists to enforce.
+ */
 
 interface UpdateQuotaDto {
   requestsPerMinute?: number;
@@ -47,6 +56,7 @@ interface ResetResponse {
 }
 
 @Controller("admin/api-keys")
+@Roles(Role.ADMIN)
 export class RateLimitAdminController {
   private readonly logger = new Logger(RateLimitAdminController.name);
 
