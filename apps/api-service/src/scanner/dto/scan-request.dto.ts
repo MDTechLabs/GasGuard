@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty, IsOptional, MaxLength } from "class-validator";
 
-export const MAX_SCAN_CODE_BYTES = 1MB * 1024 * 1024;
+export const MAX_SCAN_CODE_BYTES = 1 * 1024 * 1024;
 
 export class ScanRequestDto {
   @IsString()
