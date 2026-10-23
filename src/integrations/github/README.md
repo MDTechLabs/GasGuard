@@ -496,3 +496,12 @@ const client = new GitHubClient({
 Failure semantics: a non-https URL, embedded credentials, a query/fragment, or a
 path other than `/api/v3` throws at construction. Existing configs without
 `baseUrl` are unchanged.
+
+## Token expiration diagnostics
+
+`client.getTokenExpiration(warnDays = 7)` reads the
+`github-authentication-token-expiration` header and returns
+`{ status, expiresAt?, msRemaining?, message }` where `status` is one of
+`no_expiry`, `valid`, `expiring_soon`, `expired`, `invalid`. `diagnoseTokenExpiration`
+is exported for use on a header value directly. Tokens are never included in
+messages. Request errors (e.g. 401) propagate from the client unchanged.
