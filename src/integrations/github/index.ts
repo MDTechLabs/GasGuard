@@ -20,6 +20,7 @@ export * from './language-detection';
 export * from './pull-request-discovery';
 export * from './organization-allowlist';
 export * from './installation-validator';
+export * from './enterprise-config';
 
 import { GitHubClient } from './github-client';
 import { MonorepoBoundaryDetector } from './monorepo-boundaries';

@@ -479,3 +479,20 @@ if (!result.valid) {
   console.log('Remediation:', result.details);
 }
 ```
+
+## GitHub Enterprise Server
+
+Set `baseUrl` on the auth config to target a GHES instance. Both the host URL and
+the API URL are accepted and normalized to `<host>/api/v3`; omitting it keeps
+`https://api.github.com`.
+
+```typescript
+const client = new GitHubClient({
+  token: process.env.GHES_TOKEN,
+  baseUrl: 'https://ghe.example.com',
+});
+```
+
+Failure semantics: a non-https URL, embedded credentials, a query/fragment, or a
+path other than `/api/v3` throws at construction. Existing configs without
+`baseUrl` are unchanged.

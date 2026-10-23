@@ -8,6 +8,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { GitHubAuthConfig, GitHubRepository, AccessDiagnosticResult } from './types';
 import { createSafeAgent } from '../../security/dns';
+import { resolveGitHubApiBaseUrl } from './enterprise-config';
 
 export class GitHubClient {
   private client: AxiosInstance;
@@ -16,7 +17,7 @@ export class GitHubClient {
   constructor(auth: GitHubAuthConfig = {}) {
     this.auth = auth;
     this.client = axios.create({
-      baseURL: 'https://api.github.com',
+      baseURL: resolveGitHubApiBaseUrl(auth.baseUrl),
       httpAgent: createSafeAgent('http'),
       httpsAgent: createSafeAgent('https'),
       headers: {
