@@ -90,9 +90,46 @@ export class FindingsRepository {
     this.byId.clear();
   }
 
+  /**
+   * Insert-or-update by id (#1230). On conflict the original `createdAt` is
+   * kept, and an id that already belongs to another tenant/repository is
+   * rejected instead of silently overwritten.
+   */
   upsert(finding: Finding): Finding {
+    const existing = this.byId.get(finding.id);
+    if (existing) {
+      if (
+        existing.organizationId !== finding.organizationId ||
+        existing.repositoryId !== finding.repositoryId
+      ) {
+        throw Object.assign(new Error('finding id conflict'), {
+          code: 'CONFLICT',
+          status: 409,
+        });
+      }
+      finding = { ...finding, createdAt: existing.createdAt };
+    }
     this.byId.set(finding.id, finding);
     return finding;
+  }
+
+  /**
+   * Repository-deletion purge (#1233): removes every finding of the
+   * repository (tenant-scoped) plus its comments and histories. Idempotent;
+   * returns the number of findings removed.
+   */
+  purgeRepository(organizationId: string, repositoryId: string): number {
+    let removed = 0;
+    for (const f of Array.from(this.byId.values())) {
+      if (f.organizationId !== organizationId || f.repositoryId !== repositoryId) continue;
+      this.byId.delete(f.id);
+      this.comments.delete(f.id);
+      this.auditHistory.delete(f.id);
+      this.statusHistory.delete(f.id);
+      this.riskAcceptances.delete(f.id);
+      removed++;
+    }
+    return removed;
   }
 
   upsertMany(findings: Finding[]): void {
