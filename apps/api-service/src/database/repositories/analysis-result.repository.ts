@@ -4,6 +4,24 @@ import { AnalysisResult } from "../entities/analysis-result.entity";
 @EntityRepository(AnalysisResult)
 export class AnalysisResultRepository extends Repository<AnalysisResult> {
   /**
+   * Optimistic-concurrency update (#1231): applies `patch` only if the row
+   * is still at `expectedVersion`. Returns false when another writer got
+   * there first, so the caller can reload and retry.
+   */
+  async updateIfVersion(
+    id: string,
+    expectedVersion: number,
+    patch: Partial<AnalysisResult>,
+  ): Promise<boolean> {
+    const result = await this.createQueryBuilder()
+      .update(AnalysisResult)
+      .set({ ...patch, version: () => "version + 1" })
+      .where("id = :id AND version = :expectedVersion", { id, expectedVersion })
+      .execute();
+    return (result.affected ?? 0) === 1;
+  }
+
+  /**
    * Get analysis results summary
    */
   async getAnalysisSummary(
