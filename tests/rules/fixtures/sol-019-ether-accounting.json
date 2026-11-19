@@ -1,0 +1,19 @@
+{
+  "id": "sol-019-ether-accounting",
+  "name": "Exact Ether balance accounting",
+  "description": "A deposit/withdraw vault with an exact-balance guard, alongside surplus-aware accounting and a forced-Ether sender.",
+  "input": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract ExactBalanceVault {\n    mapping(address => uint256) public deposits;\n    uint256 public totalDeposits;\n\n    function deposit() external payable {\n        deposits[msg.sender] += msg.value;\n        totalDeposits += msg.value;\n    }\n\n    function withdraw(uint256 amount) external {\n        require(address(this).balance == totalDeposits, \"balance mismatch\");\n        require(deposits[msg.sender] >= amount, \"insufficient deposit\");\n        deposits[msg.sender] -= amount;\n        totalDeposits -= amount;\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"transfer failed\");\n    }\n}\n\ncontract SurplusAwareVault {\n    uint256 public totalLiabilities;\n\n    function isSolvent() external view returns (bool) {\n        return address(this).balance >= totalLiabilities;\n    }\n\n    function reconcileSurplus() external {\n        if (address(this).balance > totalLiabilities) {\n            uint256 surplus = address(this).balance - totalLiabilities;\n            totalLiabilities += surplus;\n        }\n    }\n}\n\ncontract ForcedEtherSender {\n    constructor() payable {}\n\n    function force(address payable recipient) external payable {\n        selfdestruct(recipient);\n    }\n}\n",
+  "expectedFindings": [
+    {
+      "ruleId": "sol-019",
+      "severity": "medium",
+      "messagePattern": "Exact Ether balance equality",
+      "line": 14
+    }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["ether", "accounting", "forced-balance"]
+  }
+}

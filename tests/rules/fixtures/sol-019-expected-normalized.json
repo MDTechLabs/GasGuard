@@ -1,0 +1,29 @@
+[
+  {
+    "key": "136a5e29301444818ac281ec4abfc351",
+    "ruleId": "sol-019",
+    "message": "Exact Ether balance equality with 'totalDeposits' can make deposits or withdrawals revert after Ether is forcibly sent to the contract.",
+    "severity": "medium",
+    "location": {
+      "file": "tests/rules/fixtures/sol-019-ether-accounting.sol",
+      "startLine": 14,
+      "endLine": 14,
+      "startColumn": 17,
+      "endColumn": 54
+    },
+    "suggestedFix": {
+      "description": "Do not require the raw contract balance to exactly equal recorded deposits or liabilities. Check that the balance covers liabilities, and handle any surplus explicitly.",
+      "codeSnippet": "require(address(this).balance >= totalLiabilities, \"Insolvent\");\nuint256 surplus = address(this).balance - totalLiabilities;",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-019"
+    },
+    "metadata": {
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "An exact address(this).balance == accounting-variable expression appears directly in require/assert.",
+        "The compared identifier 'totalDeposits' is named like tracked native-asset accounting."
+      ],
+      "severityRationale": "Forced Ether is not itself a vulnerability; the exact equality guard can block value-bearing operations when raw balance and recorded liabilities diverge.",
+      "limitation": "Source-pattern analysis does not prove that the guard is reachable or that a failing operation causes asset loss."
+    }
+  }
+]

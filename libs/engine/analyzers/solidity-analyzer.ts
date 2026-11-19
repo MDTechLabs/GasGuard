@@ -11,6 +11,7 @@ import {
 import { detectStorageSlotCollisions } from "../../../rules/security/storage-layout/detect-storage-slot-collisions";
 import { detectMissingImmutable } from "../../../rules/optimization/storage/detect-missing-immutable";
 import { detectMissingCustomErrors } from "../../../rules/optimization/errors/detect-missing-custom-errors";
+import { detectEtherAccountingAssumptions } from "./ether-accounting-detector";
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private rules: Rule[] = [
@@ -242,6 +243,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         typical: 150,
       },
       documentationUrl: "https://docs.gasguard.dev/rules/sol-018",
+    },
+    {
+      id: "sol-019",
+      name: "Exact Ether Balance Accounting",
+      description:
+        "Detects revert/assert guards that require contract Ether balance to exactly equal tracked native-asset accounting",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "ether", "accounting", "forced-balance", "denial-of-service"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-019",
     },
   ];
 
@@ -646,6 +658,46 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
             })),
           );
         }
+      }
+
+      // Rule: sol-019 - Exact Ether Balance Accounting
+      if (this.isRuleEnabled("sol-019", config)) {
+        const detection = detectEtherAccountingAssumptions(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.assumptions.map((assumption) => ({
+            ruleId: "sol-019",
+            message: `Exact Ether balance equality with '${assumption.variable}' can make deposits or withdrawals revert after Ether is forcibly sent to the contract.`,
+            severity: this.getRuleSeverity("sol-019", config),
+            location: {
+              file: filePath,
+              startLine: assumption.line,
+              endLine: assumption.line,
+              startColumn: assumption.startColumn,
+              endColumn: assumption.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Do not require the raw contract balance to exactly equal recorded deposits or liabilities. Check that the balance covers liabilities, and handle any surplus explicitly.",
+              codeSnippet:
+                "require(address(this).balance >= totalLiabilities, \"Insolvent\");\nuint256 surplus = address(this).balance - totalLiabilities;",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-019",
+            },
+            metadata: {
+              confidence: 0.9,
+              confidenceEvidence: [
+                "An exact address(this).balance == accounting-variable expression appears directly in require/assert.",
+                `The compared identifier '${assumption.variable}' is named like tracked native-asset accounting.`,
+              ],
+              severityRationale:
+                "Forced Ether is not itself a vulnerability; the exact equality guard can block value-bearing operations when raw balance and recorded liabilities diverge.",
+              limitation:
+                "Source-pattern analysis does not prove that the guard is reachable or that a failing operation causes asset loss.",
+            },
+          })),
+        );
       }
     } catch (error) {
       errors.push({
