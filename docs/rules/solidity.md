@@ -109,6 +109,6 @@ The vulnerable vault, direct payable deposit, forced-Ether sender, and
 surplus-aware counterexample are in
 `tests/rules/fixtures/sol-019-ether-accounting.json`. The expected normalized
 finding is recorded in
-`tests/rules/fixtures/sol-019-expected-normalized.json`; the integration test
+`tests/rules/expected/sol-019-normalized.json`; the integration test
 compares the analyzer result against it.
 

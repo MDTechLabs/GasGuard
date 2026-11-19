@@ -10,7 +10,7 @@ const fixturePath = path.resolve(
 );
 const normalizedFixturePath = path.resolve(
   __dirname,
-  "../../../tests/rules/fixtures/sol-019-expected-normalized.json",
+  "../../../tests/rules/expected/sol-019-normalized.json",
 );
 
 describe("sol-019 exact Ether balance accounting", () => {
@@ -84,6 +84,21 @@ describe("sol-019 exact Ether balance accounting", () => {
     expect(unterminated.diagnostics[0]).toContain("unterminated comment or string");
     expect(unsupported.assumptions).toEqual([]);
     expect(unsupported.diagnostics[0]).toContain("0.4.x through 0.8.x");
+  });
+
+  it("surfaces detector diagnostics through the analyzer result", async () => {
+    const analyzer = new SolidityAnalyzer();
+    const result = await analyzer.analyze(
+      "contract Broken { function f() external {",
+      "broken.sol",
+      { rules: { "sol-019": true } },
+    );
+
+    expect(result.findings.filter((finding) => finding.ruleId === "sol-019")).toEqual([]);
+    expect(result.errors?.[0]).toMatchObject({
+      file: "broken.sol",
+      message: expect.stringContaining("unbalanced delimiters"),
+    });
   });
 
   it("returns a diagnostic instead of throwing for non-string input", () => {
