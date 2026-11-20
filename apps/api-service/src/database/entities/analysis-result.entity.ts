@@ -5,6 +5,7 @@ import {
   Index,
   CreateDateColumn,
   UpdateDateColumn,
+  VersionColumn,
 } from "typeorm";
 
 @Entity("analysis_results")
@@ -60,6 +61,10 @@ export class AnalysisResult {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  /** Optimistic-concurrency counter, bumped on every update (#1231). */
+  @VersionColumn({ default: 1 })
+  version: number;
 
   @Column({ type: "varchar", length: 100, nullable: true })
   @Index("idx_analysis_version")
