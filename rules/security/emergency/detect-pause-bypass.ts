@@ -31,7 +31,7 @@ import {
   msgSenderComparands,
   prepareSource,
 } from '../lib/solidity-lite';
-import { buildSourceModel, calleesOf, isWellKnownBase, signatureOf } from '../lib/solidity-inheritance';
+import { leadingComment, buildSourceModel, calleesOf, isWellKnownBase, signatureOf } from '../lib/solidity-inheritance';
 
 export const RULE_ID = 'GG-PAUSE-BYPASS-001';
 
@@ -118,16 +118,6 @@ function names(list: unknown, label: string, diagnostics: Diagnostic[]): string[
     return [];
   }
   return list as string[];
-}
-
-/** Comment text directly above `offset` (block or consecutive line comments). */
-function leadingComment(source: string, offset: number): string {
-  const before = source.slice(Math.max(0, offset - 2000), offset).trimEnd();
-  if (before.endsWith('*/')) return before.slice(before.lastIndexOf('/*'));
-  const lines = before.split('\n');
-  const out: string[] = [];
-  for (let i = lines.length - 1; i >= 0 && lines[i].trim().startsWith('//'); i--) out.unshift(lines[i].trim());
-  return out.join('\n');
 }
 
 export function detectPauseBypass(input: unknown, options: PauseBypassOptions = {}): PauseBypassResult {

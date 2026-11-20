@@ -151,3 +151,13 @@ export function calleesOf(model: ContractModel, fn: SolFunction, text: string = 
   }
   return out;
 }
+
+/** Comment text directly above `offset` (block or consecutive line comments). */
+export function leadingComment(source: string, offset: number): string {
+  const before = source.slice(Math.max(0, offset - 2000), offset).trimEnd();
+  if (before.endsWith('*/')) return before.slice(before.lastIndexOf('/*'));
+  const lines = before.split('\n');
+  const out: string[] = [];
+  for (let i = lines.length - 1; i >= 0 && lines[i].trim().startsWith('//'); i--) out.unshift(lines[i].trim());
+  return out.join('\n');
+}
