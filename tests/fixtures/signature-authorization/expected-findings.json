@@ -1,0 +1,24 @@
+{
+  "cached-domain.sol": [
+    { "ruleId": "sol-019", "severity": "high", "startLine": 6, "endLine": 6, "confidence": "medium" }
+  ],
+  "incomplete-struct-hash.sol": [
+    { "ruleId": "sol-020", "severity": "high", "startLine": 5, "endLine": 5, "confidence": "high" }
+  ],
+  "packed-dynamic-hash.sol": [
+    { "ruleId": "sol-020", "severity": "high", "startLine": 6, "endLine": 6, "confidence": "high" }
+  ],
+  "reordered-struct-hash.sol": [
+    { "ruleId": "sol-020", "severity": "high", "startLine": 5, "endLine": 5, "confidence": "high" }
+  ],
+  "nested-array-hash.sol": [],
+  "hashed-dynamic-packed.sol": [],
+  "personal-sign.sol": [
+    { "ruleId": "sol-021", "severity": "high", "startLine": 6, "endLine": 6, "confidence": "medium" }
+  ],
+  "ecdsa-only-authorization.sol": [
+    { "ruleId": "sol-021", "severity": "high", "startLine": 6, "endLine": 6, "confidence": "medium" },
+    { "ruleId": "sol-022", "severity": "medium", "startLine": 6, "endLine": 6, "confidence": "medium", "issueType": "compatibility-gap" }
+  ],
+  "safe-signatures.sol": []
+}

@@ -11,6 +11,11 @@ import {
 import { detectStorageSlotCollisions } from "../../../rules/security/storage-layout/detect-storage-slot-collisions";
 import { detectMissingImmutable } from "../../../rules/optimization/storage/detect-missing-immutable";
 import { detectMissingCustomErrors } from "../../../rules/optimization/errors/detect-missing-custom-errors";
+import {
+  analyzeSignatureSecurity,
+  ExpectedSignerType,
+  SIGNATURE_SECURITY_RULES,
+} from "./signature-security";
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private rules: Rule[] = [
@@ -242,6 +247,50 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         typical: 150,
       },
       documentationUrl: "https://docs.gasguard.dev/rules/sol-018",
+    },
+    {
+      id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
+      name: "Stale Cached EIP-712 Domain Separator",
+      description:
+        "Detects cached domain separators that are not refreshed when the chain ID changes.",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "eip712", "chain-id", "signatures"],
+      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+    },
+    {
+      id: SIGNATURE_SECURITY_RULES.INCOMPLETE_STRUCT_HASH,
+      name: "Incomplete EIP-712 Struct Hash",
+      description:
+        "Detects omitted EIP-712 type fields and ambiguous packed hashing of dynamic fields.",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "eip712", "struct-hash", "signatures"],
+      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+    },
+    {
+      id: SIGNATURE_SECURITY_RULES.WEAK_MESSAGE_SIGNING,
+      name: "Weakly Domain-Bound Message Signature",
+      description:
+        "Detects personal_sign or raw ecrecover authorization without a recognized EIP-712 domain.",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "personal-sign", "eth-sign", "signatures"],
+      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+    },
+    {
+      id: SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY,
+      name: "Missing ERC-1271 Signature Validation",
+      description:
+        "When contract signers are expected, detects authorization paths that only use ECDSA recovery.",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc-1271", "smart-wallet", "signatures"],
+      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
     },
   ];
 
@@ -647,6 +696,47 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
           );
         }
       }
+
+      const signatureConfigErrors = this.validateSignatureSecurityConfig(config);
+      if (signatureConfigErrors.length > 0) {
+        errors.push({
+          file: filePath,
+          message: `Invalid signatureSecurity configuration: ${signatureConfigErrors.join("; ")}`,
+        });
+      } else {
+        const signatureAnalysis = analyzeSignatureSecurity(
+          code,
+          this.expectedSignerTypes(config),
+        );
+        if (signatureAnalysis.diagnostic) {
+          errors.push({ file: filePath, message: signatureAnalysis.diagnostic });
+        } else {
+          findings.push(
+            ...signatureAnalysis.findings
+              .filter((finding) => this.isRuleEnabled(finding.ruleId, config))
+              .map((finding) => ({
+                ruleId: finding.ruleId,
+                message: finding.message,
+                severity: this.getRuleSeverity(finding.ruleId, config),
+                location: {
+                  file: filePath,
+                  startLine: finding.startLine,
+                  endLine: finding.endLine,
+                },
+                suggestedFix: {
+                  description: finding.suggestedFix,
+                  documentationUrl:
+                    "https://docs.gasguard.dev/rules/signature-authorization",
+                },
+                metadata: {
+                  confidence: finding.confidence,
+                  evidence: finding.evidence,
+                  ...(finding.issueType ? { issueType: finding.issueType } : {}),
+                },
+              })),
+          );
+        }
+      }
     } catch (error) {
       errors.push({
         file: filePath,
@@ -702,6 +792,61 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     }
 
     return rule.severity;
+  }
+
+  private validateSignatureSecurityConfig(config?: AnalyzerConfig): string[] {
+    const effective = config ?? this.config;
+    const errors: string[] = [];
+    const validateExpectedTypes = (value: unknown, path: string) => {
+      if (
+        !Array.isArray(value) ||
+        value.length === 0 ||
+        value.some((entry) => entry !== "eoa" && entry !== "contract")
+      ) {
+        errors.push(`${path} must be a non-empty array containing only "eoa" and/or "contract"`);
+      }
+    };
+    const projectOptions = effective.options?.signatureSecurity;
+    if (projectOptions !== undefined) {
+      if (projectOptions === null || typeof projectOptions !== "object" || Array.isArray(projectOptions)) {
+        errors.push("options.signatureSecurity must be an object");
+      } else if ("expectedSignerTypes" in projectOptions) {
+        validateExpectedTypes(
+          projectOptions.expectedSignerTypes,
+          "options.signatureSecurity.expectedSignerTypes",
+        );
+      }
+    }
+
+    const erc1271Config =
+      effective.rules?.[SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY];
+    const ruleOptions =
+      erc1271Config && typeof erc1271Config === "object"
+        ? erc1271Config.options
+        : undefined;
+    if (ruleOptions && "expectedSignerTypes" in ruleOptions) {
+      validateExpectedTypes(
+        ruleOptions.expectedSignerTypes,
+        `rules.${SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY}.options.expectedSignerTypes`,
+      );
+    }
+    return errors;
+  }
+
+  private expectedSignerTypes(config?: AnalyzerConfig): ExpectedSignerType[] {
+    const effective = config ?? this.config;
+    const ruleConfig = effective.rules?.[SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY];
+    const perRuleOptions = typeof ruleConfig === "object" ? ruleConfig.options : undefined;
+    const projectOptions = effective.options?.signatureSecurity;
+    const configured =
+      perRuleOptions?.expectedSignerTypes ??
+      (projectOptions && typeof projectOptions === "object"
+        ? projectOptions.expectedSignerTypes
+        : undefined);
+    if (!Array.isArray(configured)) return ["eoa"];
+    return configured.filter(
+      (entry): entry is ExpectedSignerType => entry === "eoa" || entry === "contract",
+    );
   }
 
   private detectUncachedArrayLength(

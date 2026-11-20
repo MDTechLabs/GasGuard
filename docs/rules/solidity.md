@@ -1,5 +1,7 @@
 # Solidity Rules
 
+Signature and authorization checks are documented in [Solidity Signature and Authorization Rules](./signature-authorization.md).
+
 ## Uint8VsUint256Rule
 
 **Rule ID:** `uint8vsuint256rule`
