@@ -13,6 +13,8 @@ export interface TokenCall {
   args: string[];
   /** Offset of the call inside the scanned text. */
   index: number;
+  /** Offset just after the closing parenthesis. */
+  end: number;
 }
 
 const CALL_RE = /((?:[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)(?:\s*\((?:[^()]|\([^()]*\))*\))?(?:\s*\[[^\]]*\])?)\s*\.\s*(balanceOf|transferFrom|safeTransferFrom|transfer|safeTransfer)\s*\(/g;
@@ -43,6 +45,7 @@ export function findTokenCalls(text: string): TokenCall[] {
       method: m[2],
       args: splitTopLevel(text.slice(open + 1, close)).map((a) => a.trim()),
       index: m.index,
+      end: close + 1,
     });
   }
   return out;
