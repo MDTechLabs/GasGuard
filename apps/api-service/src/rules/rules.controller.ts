@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post } from "@nestjs/common";
 import { RulesService } from "./rules.service";
 import { RuleDefinition } from "./interfaces/rules.interface";
+import { buildRuleMetadata, RuleMetadataDocument } from "./rule-metadata";
 
 @Controller("rules")
 export class RulesController {
@@ -9,6 +10,11 @@ export class RulesController {
   @Get()
   getAllRules(): RuleDefinition[] {
     return this.rulesService.getAllRules();
+  }
+
+  @Get("metadata")
+  getRuleMetadata(): RuleMetadataDocument {
+    return buildRuleMetadata(this.rulesService.getAllRules());
   }
 
   @Get(":name")
