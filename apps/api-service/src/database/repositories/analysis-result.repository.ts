@@ -4,6 +4,24 @@ import { AnalysisResult } from "../entities/analysis-result.entity";
 @EntityRepository(AnalysisResult)
 export class AnalysisResultRepository extends Repository<AnalysisResult> {
   /**
+   * Optimistic-concurrency update (#1231): applies `patch` only if the row
+   * is still at `expectedVersion`. Returns false when another writer got
+   * there first, so the caller can reload and retry.
+   */
+  async updateIfVersion(
+    id: string,
+    expectedVersion: number,
+    patch: Partial<AnalysisResult>,
+  ): Promise<boolean> {
+    const result = await this.createQueryBuilder()
+      .update(AnalysisResult)
+      .set({ ...patch, version: () => "version + 1" })
+      .where("id = :id AND version = :expectedVersion", { id, expectedVersion })
+      .execute();
+    return (result.affected ?? 0) === 1;
+  }
+
+  /**
    * Get analysis results summary
    */
   async getAnalysisSummary(
@@ -109,5 +127,56 @@ export class AnalysisResultRepository extends Repository<AnalysisResult> {
       .groupBy("DATE_TRUNC('day', analysis.createdAt)")
       .orderBy("date", "ASC")
       .getRawMany();
+  }
+
+  /**
+   * Issue #1236: tenant-scoped lookup. Always filters by merchantId so a
+   * caller can never read another tenant's analysis by guessing an id.
+   */
+  async findOneForMerchant(
+    id: string,
+    merchantId: string,
+  ): Promise<AnalysisResult | undefined> {
+    if (!merchantId) {
+      throw new Error("merchantId is required for tenant-scoped queries");
+    }
+    return this.findOne({ where: { id, merchantId } });
+  }
+
+  /**
+   * Issue #1234: idempotent ingestion. The key is stored in
+   * metadata.idempotencyKey and scoped per merchant; a repeat call with the
+   * same key returns the existing row instead of inserting a duplicate.
+   * A transaction-scoped advisory lock serialises concurrent first-writes.
+   */
+  async saveIdempotent(
+    merchantId: string,
+    idempotencyKey: string,
+    data: Partial<AnalysisResult>,
+  ): Promise<{ result: AnalysisResult; created: boolean }> {
+    if (!merchantId || !idempotencyKey) {
+      throw new Error("merchantId and idempotencyKey are required");
+    }
+    return this.manager.transaction(async (em) => {
+      await em.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+        `${merchantId}:${idempotencyKey}`,
+      ]);
+      const existing = await em
+        .createQueryBuilder(AnalysisResult, "analysis")
+        .where("analysis.merchantId = :merchantId", { merchantId })
+        .andWhere("analysis.metadata->>'idempotencyKey' = :idempotencyKey", {
+          idempotencyKey,
+        })
+        .getOne();
+      if (existing) {
+        return { result: existing, created: false };
+      }
+      const entity = em.create(AnalysisResult, {
+        ...data,
+        merchantId,
+        metadata: { ...(data.metadata || {}), idempotencyKey },
+      });
+      return { result: await em.save(entity), created: true };
+    });
   }
 }
