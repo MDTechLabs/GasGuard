@@ -14,6 +14,7 @@ import { detectMissingCustomErrors } from "../../../rules/optimization/errors/de
 import { detectEtherAccountingAssumptions } from "./ether-accounting-detector";
 import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
 import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
+import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -46,6 +47,11 @@ const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<string, (callSite: string) => string
     `'${stmt}' subtracts from an allowance without a guard under unchecked arithmetic, so an excessive decrease wraps to a huge allowance.`,
   "saturating-decrease": (stmt) =>
     `'${stmt}' silently clamps an excessive allowance decrease to zero instead of reverting.`,
+};
+
+const FEE_ON_TRANSFER_POLICY_TEXT: Record<string, string> = {
+  "claimed-support": "The contract claims fee-on-transfer support, but this path does not deliver it.",
+  unspecified: "The contract states no fee-on-transfer policy, so this looks like an accidental assumption.",
 };
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
@@ -311,6 +317,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "erc20", "allowance", "race-condition", "token-compatibility"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-024",
+    },
+    {
+      id: "sol-025",
+      name: "Fee-on-Transfer Accounting Assumption",
+      description:
+        "Detects deposit, liquidity, staking, swap, and withdrawal flows that credit the requested token amount without measuring the balance actually received",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "fee-on-transfer", "accounting", "vault"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-025",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -872,6 +889,50 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "Allowance changes made as separate read and write calls can be front-run, and non-standard or custom helpers can silently skip, wrap, or clamp the change; each lets a spender hold more allowance than the owner intended.",
               limitation:
                 "Source-pattern analysis: helper behaviour is modelled only from implementations present in the analyzed source and receivers are resolved by declared type within one file. Inheritance, imported implementations, aliases, assembly, and tokens with non-standard allowance semantics (infinite-allowance sentinels, rebasing or permit-only tokens) are not modelled.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-025 - Fee-on-transfer accounting assumption
+      if (this.isRuleEnabled("sol-025", config)) {
+        const detection = detectFeeOnTransferAccounting(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-025",
+            message:
+              finding.kind === "nominal-credit"
+                ? `${finding.flow} flow credits the requested amount after '${finding.callSite}' (line ${finding.creditLine}) without measuring the balance received. ${FEE_ON_TRANSFER_POLICY_TEXT[finding.policy]}`
+                : `Withdrawal flow forwards the requested amount without measuring what the external contract returned ('${finding.callSite}'). ${FEE_ON_TRANSFER_POLICY_TEXT[finding.policy]}`,
+            severity: this.getRuleSeverity("sol-025", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Measure the received amount as a balance delta and account with that value, or reject fee-on-transfer tokens explicitly (for example by requiring received == amount, or by listing only vetted tokens) and document the policy. Delta accounting costs two extra balanceOf calls, needs a reentrancy guard because the balance can change mid-call, and does not support rebasing tokens whose balance changes without transfers.",
+              codeSnippet:
+                "uint256 beforeBalance = token.balanceOf(address(this));\ntoken.safeTransferFrom(msg.sender, address(this), amount);\nuint256 received = token.balanceOf(address(this)) - beforeBalance;\nbalances[msg.sender] += received;",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-025",
+            },
+            metadata: {
+              kind: finding.kind,
+              flow: finding.flow,
+              policy: finding.policy,
+              creditLine: finding.creditLine,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "If a token takes a fee on transfer, crediting the requested amount records more than the contract holds; the shortfall is paid out of other users' funds, which can make the vault, pool, or swap insolvent.",
+              limitation:
+                "Source-pattern analysis within a single function: it does not follow internal helper calls, inheritance, or imported code, and only considers pulls whose recipient is address(this). Whether a given token charges a fee is not known statically. Policy is inferred from comments, identifiers, and revert strings in the enclosing contract.",
             },
           })),
         );

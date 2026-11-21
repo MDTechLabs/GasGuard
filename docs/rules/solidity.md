@@ -221,3 +221,75 @@ rather than clamp or wrap.
 `tests/rules/fixtures/sol-024-allowance-adjustment.sol` covers a standard token,
 a wrapping non-standard token, a clamping custom token, and unsafe and safe callers;
 `sol-024-allowance-adjustment.json` lists the expected findings.
+
+## Fee-on-Transfer Accounting Assumption
+
+**Rule ID:** `sol-025`  
+**Severity:** medium  
+**Category:** security
+
+Traces the nominal amount passed to a token pull against the accounting that
+follows. If a token deducts a fee on transfer, crediting the requested amount
+records more than the contract received, and the shortfall is paid out of other
+users' funds.
+
+| Kind | Meaning |
+| --- | --- |
+| `nominal-credit` | `token.transferFrom/safeTransferFrom(_, address(this), amount)` (or `SafeERC20.safeTransferFrom(token, _, address(this), amount)`) is followed by an assignment, `+=`/`-=`, or mint/deposit-style call that uses `amount` or a value derived from it |
+| `withdrawal-nominal-forward` | An amount is withdrawn from another contract (`withdraw`/`redeem`/`unstake`/`remove*`/`exit`) and the same nominal amount is forwarded with `transfer`/`safeTransfer` |
+
+Each finding records the inferred `flow` (`deposit`, `liquidity`, `staking`,
+`swap`, `repayment`, `withdrawal`, `transfer-in`) from the function name and the
+accounting it performs, and the `creditLine` of the statement that uses the
+nominal amount.
+
+### Policy: explicit versus accidental
+
+The enclosing contract's comments, identifiers, and revert strings are read for
+fee-on-transfer / deflationary / rebasing / tax-token terms:
+
+- **`explicit-unsupported`** (a negation such as "not supported", "rejected", or
+  "revert" near the term): not reported. The decision is surfaced as
+  `suppressedByPolicy` in the detector result.
+- **`claimed-support`** (the term appears without a negation): reported with
+  higher confidence (0.85 / 0.65), because the code does not deliver what it states.
+- **`unspecified`**: reported with lower confidence (0.6 / 0.45) as an accidental
+  assumption.
+
+A pull is considered balance-delta accounted, and not reported, when a
+`balanceOf(...)` read appears both before and after it in the same function.
+
+### Remediation and trade-offs
+
+Account with the measured delta:
+
+```solidity
+uint256 beforeBalance = token.balanceOf(address(this));
+token.safeTransferFrom(msg.sender, address(this), amount);
+uint256 received = token.balanceOf(address(this)) - beforeBalance;
+balances[msg.sender] += received;
+```
+
+Trade-offs: two extra `balanceOf` calls per pull (gas); the balance can change
+during the transfer through hooks, so use a reentrancy guard; events and share
+math must use `received`, not `amount`; and rebasing tokens still break the
+invariant because their balance moves without transfers. If delta accounting is not
+wanted, reject such tokens explicitly (an allowlist, or `require(received == amount)`)
+and document the policy so the assumption is deliberate.
+
+### Supported input and limitations
+
+- Source-text analysis only; no `solc`, scripts, or project configuration are used.
+  Sources with no pragma or pragmas in `0.4.x`–`0.8.x` are analyzed; other versions,
+  unbalanced delimiters, and unterminated strings/comments produce a diagnostic.
+- Analysis is per function and only considers pulls whose recipient is
+  `address(this)`. It does not follow internal helper calls, inheritance, or imported
+  code, and cannot know whether a given token charges a fee. NFT-like receivers
+  are skipped. Policy detection is lexical and can be fooled by unrelated comments.
+
+### Fixtures
+
+`tests/rules/fixtures/sol-025-fee-on-transfer.sol` has positive and negative
+deposit, liquidity, swap, and withdrawal flows, plus a contract that claims
+support and one that rejects such tokens; `sol-025-fee-on-transfer.json` lists
+the expected findings and policy-suppressed site.

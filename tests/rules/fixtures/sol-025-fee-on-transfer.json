@@ -1,0 +1,20 @@
+{
+  "id": "sol-025-fee-on-transfer",
+  "name": "Fee-on-transfer accounting",
+  "description": "Positive and negative deposit, liquidity, swap, and withdrawal flows, including contracts that claim or explicitly reject fee-on-transfer tokens. Source: sol-025-fee-on-transfer.sol",
+  "source": "sol-025-fee-on-transfer.sol",
+  "expectedFindings": [
+    { "ruleId": "sol-025", "kind": "nominal-credit", "flow": "deposit", "policy": "unspecified", "line": 20 },
+    { "ruleId": "sol-025", "kind": "nominal-credit", "flow": "deposit", "policy": "claimed-support", "line": 33 },
+    { "ruleId": "sol-025", "kind": "nominal-credit", "flow": "liquidity", "policy": "unspecified", "line": 70 },
+    { "ruleId": "sol-025", "kind": "nominal-credit", "flow": "liquidity", "policy": "unspecified", "line": 71 },
+    { "ruleId": "sol-025", "kind": "nominal-credit", "flow": "swap", "policy": "unspecified", "line": 84 },
+    { "ruleId": "sol-025", "kind": "withdrawal-nominal-forward", "flow": "withdrawal", "policy": "unspecified", "line": 115 }
+  ],
+  "suppressedByPolicy": [{ "line": 58 }],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["erc20", "fee-on-transfer", "accounting", "vault", "amm"]
+  }
+}
