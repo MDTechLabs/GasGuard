@@ -114,3 +114,55 @@ finding is recorded in
 `tests/rules/expected/sol-019-normalized.json`; the integration test
 compares the analyzer result against it.
 
+
+## Unchecked ERC-20 approve Return Value
+
+**Rule ID:** `sol-023`  
+**Severity:** medium  
+**Category:** security
+
+ERC-20 tokens disagree about `approve`: most return `true`, some return `false`
+instead of reverting, and some (USDT-style) return no data at all. This rule
+reports approval flows that assume one of those behaviours.
+
+| Kind | Meaning | Token behaviour affected |
+| --- | --- | --- |
+| `discarded-return` | Typed `approve()` result is dropped or assigned and never checked | A token returning `false` leaves the allowance unset silently |
+| `assumes-bool-return` | Typed `approve()` result is required as a `bool` | Tokens returning no data revert at ABI decoding |
+| `unchecked-low-level-call` | Low-level approve call whose success flag is not checked | A reverting token is ignored |
+| `returndata-ignored` | Success checked, returndata dropped or never decoded | Explicit `false` is treated as success |
+| `decode-without-length-check` | `abi.decode(data, (bool))` without a `data.length` guard | No-return tokens revert; malformed short returndata is not handled |
+| `wrapper-unavailable` | A `safeApprove`/`forceApprove`-style wrapper is called but no import, library, or local definition exists in the analyzed source | Wrapper behaviour cannot be verified |
+
+Recognised call shapes: `token.approve(a, b)`, `IERC20(x).approve(a, b)`, and
+`.call(...)` whose payload uses `abi.encodeWithSelector(IERC20.approve.selector, …)`,
+`abi.encodeWithSignature("approve(address,uint256)", …)`, `abi.encodeCall`, or the
+`0x095ea7b3` selector. Calls through `SafeERC20` (`safeApprove`, `forceApprove`,
+`safeIncreaseAllowance`, `safeDecreaseAllowance`) are **not** reported when the
+wrapper is imported or defined in the source; an unsafe local wrapper is reported at
+its inner `approve` call site instead. `this.approve`, `super.approve`, and receivers
+named like ERC-721/1155 contracts are skipped.
+
+### Supported input and limitations
+
+- Scans Solidity source text; it does not invoke `solc`, execute scripts, or read
+  project configuration. Compiler settings are not needed.
+- Accepts sources with no pragma or pragmas within Solidity `0.4.x`–`0.8.x`;
+  other versions, unbalanced delimiters, and unterminated strings/comments yield an
+  analyzer diagnostic and no findings.
+- Does not resolve token addresses, inheritance, aliases, inline-assembly calls, or
+  calldata assembled outside the call expression. Whether a given token actually
+  returns `false` or nothing is not known statically, so confidence is at most 0.9
+  and each finding lists its evidence.
+
+### Remediation
+
+Use OpenZeppelin `SafeERC20.forceApprove` (or `safeIncreaseAllowance`) for all token
+approvals. For hand-written low-level calls require
+`success && (data.length == 0 || abi.decode(data, (bool)))`.
+
+### Fixtures
+
+`tests/rules/fixtures/sol-023-approve-return.sol` models true, false, no-return,
+reverting, and malformed-return tokens plus unsafe and safe callers;
+`sol-023-approve-return.json` lists the expected findings.

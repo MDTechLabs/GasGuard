@@ -1,0 +1,20 @@
+{
+  "id": "sol-023-approve-return",
+  "name": "ERC-20 approve return value assumptions",
+  "description": "Callers of approve() against true-returning, false-returning, no-return, reverting, and malformed-return tokens. Source: sol-023-approve-return.sol",
+  "source": "sol-023-approve-return.sol",
+  "expectedFindings": [
+    { "ruleId": "sol-023", "kind": "discarded-return", "line": 40 },
+    { "ruleId": "sol-023", "kind": "discarded-return", "line": 44 },
+    { "ruleId": "sol-023", "kind": "assumes-bool-return", "line": 48 },
+    { "ruleId": "sol-023", "kind": "unchecked-low-level-call", "line": 52 },
+    { "ruleId": "sol-023", "kind": "unchecked-low-level-call", "line": 56 },
+    { "ruleId": "sol-023", "kind": "returndata-ignored", "line": 60 },
+    { "ruleId": "sol-023", "kind": "decode-without-length-check", "line": 65 }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["erc20", "approve", "return-value", "safe-erc20"]
+  }
+}

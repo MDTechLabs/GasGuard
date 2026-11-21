@@ -12,11 +12,27 @@ import { detectStorageSlotCollisions } from "../../../rules/security/storage-lay
 import { detectMissingImmutable } from "../../../rules/optimization/storage/detect-missing-immutable";
 import { detectMissingCustomErrors } from "../../../rules/optimization/errors/detect-missing-custom-errors";
 import { detectEtherAccountingAssumptions } from "./ether-accounting-detector";
+import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
   SIGNATURE_SECURITY_RULES,
 } from "./signature-security";
+
+const APPROVE_RETURN_MESSAGES: Record<string, (callSite: string) => string> = {
+  "discarded-return": (call) =>
+    `The return value of '${call}' is not checked: a token that returns false leaves the allowance unset without any error.`,
+  "assumes-bool-return": (call) =>
+    `'${call}' assumes the token returns a bool: tokens that return no data (for example USDT) make this call revert.`,
+  "unchecked-low-level-call": (call) =>
+    `The success flag of the low-level approve call '${call}' is never checked.`,
+  "returndata-ignored": (call) =>
+    `The low-level approve call '${call}' checks success but ignores returndata, so a token that returns false is treated as approved.`,
+  "decode-without-length-check": (call) =>
+    `The low-level approve call '${call}' decodes a bool without tolerating empty returndata, so no-return tokens revert and malformed returndata is not handled.`,
+  "wrapper-unavailable": (call) =>
+    `'${call}' relies on a safe-approval wrapper whose implementation is not available in the analyzed source, so its no-return and false-return handling is unverified.`,
+};
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private rules: Rule[] = [
@@ -259,6 +275,19 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "ether", "accounting", "forced-balance", "denial-of-service"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-019",
+    },
+    {
+      id: "sol-023",
+      name: "Unchecked ERC-20 approve Return Value",
+      description:
+        "Detects typed and low-level ERC-20 approve calls that ignore the return value or assume every token returns a bool",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "approve", "return-value", "token-compatibility"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-023",
+    },
+    {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
       name: "Stale Cached EIP-712 Domain Separator",
       description:
@@ -745,6 +774,46 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
             },
           })),
         );
+      }
+
+      // Rule: sol-023 - Unchecked ERC-20 approve return value
+      if (this.isRuleEnabled("sol-023", config)) {
+        const detection = detectUncheckedApproveReturns(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-023",
+            message: APPROVE_RETURN_MESSAGES[finding.kind](finding.callSite),
+            severity: this.getRuleSeverity("sol-023", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Use a vetted safe-approval wrapper (for example OpenZeppelin SafeERC20 forceApprove) or, for low-level calls, require success && (data.length == 0 || abi.decode(data, (bool))). Reset to zero first only for tokens that require it.",
+              codeSnippet:
+                "using SafeERC20 for IERC20;\ntoken.forceApprove(spender, amount);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-023",
+            },
+            metadata: {
+              kind: finding.kind,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "ERC-20 tokens disagree on approve(): most return true, some return false instead of reverting, and some (USDT-style) return nothing. Code that assumes one behavior either proceeds without an allowance or becomes unable to use the token, which can strand or block funds in routers and vaults.",
+              limitation:
+                "Source-pattern analysis: it does not resolve token addresses, inheritance, aliases, assembly calls, calldata built outside the call expression, or wrapper libraries not present in the analyzed source. ERC-721 approve() is excluded heuristically by receiver name.",
+            },
+          })),
+        );
+      }
+
       const signatureConfigErrors = this.validateSignatureSecurityConfig(config);
       if (signatureConfigErrors.length > 0) {
         errors.push({
