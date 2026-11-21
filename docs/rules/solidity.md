@@ -166,3 +166,58 @@ approvals. For hand-written low-level calls require
 `tests/rules/fixtures/sol-023-approve-return.sol` models true, false, no-return,
 reverting, and malformed-return tokens plus unsafe and safe callers;
 `sol-023-approve-return.json` lists the expected findings.
+
+## Unsafe Allowance Adjustment Assumptions
+
+**Rule ID:** `sol-024`  
+**Severity:** medium  
+**Category:** security
+
+`increaseAllowance` and `decreaseAllowance` are not part of ERC-20, and changing an
+allowance with a separate read and write is race-sensitive. This rule models the
+helpers present in the analyzed source rather than trusting their names.
+
+| Kind | Meaning |
+| --- | --- |
+| `unchecked-adjust-call` | `token.increaseAllowance/decreaseAllowance(...)` result is discarded and no implementation is available to show it always reverts on failure |
+| `nonstandard-adjust-method` | The call result is consumed, but the method is assumed to exist (absent from many tokens such as USDT and from OpenZeppelin 5.x) |
+| `read-modify-write-approve` | `approve`/`safeApprove`/`forceApprove` on an external token receives a value computed from `allowance()` plus/minus an amount, inline or via a local variable |
+| `unchecked-decrease-underflow` | A function subtracts a parameter from an allowance with no preceding comparison, under Solidity < 0.8 or an `unchecked` block |
+| `saturating-decrease` | A function clamps an excessive decrease to zero instead of reverting |
+
+### How helpers are modelled
+
+- The receiver of each adjustment call is resolved to its declared type (function
+  parameter, state variable, or cast). If that type is a contract or library defined
+  in the source and has an implementation of the method, the call is not reported
+  and the implementation itself is analyzed. Interfaces, unresolved types, and
+  imported contracts are treated as unknown.
+- Allowance-writing functions are analyzed by their body (assignments to
+  allowance-like storage or `_approve(...)` with a subtraction), whatever they are
+  named. `this.` and `super.` calls are skipped.
+- An in-token adjustment (`_allowances[o][s] += x`) is atomic and not reported.
+
+### Supported input and limitations
+
+- Source-text analysis only; `solc`, scripts, and project configuration are not
+  used. Sources with no pragma or pragmas in `0.4.x`–`0.8.x` are analyzed; other
+  versions, unbalanced delimiters, and unterminated strings/comments produce a
+  diagnostic and no findings.
+- Not modelled: inheritance, cross-file implementations, aliases, assembly, and
+  token semantics such as infinite-allowance sentinels, rebasing, or permit-only
+  approvals. Confidence is at most 0.8 and each finding lists its evidence. A
+  read-modify-write on an allowance granted to a fully trusted spender may be an
+  accepted risk.
+
+### Remediation
+
+Set the exact allowance needed (`SafeERC20.forceApprove`, resetting to zero first
+for tokens that require it) and consume it in the same transaction. In custom
+allowance code, `require` the decrease is within the current allowance and revert
+rather than clamp or wrap.
+
+### Fixtures
+
+`tests/rules/fixtures/sol-024-allowance-adjustment.sol` covers a standard token,
+a wrapping non-standard token, a clamping custom token, and unsafe and safe callers;
+`sol-024-allowance-adjustment.json` lists the expected findings.

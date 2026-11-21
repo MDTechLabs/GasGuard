@@ -273,3 +273,62 @@ export function prepareSoliditySource(
   }
   return { ok: true, code: masked.code, text: maskSource(input, true).code };
 }
+
+export interface FunctionModel {
+  name: string;
+  /** Offset of the `function` keyword. */
+  start: number;
+  params: Array<{ name: string; type: string }>;
+  /** Offsets of the `{` and matching `}`; -1 when the function has no body (interface or abstract). */
+  bodyStart: number;
+  bodyEnd: number;
+  header: string;
+}
+
+/** Extracts function definitions (with or without bodies) from masked source. */
+export function extractFunctions(code: string): FunctionModel[] {
+  const functions: FunctionModel[] = [];
+  const pattern = /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(code)) !== null) {
+    const open = match.index + match[0].length - 1;
+    const close = findMatchingClose(code, open);
+    if (close < 0) continue;
+
+    let i = close + 1;
+    while (i < code.length && code[i] !== "{" && code[i] !== ";") {
+      if (code[i] === "(") {
+        const end = findMatchingClose(code, i);
+        if (end < 0) break;
+        i = end;
+      }
+      i++;
+    }
+    if (i >= code.length) continue;
+
+    const params = splitTopLevelArguments(code, open, close)
+      .map(({ start, end }) => code.slice(start, end).trim().split(/\s+/))
+      .filter((parts) => parts[0] !== "")
+      .map((parts) => ({
+        type: parts[0],
+        name: parts.length > 1 ? parts[parts.length - 1] : "",
+      }));
+
+    const hasBody = code[i] === "{";
+    functions.push({
+      name: match[1],
+      start: match.index,
+      params,
+      bodyStart: hasBody ? i : -1,
+      bodyEnd: hasBody ? findMatchingClose(code, i, "{", "}") : -1,
+      header: code.slice(match.index, i),
+    });
+  }
+  return functions;
+}
+
+/** True when the first pragma pins a compiler older than 0.8 (no checked arithmetic). */
+export function usesLegacyArithmetic(code: string): boolean {
+  const pragma = /\bpragma\s+solidity\s+[^;]*?(\d+)\.(\d+)\.\d+/.exec(code);
+  return pragma !== null && Number(pragma[1]) === 0 && Number(pragma[2]) < 8;
+}

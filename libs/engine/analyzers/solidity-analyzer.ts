@@ -13,6 +13,7 @@ import { detectMissingImmutable } from "../../../rules/optimization/storage/dete
 import { detectMissingCustomErrors } from "../../../rules/optimization/errors/detect-missing-custom-errors";
 import { detectEtherAccountingAssumptions } from "./ether-accounting-detector";
 import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
+import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -32,6 +33,19 @@ const APPROVE_RETURN_MESSAGES: Record<string, (callSite: string) => string> = {
     `The low-level approve call '${call}' decodes a bool without tolerating empty returndata, so no-return tokens revert and malformed returndata is not handled.`,
   "wrapper-unavailable": (call) =>
     `'${call}' relies on a safe-approval wrapper whose implementation is not available in the analyzed source, so its no-return and false-return handling is unverified.`,
+};
+
+const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<string, (callSite: string) => string> = {
+  "unchecked-adjust-call": (call) =>
+    `The result of '${call}' is not checked: a token that returns false, or implements the helper differently, leaves the allowance unchanged silently.`,
+  "nonstandard-adjust-method": (call) =>
+    `'${call}' relies on increaseAllowance/decreaseAllowance, which are not part of ERC-20 and are missing from many tokens and from OpenZeppelin 5.x.`,
+  "read-modify-write-approve": (call) =>
+    `'${call}' reads an allowance and writes it back with approve in separate calls, so a spender can front-run and use both the old and the new allowance.`,
+  "unchecked-decrease-underflow": (stmt) =>
+    `'${stmt}' subtracts from an allowance without a guard under unchecked arithmetic, so an excessive decrease wraps to a huge allowance.`,
+  "saturating-decrease": (stmt) =>
+    `'${stmt}' silently clamps an excessive allowance decrease to zero instead of reverting.`,
 };
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
@@ -286,6 +300,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "erc20", "approve", "return-value", "token-compatibility"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-023",
+    },
+    {
+      id: "sol-024",
+      name: "Unsafe Allowance Adjustment Assumptions",
+      description:
+        "Detects unchecked or non-standard increaseAllowance/decreaseAllowance calls, non-atomic read-modify-write approvals, and unsafe custom decrease implementations",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "allowance", "race-condition", "token-compatibility"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-024",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -809,6 +834,44 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "ERC-20 tokens disagree on approve(): most return true, some return false instead of reverting, and some (USDT-style) return nothing. Code that assumes one behavior either proceeds without an allowance or becomes unable to use the token, which can strand or block funds in routers and vaults.",
               limitation:
                 "Source-pattern analysis: it does not resolve token addresses, inheritance, aliases, assembly calls, calldata built outside the call expression, or wrapper libraries not present in the analyzed source. ERC-721 approve() is excluded heuristically by receiver name.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-024 - Unsafe allowance adjustment assumptions
+      if (this.isRuleEnabled("sol-024", config)) {
+        const detection = detectAllowanceAdjustmentRisks(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-024",
+            message: ALLOWANCE_ADJUSTMENT_MESSAGES[finding.kind](finding.callSite),
+            severity: this.getRuleSeverity("sol-024", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Avoid read-modify-write approvals on external tokens. Set the allowance to the exact amount needed (resetting to zero first for tokens that require it, e.g. with SafeERC20.forceApprove) and consume it within the same transaction. In custom allowance code, require the decrease to be <= the current allowance and revert instead of clamping.",
+              codeSnippet:
+                "token.forceApprove(spender, 0);\ntoken.forceApprove(spender, amount);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-024",
+            },
+            metadata: {
+              kind: finding.kind,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Allowance changes made as separate read and write calls can be front-run, and non-standard or custom helpers can silently skip, wrap, or clamp the change; each lets a spender hold more allowance than the owner intended.",
+              limitation:
+                "Source-pattern analysis: helper behaviour is modelled only from implementations present in the analyzed source and receivers are resolved by declared type within one file. Inheritance, imported implementations, aliases, assembly, and tokens with non-standard allowance semantics (infinite-allowance sentinels, rebasing or permit-only tokens) are not modelled.",
             },
           })),
         );
