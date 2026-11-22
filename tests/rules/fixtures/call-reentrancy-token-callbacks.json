@@ -1,0 +1,19 @@
+{
+  "id": "call-reentrancy-token-callbacks",
+  "name": "Token Hook and Receiver Callback Reentrancy",
+  "description": "An NFT vault vulnerable to ERC-721 safeTransferFrom receiver reentrancy alongside a CEI-compliant safe vault.",
+  "input": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ninterface IERC721 {\n    function safeTransferFrom(address from, address to, uint256 tokenId) external;\n}\n\ncontract VulnerableNFTVault {\n    mapping(address => uint256) public balances;\n    IERC721 public nft;\n\n    constructor(address _nft) {\n        nft = IERC721(_nft);\n    }\n\n    function depositNFT(uint256 tokenId) external {\n        balances[msg.sender] += 1;\n    }\n\n    function withdrawNFT(uint256 tokenId) external {\n        require(balances[msg.sender] > 0, \"No balance\");\n        nft.safeTransferFrom(address(this), msg.sender, tokenId);\n        balances[msg.sender] = 0;\n    }\n}\n\ncontract SafeNFTVault {\n    mapping(address => uint256) public balances;\n    IERC721 public nft;\n\n    constructor(address _nft) {\n        nft = IERC721(_nft);\n    }\n\n    function withdrawNFT(uint256 tokenId) external {\n        require(balances[msg.sender] > 0, \"No balance\");\n        balances[msg.sender] = 0;\n        nft.safeTransferFrom(address(this), msg.sender, tokenId);\n    }\n}\n",
+  "expectedFindings": [
+    {
+      "ruleId": "call-reentrancy-token-callbacks",
+      "severity": "critical",
+      "messagePattern": "safeTransferFrom",
+      "line": 22
+    }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["reentrancy", "control-flow", "callbacks", "erc721"]
+  }
+}

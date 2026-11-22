@@ -1,0 +1,37 @@
+[
+  {
+    "key": "814d6e7afb3518f613243a520094d25a",
+    "ruleId": "call-reentrancy-token-callbacks",
+    "message": "withdrawNFT() invokes external token callback 'safeTransferFrom' at line 22 before updating state variable(s) [balances]. Lacks a reentrancy guard on 'withdrawNFT', allowing reentrant callback execution to exploit stale state.",
+    "severity": "critical",
+    "location": {
+      "file": "tests/rules/fixtures/call-reentrancy-token-callbacks.sol",
+      "startLine": 22,
+      "endLine": 23
+    },
+    "suggestedFix": {
+      "codeSnippet": "// Apply Checks-Effects-Interactions (CEI): update state before calling external token hooks/callbacks",
+      "description": "Update state variable(s) [balances] before calling 'safeTransferFrom', or protect both 'withdrawNFT' and all companion functions with 'nonReentrant'.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/call-reentrancy-token-callbacks"
+    },
+    "metadata": {
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "Callback trigger at line 22: 'nft.safeTransferFrom(address(this), msg.sender, tokenId)' (erc721-receiver via safeTransferFrom)",
+        "State written after callback: 'balances' at line 23 (balances[msg.sender] = 0)",
+        "Caller 'withdrawNFT' reentrancy guard: missing",
+        "Self-reentrancy path: 'withdrawNFT' can be re-entered via callback before state variables [balances] are updated",
+        "Cross-function reentrancy paths into unguarded entry points: 'depositNFT' (shares [balances])",
+        "Call-chain: withdrawNFT() -> safeTransferFrom() -> recipient callback -> [withdrawNFT(), depositNFT()] accessing stale state [balances]"
+      ],
+      "limitations": [
+        "Single-file analysis: callbacks and state in inherited contracts, external libraries, or interfaces outside this file are not resolved.",
+        "Token interfaces and receivers are identified by standard function signatures (e.g. safeTransferFrom, _safeMint, tokensReceived, transferAndCall); non-standard or obfuscated hook names are not tracked.",
+        "Dynamic call dispatch or delegatecall indirection through external proxies is not followed.",
+        "Access control is judged from recognized modifiers (only*, auth*, requiresAuth, checkRole); custom authorization logic inside function bodies is not fully evaluated."
+      ],
+      "severityRationale": "Token hooks (ERC-777) and receiver callbacks (ERC-721/ERC-1155) transfer control to arbitrary external contracts. Modifying contract state after invoking a callback violates Checks-Effects-Interactions and allows reentrant callers to operate on inconsistent state.",
+      "title": "Reentrancy via erc721-receiver before state update in withdrawNFT()"
+    }
+  }
+]
