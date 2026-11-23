@@ -12,6 +12,7 @@ import { Finding, Rule, Severity } from '../core/analyzer-interface';
 import { toNormalizedFindings } from '../../../rules/security/lib/normalize';
 import { RuleResult } from '../../../rules/security/lib/solidity-lite';
 import { detectCrossContractReentrancy, RULE_ID as XCONTRACT_REENTRANCY } from '../../../rules/security/external-calls/detect-cross-contract-reentrancy';
+import { detectExternalCallOrdering, RULE_ID as CALL_ORDERING } from '../../../rules/security/external-calls/detect-external-call-ordering';
 
 export interface SecurityDetector {
   rule: Rule;
@@ -34,6 +35,21 @@ export const SECURITY_DETECTORS: SecurityDetector[] = [
       category: 'security',
       enabled: true,
       tags: ['security', 'reentrancy', 'cross-contract', 'accounting'],
+      documentationUrl: 'https://docs.gasguard.dev/rules/solidity-call-safety',
+    },
+  },
+  {
+    docsSlug: 'solidity-call-safety',
+    run: (code, file) => detectExternalCallOrdering([{ path: file, content: code }]),
+    rule: {
+      id: CALL_ORDERING,
+      name: 'External Call Ordering Around State Changes',
+      description:
+        'Detects state writes that occur after an external interaction and can be observed, checked before the call, or re-entered.',
+      severity: Severity.HIGH,
+      category: 'security',
+      enabled: true,
+      tags: ['security', 'reentrancy', 'checks-effects-interactions', 'call-ordering'],
       documentationUrl: 'https://docs.gasguard.dev/rules/solidity-call-safety',
     },
   },

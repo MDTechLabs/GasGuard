@@ -11,6 +11,7 @@ Solidity analyzer runs every registered rule through
 | Rule id | Entry point | Source |
 | --- | --- | --- |
 | `GG-REENTRANCY-XCONTRACT-001` | `detectCrossContractReentrancy` | `rules/security/external-calls/detect-cross-contract-reentrancy.ts` |
+| `GG-CALLORDER-001` | `detectExternalCallOrdering` | `rules/security/external-calls/detect-external-call-ordering.ts` |
 
 ## Supported input and general limitations
 
@@ -97,3 +98,70 @@ contract Lender {
 ```
 
 Safe counterexample: move `balances[msg.sender] -= amount;` above the `call`.
+
+## GG-CALLORDER-001 — external call ordering around state changes
+
+Finds public/external functions that make an external interaction and only afterwards write storage that can be observed
+or re-entered. Storage writes before and after every external call are tracked across internal helpers, inherited
+functions (including `super.f()` / `Base.f()`), and the bodies of non-lock modifiers (code before and after `_;`).
+
+A late write is reported only when it is **relevant**:
+
+| Relevance | Meaning |
+| --- | --- |
+| `check-then-act` | The function checked the variable (or a local copied from it, `uint amt = balances[x]; require(amt > 0)`) before the call, so a re-entrant call passes the same check again. |
+| `accounting` | The variable is asset or liability state (balances, shares, debt, reserves, totals, ...). |
+| `observed` | Another external function of the contract, or another contract that calls back into it, reads or mutates the variable. Used only when no stronger relevance applies. |
+
+| `kind` | Condition | Severity |
+| --- | --- | --- |
+| `check-effects-violation` | A checked variable is written after the call. | critical for a value-forwarding low-level call (or accounting), high otherwise |
+| `accounting-after-interaction` | Asset/liability state is written after the call. | high for low-level calls, medium for token/interface calls |
+| `observable-state-after-interaction` | Other readers can see the stale value. | medium for low-level calls, low otherwise |
+
+Confidence is `high` for low-level calls and resolved project calls and `medium` for token or interface targets.
+Every finding lists `writesBefore`, `writesAfter` (with `relevance` and `readers`), every interaction in the function and
+the calls treated as non-interactive.
+
+**False-positive reducers**
+
+- Not interactions: `address.transfer/send` (2300 gas stipend), `staticcall`, view/pure calls and getters, `this.f()`.
+- Calls into project contracts whose resolved implementation cannot reach an untrusted call (recorded with the reason).
+- Targets named in the `trustedTargets` option.
+- Inline mutexes: a boolean written before and after the call and checked first is treated as a lock.
+- Locks: when the function holds a recognized reentrancy lock only readers outside the lock are counted (an unguarded
+  mutator, or a consumer in another contract that is not covered by a view lock check). Same-contract views are not
+  counted under a lock.
+
+**Limitations** — lexical analysis; branches are flattened in source order; relevance and accounting classification are
+name based; callee code behind low-level calls, address-typed targets and interfaces without an implementation is not
+analyzed (listed as `unresolved-dynamic-call` diagnostics and in `limitations`); modifiers are modeled only when defined
+in the supplied sources; bases that are not in the supplied sources are listed as limitations.
+
+**Fixtures** — `rules/security/external-calls/__tests__/call-ordering.fixtures.ts`: the exploit-shaped drain, accounting
+after payout, helpers and inheritance, modifier post-body writes, token transfer, multi-file, and the safe designs
+(effects before interactions, locked without consumers, inline mutex, non-interactive calls).
+
+Vulnerable:
+
+```solidity
+function withdraw() external {
+  uint256 amt = balances[msg.sender];
+  require(amt > 0);
+  (bool ok, ) = msg.sender.call{value: amt}("");
+  require(ok);
+  balances[msg.sender] = 0;   // checked before the call, cleared after it
+}
+```
+
+Safe counterexample:
+
+```solidity
+function withdraw() external {
+  uint256 amt = balances[msg.sender];
+  require(amt > 0);
+  balances[msg.sender] = 0;   // effects first
+  (bool ok, ) = msg.sender.call{value: amt}("");
+  require(ok);
+}
+```
