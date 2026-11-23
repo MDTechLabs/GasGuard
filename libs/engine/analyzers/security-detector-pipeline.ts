@@ -13,6 +13,7 @@ import { toNormalizedFindings } from '../../../rules/security/lib/normalize';
 import { RuleResult } from '../../../rules/security/lib/solidity-lite';
 import { detectCrossContractReentrancy, RULE_ID as XCONTRACT_REENTRANCY } from '../../../rules/security/external-calls/detect-cross-contract-reentrancy';
 import { detectExternalCallOrdering, RULE_ID as CALL_ORDERING } from '../../../rules/security/external-calls/detect-external-call-ordering';
+import { detectOwnershipLockout, RULE_ID as OWNERSHIP_LOCKOUT } from '../../../rules/security/access-control/detect-ownership-lockout';
 
 export interface SecurityDetector {
   rule: Rule;
@@ -51,6 +52,21 @@ export const SECURITY_DETECTORS: SecurityDetector[] = [
       enabled: true,
       tags: ['security', 'reentrancy', 'checks-effects-interactions', 'call-ordering'],
       documentationUrl: 'https://docs.gasguard.dev/rules/solidity-call-safety',
+    },
+  },
+  {
+    docsSlug: 'solidity-authorization',
+    run: (code, file) => detectOwnershipLockout([{ path: file, content: code }]),
+    rule: {
+      id: OWNERSHIP_LOCKOUT,
+      name: 'Ownership Transfer Accidental Lockout',
+      description:
+        'Detects ownership and role flows that can permanently remove the last administrator or leave no recovery path.',
+      severity: Severity.HIGH,
+      category: 'security',
+      enabled: true,
+      tags: ['security', 'access-control', 'ownership', 'lockout'],
+      documentationUrl: 'https://docs.gasguard.dev/rules/solidity-authorization',
     },
   },
 ];
