@@ -13,6 +13,10 @@ import { detectMissingImmutable } from "../../../rules/optimization/storage/dete
 import { detectMissingCustomErrors } from "../../../rules/optimization/errors/detect-missing-custom-errors";
 import { detectEtherAccountingAssumptions } from "./ether-accounting-detector";
 import {
+  SECURITY_DETECTOR_RULES,
+  runSecurityDetectors,
+} from "./security-detector-pipeline";
+import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
   SIGNATURE_SECURITY_RULES,
@@ -20,6 +24,7 @@ import {
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private rules: Rule[] = [
+    ...SECURITY_DETECTOR_RULES,
     {
       id: "sol-001",
       name: "Inefficient Loop",
@@ -792,6 +797,16 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         error: error instanceof Error ? error : undefined,
       });
     }
+
+    const securityDetectors = runSecurityDetectors(code, filePath, {
+      isEnabled: (ruleId) => this.isRuleEnabled(ruleId, config),
+      severityOverride: (ruleId) => {
+        const ruleConfig = (config || this.config).rules?.[ruleId];
+        return typeof ruleConfig === "object" ? ruleConfig.severity : undefined;
+      },
+    });
+    findings.push(...securityDetectors.findings);
+    errors.push(...securityDetectors.errors);
 
     const analysisTime = Date.now() - startTime;
 

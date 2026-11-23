@@ -28,6 +28,8 @@ export interface SecurityFinding {
   /** 1-based source location of the primary evidence. */
   line: number;
   column: number;
+  /** Source path of the primary evidence when the analysis spans several files. */
+  file?: string;
   contract?: string;
   function?: string;
   message: string;
@@ -53,6 +55,10 @@ export interface RuleResult {
   analyzed: boolean;
   findings: SecurityFinding[];
   diagnostics: Diagnostic[];
+  /** Explicit analysis limitations that apply to this result (unresolved boundaries, bounds hit, ...). */
+  limitations?: string[];
+  /** Non-finding observations, for example a lockout risk deliberately not reported because intent is documented. */
+  notes?: string[];
 }
 
 export const MAX_SOURCE_LENGTH = 1_000_000;
