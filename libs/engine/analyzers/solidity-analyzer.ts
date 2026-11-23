@@ -12,11 +12,48 @@ import { detectStorageSlotCollisions } from "../../../rules/security/storage-lay
 import { detectMissingImmutable } from "../../../rules/optimization/storage/detect-missing-immutable";
 import { detectMissingCustomErrors } from "../../../rules/optimization/errors/detect-missing-custom-errors";
 import { detectEtherAccountingAssumptions } from "./ether-accounting-detector";
+import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
+import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
+import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
+import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
   SIGNATURE_SECURITY_RULES,
 } from "./signature-security";
+
+const APPROVE_RETURN_MESSAGES: Record<string, (callSite: string) => string> = {
+  "discarded-return": (call) =>
+    `The return value of '${call}' is not checked: a token that returns false leaves the allowance unset without any error.`,
+  "assumes-bool-return": (call) =>
+    `'${call}' assumes the token returns a bool: tokens that return no data (for example USDT) make this call revert.`,
+  "unchecked-low-level-call": (call) =>
+    `The success flag of the low-level approve call '${call}' is never checked.`,
+  "returndata-ignored": (call) =>
+    `The low-level approve call '${call}' checks success but ignores returndata, so a token that returns false is treated as approved.`,
+  "decode-without-length-check": (call) =>
+    `The low-level approve call '${call}' decodes a bool without tolerating empty returndata, so no-return tokens revert and malformed returndata is not handled.`,
+  "wrapper-unavailable": (call) =>
+    `'${call}' relies on a safe-approval wrapper whose implementation is not available in the analyzed source, so its no-return and false-return handling is unverified.`,
+};
+
+const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<string, (callSite: string) => string> = {
+  "unchecked-adjust-call": (call) =>
+    `The result of '${call}' is not checked: a token that returns false, or implements the helper differently, leaves the allowance unchanged silently.`,
+  "nonstandard-adjust-method": (call) =>
+    `'${call}' relies on increaseAllowance/decreaseAllowance, which are not part of ERC-20 and are missing from many tokens and from OpenZeppelin 5.x.`,
+  "read-modify-write-approve": (call) =>
+    `'${call}' reads an allowance and writes it back with approve in separate calls, so a spender can front-run and use both the old and the new allowance.`,
+  "unchecked-decrease-underflow": (stmt) =>
+    `'${stmt}' subtracts from an allowance without a guard under unchecked arithmetic, so an excessive decrease wraps to a huge allowance.`,
+  "saturating-decrease": (stmt) =>
+    `'${stmt}' silently clamps an excessive allowance decrease to zero instead of reverting.`,
+};
+
+const FEE_ON_TRANSFER_POLICY_TEXT: Record<string, string> = {
+  "claimed-support": "The contract claims fee-on-transfer support, but this path does not deliver it.",
+  unspecified: "The contract states no fee-on-transfer policy, so this looks like an accidental assumption.",
+};
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
   private rules: Rule[] = [
@@ -259,6 +296,52 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "ether", "accounting", "forced-balance", "denial-of-service"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-019",
+    },
+    {
+      id: "sol-023",
+      name: "Unchecked ERC-20 approve Return Value",
+      description:
+        "Detects typed and low-level ERC-20 approve calls that ignore the return value or assume every token returns a bool",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "approve", "return-value", "token-compatibility"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-023",
+    },
+    {
+      id: "sol-024",
+      name: "Unsafe Allowance Adjustment Assumptions",
+      description:
+        "Detects unchecked or non-standard increaseAllowance/decreaseAllowance calls, non-atomic read-modify-write approvals, and unsafe custom decrease implementations",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "allowance", "race-condition", "token-compatibility"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-024",
+    },
+    {
+      id: "sol-025",
+      name: "Fee-on-Transfer Accounting Assumption",
+      description:
+        "Detects deposit, liquidity, staking, swap, and withdrawal flows that credit the requested token amount without measuring the balance actually received",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "fee-on-transfer", "accounting", "vault"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-025",
+    },
+    {
+      id: "sol-026",
+      name: "Missing Zero-Address Check in Critical Configuration",
+      description:
+        "Detects constructors, initializers, setters, and factories that store or forward token, oracle, implementation, or privileged-role addresses without rejecting address(0)",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "zero-address", "configuration", "access-control", "upgradeability"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
+    },
+    {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
       name: "Stale Cached EIP-712 Domain Separator",
       description:
@@ -745,6 +828,169 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
             },
           })),
         );
+      }
+
+      // Rule: sol-023 - Unchecked ERC-20 approve return value
+      if (this.isRuleEnabled("sol-023", config)) {
+        const detection = detectUncheckedApproveReturns(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-023",
+            message: APPROVE_RETURN_MESSAGES[finding.kind](finding.callSite),
+            severity: this.getRuleSeverity("sol-023", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Use a vetted safe-approval wrapper (for example OpenZeppelin SafeERC20 forceApprove) or, for low-level calls, require success && (data.length == 0 || abi.decode(data, (bool))). Reset to zero first only for tokens that require it.",
+              codeSnippet:
+                "using SafeERC20 for IERC20;\ntoken.forceApprove(spender, amount);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-023",
+            },
+            metadata: {
+              kind: finding.kind,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "ERC-20 tokens disagree on approve(): most return true, some return false instead of reverting, and some (USDT-style) return nothing. Code that assumes one behavior either proceeds without an allowance or becomes unable to use the token, which can strand or block funds in routers and vaults.",
+              limitation:
+                "Source-pattern analysis: it does not resolve token addresses, inheritance, aliases, assembly calls, calldata built outside the call expression, or wrapper libraries not present in the analyzed source. ERC-721 approve() is excluded heuristically by receiver name.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-024 - Unsafe allowance adjustment assumptions
+      if (this.isRuleEnabled("sol-024", config)) {
+        const detection = detectAllowanceAdjustmentRisks(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-024",
+            message: ALLOWANCE_ADJUSTMENT_MESSAGES[finding.kind](finding.callSite),
+            severity: this.getRuleSeverity("sol-024", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Avoid read-modify-write approvals on external tokens. Set the allowance to the exact amount needed (resetting to zero first for tokens that require it, e.g. with SafeERC20.forceApprove) and consume it within the same transaction. In custom allowance code, require the decrease to be <= the current allowance and revert instead of clamping.",
+              codeSnippet:
+                "token.forceApprove(spender, 0);\ntoken.forceApprove(spender, amount);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-024",
+            },
+            metadata: {
+              kind: finding.kind,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Allowance changes made as separate read and write calls can be front-run, and non-standard or custom helpers can silently skip, wrap, or clamp the change; each lets a spender hold more allowance than the owner intended.",
+              limitation:
+                "Source-pattern analysis: helper behaviour is modelled only from implementations present in the analyzed source and receivers are resolved by declared type within one file. Inheritance, imported implementations, aliases, assembly, and tokens with non-standard allowance semantics (infinite-allowance sentinels, rebasing or permit-only tokens) are not modelled.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-025 - Fee-on-transfer accounting assumption
+      if (this.isRuleEnabled("sol-025", config)) {
+        const detection = detectFeeOnTransferAccounting(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-025",
+            message:
+              finding.kind === "nominal-credit"
+                ? `${finding.flow} flow credits the requested amount after '${finding.callSite}' (line ${finding.creditLine}) without measuring the balance received. ${FEE_ON_TRANSFER_POLICY_TEXT[finding.policy]}`
+                : `Withdrawal flow forwards the requested amount without measuring what the external contract returned ('${finding.callSite}'). ${FEE_ON_TRANSFER_POLICY_TEXT[finding.policy]}`,
+            severity: this.getRuleSeverity("sol-025", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Measure the received amount as a balance delta and account with that value, or reject fee-on-transfer tokens explicitly (for example by requiring received == amount, or by listing only vetted tokens) and document the policy. Delta accounting costs two extra balanceOf calls, needs a reentrancy guard because the balance can change mid-call, and does not support rebasing tokens whose balance changes without transfers.",
+              codeSnippet:
+                "uint256 beforeBalance = token.balanceOf(address(this));\ntoken.safeTransferFrom(msg.sender, address(this), amount);\nuint256 received = token.balanceOf(address(this)) - beforeBalance;\nbalances[msg.sender] += received;",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-025",
+            },
+            metadata: {
+              kind: finding.kind,
+              flow: finding.flow,
+              policy: finding.policy,
+              creditLine: finding.creditLine,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "If a token takes a fee on transfer, crediting the requested amount records more than the contract holds; the shortfall is paid out of other users' funds, which can make the vault, pool, or swap insolvent.",
+              limitation:
+                "Source-pattern analysis within a single function: it does not follow internal helper calls, inheritance, or imported code, and only considers pulls whose recipient is address(this). Whether a given token charges a fee is not known statically. Policy is inferred from comments, identifiers, and revert strings in the enclosing contract.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-026 - Missing zero-address checks in critical configuration
+      if (this.isRuleEnabled("sol-026", config)) {
+        const detection = detectMissingZeroAddressChecks(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-026",
+            message: `${finding.entryPoint} '${finding.functionName}' accepts the ${finding.category} address '${finding.parameter}' without rejecting address(0): ${finding.sink}. ${finding.impact}`,
+            severity: this.getRuleSeverity("sol-026", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Reject address(0) before storing or forwarding the address (a custom error is cheapest). If zero is a deliberate sentinel, document it on the parameter (for example '@param x ... zero disables ...') and handle the zero case explicitly in code.",
+              codeSnippet: `if (${finding.parameter} == address(0)) revert ZeroAddress();`,
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
+            },
+            metadata: {
+              entryPoint: finding.entryPoint,
+              addressCategory: finding.category,
+              parameter: finding.parameter,
+              restricted: finding.restricted,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              impact: finding.impact,
+              severityRationale:
+                "Critical addresses control custody, authorization, pricing, or upgrades. A zero value is usually an unrecoverable misconfiguration (locked privileges, bricked token or oracle calls, burned funds), but it requires a deployer or privileged-role mistake rather than an attacker, hence medium severity.",
+              limitation:
+                "Source-pattern analysis: criticality is inferred from parameter and callee names, only external/public entry points are analyzed, and validation is recognised through comparisons with address(0), isContract/code.length checks, local modifiers and helpers, and base-constructor arguments. Callee implementations outside the analyzed source are not inspected. Zero is treated as a sentinel when a comment above the function documents it or the body branches on it.",
+            },
+          })),
+        );
+      }
+
       const signatureConfigErrors = this.validateSignatureSecurityConfig(config);
       if (signatureConfigErrors.length > 0) {
         errors.push({

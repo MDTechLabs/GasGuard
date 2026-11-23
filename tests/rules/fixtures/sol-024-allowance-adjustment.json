@@ -1,0 +1,19 @@
+{
+  "id": "sol-024-allowance-adjustment",
+  "name": "Allowance adjustment assumptions",
+  "description": "Standard, non-standard, and custom allowance implementations plus callers that drop results, assume non-standard methods, or read-modify-write approvals. Source: sol-024-allowance-adjustment.sol",
+  "source": "sol-024-allowance-adjustment.sol",
+  "expectedFindings": [
+    { "ruleId": "sol-024", "kind": "unchecked-decrease-underflow", "line": 35 },
+    { "ruleId": "sol-024", "kind": "saturating-decrease", "line": 46 },
+    { "ruleId": "sol-024", "kind": "unchecked-adjust-call", "line": 53 },
+    { "ruleId": "sol-024", "kind": "nonstandard-adjust-method", "line": 57 },
+    { "ruleId": "sol-024", "kind": "read-modify-write-approve", "line": 61 },
+    { "ruleId": "sol-024", "kind": "read-modify-write-approve", "line": 66 }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["erc20", "allowance", "increaseAllowance", "decreaseAllowance", "race-condition"]
+  }
+}
