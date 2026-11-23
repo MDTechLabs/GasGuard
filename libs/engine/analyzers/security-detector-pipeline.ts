@@ -14,6 +14,7 @@ import { RuleResult } from '../../../rules/security/lib/solidity-lite';
 import { detectCrossContractReentrancy, RULE_ID as XCONTRACT_REENTRANCY } from '../../../rules/security/external-calls/detect-cross-contract-reentrancy';
 import { detectExternalCallOrdering, RULE_ID as CALL_ORDERING } from '../../../rules/security/external-calls/detect-external-call-ordering';
 import { detectOwnershipLockout, RULE_ID as OWNERSHIP_LOCKOUT } from '../../../rules/security/access-control/detect-ownership-lockout';
+import { detectPauseAuthority, RULE_ID as PAUSE_AUTHORITY } from '../../../rules/security/access-control/detect-pause-authority';
 
 export interface SecurityDetector {
   rule: Rule;
@@ -66,6 +67,21 @@ export const SECURITY_DETECTORS: SecurityDetector[] = [
       category: 'security',
       enabled: true,
       tags: ['security', 'access-control', 'ownership', 'lockout'],
+      documentationUrl: 'https://docs.gasguard.dev/rules/solidity-authorization',
+    },
+  },
+  {
+    docsSlug: 'solidity-authorization',
+    run: (code, file) => detectPauseAuthority([{ path: file, content: code }]),
+    rule: {
+      id: PAUSE_AUTHORITY,
+      name: 'Unsafe Pause and Unpause Authority Separation',
+      description:
+        'Checks that pause and unpause authority is resolved, separated as documented, and neither abusable nor permanently lost.',
+      severity: Severity.HIGH,
+      category: 'security',
+      enabled: true,
+      tags: ['security', 'access-control', 'pausable', 'emergency'],
       documentationUrl: 'https://docs.gasguard.dev/rules/solidity-authorization',
     },
   },

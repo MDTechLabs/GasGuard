@@ -11,6 +11,7 @@ Authorization and configuration detectors built on the shared toolkit in
 | Rule id | Entry point | Source |
 | --- | --- | --- |
 | `GG-AUTH-LOCKOUT-001` | `detectOwnershipLockout` | `rules/security/access-control/detect-ownership-lockout.ts` |
+| `GG-AUTH-PAUSE-001` | `detectPauseAuthority` | `rules/security/access-control/detect-pause-authority.ts` |
 
 ## Supported input and general limitations
 
@@ -45,3 +46,29 @@ authority, last-admin removal and its safe counter-example, inherited Ownable / 
 
 Vulnerable: `function acceptOwnership() external { owner = pendingOwner; }`
 Safe: `require(msg.sender == pendingOwner); owner = pendingOwner; pendingOwner = address(0);`
+
+## GG-AUTH-PAUSE-001 — pause / unpause authority
+
+Resolves who can pause and who can unpause and builds the role graph around them: role constants, `_grantRole` /
+`_setupRole` / `grantRole` holders (constructors and initializers included) and `_setRoleAdmin` edges (default admin:
+`DEFAULT_ADMIN_ROLE`). The graph is emitted in `details.roleGraph` and as one-line `notes`
+(`UNPAUSER_ROLE: admin PAUSER_ROLE; holders msg.sender (Vault constructor)`).
+
+The documented policy is passed as `policy: { pauseAuthorities, unpauseAuthorities, requirePause, requireSeparation }`
+using authority names as written in the code. Without a policy only unconditional problems are reported.
+
+| `kind` | Condition | Severity |
+| --- | --- | --- |
+| `unpause-unrestricted` / `pause-unrestricted` | No caller restriction. | critical / high |
+| `unpause-broader-than-policy` | Unpause gate is wider than `policy.unpauseAuthorities`. | high |
+| `pause-broader-than-policy` | Pause gate is wider than `policy.pauseAuthorities`. | medium |
+| `unpause-role-admin-broad` | The admin of the unpause role is a pause-only authority. | medium |
+| `pause-authority-lost` / `unpause-authority-lost` | Role and its admin have no holder: emergency control unusable / contract can stay paused forever. | high |
+| `pause-authority-unassigned` / `unpause-authority-unassigned` | Role has no holder yet but its admin can grant it. | low |
+| `pause-unpause-not-separated` | One authority does both and `policy.requireSeparation` is set. | low |
+| `missing-emergency-pause` | No pause function and `policy.requirePause` is set. | medium |
+
+**Limitations** — pause/unpause functions are recognized by name; grants made by later transactions and roles inherited
+from unresolved bases are not visible; policy names are compared case-insensitively as written.
+
+**Fixtures** — `rules/security/access-control/__tests__/pause-authority.fixtures.ts`.
