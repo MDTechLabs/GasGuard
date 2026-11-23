@@ -15,6 +15,7 @@ import { detectEtherAccountingAssumptions } from "./ether-accounting-detector";
 import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
 import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
+import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -328,6 +329,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "erc20", "fee-on-transfer", "accounting", "vault"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-025",
+    },
+    {
+      id: "sol-026",
+      name: "Missing Zero-Address Check in Critical Configuration",
+      description:
+        "Detects constructors, initializers, setters, and factories that store or forward token, oracle, implementation, or privileged-role addresses without rejecting address(0)",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "zero-address", "configuration", "access-control", "upgradeability"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -933,6 +945,47 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "If a token takes a fee on transfer, crediting the requested amount records more than the contract holds; the shortfall is paid out of other users' funds, which can make the vault, pool, or swap insolvent.",
               limitation:
                 "Source-pattern analysis within a single function: it does not follow internal helper calls, inheritance, or imported code, and only considers pulls whose recipient is address(this). Whether a given token charges a fee is not known statically. Policy is inferred from comments, identifiers, and revert strings in the enclosing contract.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-026 - Missing zero-address checks in critical configuration
+      if (this.isRuleEnabled("sol-026", config)) {
+        const detection = detectMissingZeroAddressChecks(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-026",
+            message: `${finding.entryPoint} '${finding.functionName}' accepts the ${finding.category} address '${finding.parameter}' without rejecting address(0): ${finding.sink}. ${finding.impact}`,
+            severity: this.getRuleSeverity("sol-026", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Reject address(0) before storing or forwarding the address (a custom error is cheapest). If zero is a deliberate sentinel, document it on the parameter (for example '@param x ... zero disables ...') and handle the zero case explicitly in code.",
+              codeSnippet: `if (${finding.parameter} == address(0)) revert ZeroAddress();`,
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
+            },
+            metadata: {
+              entryPoint: finding.entryPoint,
+              addressCategory: finding.category,
+              parameter: finding.parameter,
+              restricted: finding.restricted,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              impact: finding.impact,
+              severityRationale:
+                "Critical addresses control custody, authorization, pricing, or upgrades. A zero value is usually an unrecoverable misconfiguration (locked privileges, bricked token or oracle calls, burned funds), but it requires a deployer or privileged-role mistake rather than an attacker, hence medium severity.",
+              limitation:
+                "Source-pattern analysis: criticality is inferred from parameter and callee names, only external/public entry points are analyzed, and validation is recognised through comparisons with address(0), isContract/code.length checks, local modifiers and helpers, and base-constructor arguments. Callee implementations outside the analyzed source are not inspected. Zero is treated as a sentinel when a comment above the function documents it or the body branches on it.",
             },
           })),
         );

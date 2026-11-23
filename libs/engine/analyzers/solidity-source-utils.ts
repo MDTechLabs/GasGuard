@@ -275,23 +275,29 @@ export function prepareSoliditySource(
 }
 
 export interface FunctionModel {
+  /** `constructor` and `modifier` definitions are only returned by `extractCallables`. */
+  kind: "function" | "constructor" | "modifier";
   name: string;
-  /** Offset of the `function` keyword. */
+  /** Offset of the defining keyword. */
   start: number;
   params: Array<{ name: string; type: string }>;
-  /** Offsets of the `{` and matching `}`; -1 when the function has no body (interface or abstract). */
+  /** Offsets of the `{` and matching `}`; -1 when there is no body (interface or abstract). */
   bodyStart: number;
   bodyEnd: number;
+  /** Text between the keyword and the body, including parameters, visibility, and modifiers. */
   header: string;
 }
 
-/** Extracts function definitions (with or without bodies) from masked source. */
-export function extractFunctions(code: string): FunctionModel[] {
-  const functions: FunctionModel[] = [];
-  const pattern = /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g;
+/** Extracts function, constructor, and modifier definitions from masked source. */
+export function extractCallables(code: string): FunctionModel[] {
+  const callables: FunctionModel[] = [];
+  const pattern =
+    /\b(?:(function)\s+([A-Za-z_$][\w$]*)|(modifier)\s+([A-Za-z_$][\w$]*)|(constructor))\s*(?=\()/g;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(code)) !== null) {
-    const open = match.index + match[0].length - 1;
+    const kind = match[1] ? "function" : match[3] ? "modifier" : "constructor";
+    const name = match[2] ?? match[4] ?? "constructor";
+    const open = match.index + match[0].length;
     const close = findMatchingClose(code, open);
     if (close < 0) continue;
 
@@ -315,8 +321,9 @@ export function extractFunctions(code: string): FunctionModel[] {
       }));
 
     const hasBody = code[i] === "{";
-    functions.push({
-      name: match[1],
+    callables.push({
+      kind,
+      name,
       start: match.index,
       params,
       bodyStart: hasBody ? i : -1,
@@ -324,7 +331,12 @@ export function extractFunctions(code: string): FunctionModel[] {
       header: code.slice(match.index, i),
     });
   }
-  return functions;
+  return callables;
+}
+
+/** Extracts function definitions (with or without bodies) from masked source. */
+export function extractFunctions(code: string): FunctionModel[] {
+  return extractCallables(code).filter((callable) => callable.kind === "function");
 }
 
 /** True when the first pragma pins a compiler older than 0.8 (no checked arithmetic). */

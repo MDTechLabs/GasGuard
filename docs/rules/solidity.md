@@ -293,3 +293,79 @@ and document the policy so the assumption is deliberate.
 deposit, liquidity, swap, and withdrawal flows, plus a contract that claims
 support and one that rejects such tokens; `sol-025-fee-on-transfer.json` lists
 the expected findings and policy-suppressed site.
+
+## Missing Zero-Address Check in Critical Configuration
+
+**Rule ID:** `sol-026`  
+**Severity:** medium  
+**Category:** security
+
+Finds configuration entry points that store or forward a critical address without
+rejecting `address(0)`. Entry points are classified as `constructor`,
+`initializer` (`initialize*`, `init`, `setup`, `__*_init`, or an `initializer` /
+`reinitializer` modifier), `factory` (`create*`/`deploy*`/`clone*` functions that use
+`new`, a clone, or `.initialize(...)`), or `setter` (any other `external`/`public`
+non-view function).
+
+### Prioritised address categories and impact
+
+| Category | Inferred from names such as | Downstream impact of zero |
+| --- | --- | --- |
+| `upgrade` | implementation, impl, logic, beacon, upgrade, template | A proxy delegates to empty code (calls succeed without effect or revert); an upgrade to zero may be irreversible |
+| `authorization` | owner, admin, governor, guardian, operator, minter, role, timelock | Every function behind that privilege is permanently locked; the contract may be impossible to recover or upgrade |
+| `custody` | token, asset, vault, treasury, recipient, receiver, escrow, collateral | A zero token bricks high-level token calls or lets low-level calls succeed silently; a zero treasury or recipient burns funds |
+| `pricing` | oracle, feed, aggregator, twap | Every price read reverts, halting borrowing, liquidation, and swaps, or empty data is read as a price of zero |
+
+Each finding carries the category, the parameter, the exact storing or forwarding
+statement, its impact text, and whether the entry point is restricted by an
+access-control modifier (restricted entry points report ten points lower
+confidence: the realistic failure is operator error, not an attacker).
+
+### What counts as validated
+
+A parameter is not reported when it is:
+
+- compared with `address(0)` (or `0x0`/`0`) anywhere in the function, in a `require`,
+  `if ... revert`, or a branch, which also covers code that deliberately handles zero;
+- checked with `isContract(x)`, `x.code.length`, or `extcodesize(x)`;
+- passed through a modifier or internal helper whose body is in the source and
+  compares its own parameter with zero (followed up to three calls deep), or one
+  named like `nonZero`/`notZero`/`validAddress`;
+- forwarded to a base constructor such as `Ownable(initialOwner)`;
+- documented as a zero sentinel in the comment directly above the function
+  (it must name the parameter, mention zero or `address(0)`, and say what it means,
+  for example "zero disables fee collection");
+- passed to a `new T(...)` or `x.initialize(...)` whose implementation is in the
+  source and validates the matching parameter.
+
+### Supported input and limitations
+
+- Source-text analysis only; no `solc`, scripts, or project configuration are used.
+  Sources with no pragma or pragmas in `0.4.x`–`0.8.x` are analyzed; other versions,
+  unbalanced delimiters, and unterminated strings/comments produce a diagnostic.
+- Criticality is inferred from parameter and callee names, so addresses with generic
+  names are not reported. `internal`/`private` functions are skipped; a public setter
+  that delegates to an unvalidated internal helper is reported at the call.
+  Callee implementations outside the analyzed source, inheritance, and cross-file
+  validation are not inspected (such callees lower confidence by 0.05).
+
+### Remediation
+
+```solidity
+error ZeroAddress();
+
+function setOracle(address newOracle) external onlyOwner {
+    if (newOracle == address(0)) revert ZeroAddress();
+    oracle = newOracle;
+}
+```
+
+Where zero is intentional, document it on the parameter and handle it explicitly.
+For tokens and oracles consider also checking `code.length > 0`.
+
+### Fixtures
+
+`tests/rules/fixtures/sol-026-zero-address.sol` has constructor, initializer,
+setter, and factory configuration with unvalidated, validated (inline, helper, and
+modifier), sentinel, and modelled-callee cases; `sol-026-zero-address.json` lists
+the expected findings.
