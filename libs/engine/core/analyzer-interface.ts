@@ -1,3 +1,5 @@
+import { annotateFindings } from "./finding-metadata";
+
 export enum Severity {
   CRITICAL = "critical",
   HIGH = "high",
@@ -334,6 +336,15 @@ export abstract class BaseAnalyzer implements Analyzer {
           error: error instanceof Error ? error : undefined,
         });
       }
+    }
+
+    // Opt-in: fingerprints and provenance are added only when requested, so existing result
+    // shapes and golden snapshots are unchanged by default.
+    if (cfg.options?.findingMetadata === true) {
+      annotateFindings(allFindings, files, {
+        sourceMaps: cfg.options?.sourceMaps,
+        includePathInFingerprint: cfg.options?.includePathInFingerprint === true,
+      });
     }
 
     const analysisTime = Date.now() - startTime;
