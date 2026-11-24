@@ -1239,6 +1239,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       /\.transfer\s*\(/,
       /\.send\s*\(/,
       /\.call\s*\{.*value.*\}/,
+      // Pre-0.5 form, e.g. `msg.sender.call.value(amount)()` (The DAO, 2016).
+      /\.call\.value\s*\(/,
       /address\s*\(\s*\w+\s*\)\.call\s*\{.*value.*\}/,
       /payable\s*\(\s*\w+\s*\)\.transfer\s*\(/,
       /payable\s*\(\s*\w+\s*\)\.send\s*\(/,
@@ -1395,7 +1397,9 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         continue;
       }
 
-      if (txOriginPattern.test(line)) {
+      // Match the code part only. A trailing comment that mentions tx.origin is not a use.
+      const codePart = line.replace(/\/\*.*?\*\//g, " ").replace(/\/\/.*$/, "");
+      if (txOriginPattern.test(codePart)) {
         findings.push({
           startLine: i + 1,
           endLine: i + 1,
