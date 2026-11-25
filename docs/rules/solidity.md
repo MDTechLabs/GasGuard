@@ -369,3 +369,65 @@ For tokens and oracles consider also checking `code.length > 0`.
 setter, and factory configuration with unvalidated, validated (inline, helper, and
 modifier), sentinel, and modelled-callee cases; `sol-026-zero-address.json` lists
 the expected findings.
+
+## Privileged Role-Admin Escalation
+
+**Rule ID:** `sol-027`  
+**Severity:** high  
+**Category:** security
+
+Validates the Solidity role-admin graph (OpenZeppelin `AccessControl` / custom
+`_setRoleAdmin` / `setRoleAdmin` hierarchies) for privilege escalation paths,
+cycles, and unprotected role-admin mutations:
+
+- `privilege-escalation-edge`: a lower-tier role (e.g., `OPERATOR_ROLE`,
+  `PAUSER_ROLE`, `MINTER_ROLE`) is configured as the admin of a higher-privilege
+  role (e.g., `DEFAULT_ADMIN_ROLE`, `UPGRADER_ROLE`, `GOVERNANCE_ROLE`).
+- `transitive-admin-escalation`: a multi-hop chain in the role-admin graph
+  allows a lower-tier role to transitively administer a higher-tier role across
+  direct calls, inherited contracts, or library/internal helpers.
+- `role-admin-cycle`: a self-administering non-root role or a multi-role cycle
+  where holders of any role in the cycle can grant themselves every other role.
+- `unprotected-role-admin-mutation`: an `external`/`public` function or
+  unprotected proxy initializer (`initialize*` without `initializer` /
+  `reinitializer`) mutates role-admin edges or grants Tier 3+ roles without
+  access control.
+
+### Supported input, AST/IR assumptions, and limitations
+
+- Static source-text analysis only; no `solc`, `npm`, `foundry`, or repository
+  scripts are executed.
+- Supports Solidity pragma versions `0.4.x` through `0.8.x` (including `0.4.x`
+  legacy constructors) and sources without a pragma. Explicit versions outside
+  `0.4.x`–`0.8.x`, NUL bytes, unbalanced delimiters, and unterminated
+  strings/comments fail safely with a diagnostic.
+- Resolves single-file inheritance (`is Base1, Base2`), custom auth modifiers,
+  internal helpers, and library calls up to bounded depth. Cross-file external
+  implementations and dynamic runtime `bytes32` role values are not resolved.
+- Resource limits (`maxSourceBytes` = 1 MiB, `maxContracts` = 128,
+  `maxGraphNodes` = 256, `maxGraphEdges` = 512, `maxDfsDepth` = 32) prevent
+  untrusted repositories from exhausting worker resources.
+
+### Configuration and false-positive handling
+
+Configure `sol-027` options under `rules["sol-027"].options`:
+
+- `extraPrivilegedRoles`: array of custom `bytes32` role names to classify as
+  high-privilege (Tier 3).
+- `allowedAdminEdges`: array of `{ role, adminRole }` pairs to suppress
+  intentional non-standard admin edges.
+
+### Remediation
+
+```solidity
+// Keep privileged roles administered by DEFAULT_ADMIN_ROLE or a higher-tier governance role:
+_setRoleAdmin(UPGRADER_ROLE, DEFAULT_ADMIN_ROLE);
+_setRoleAdmin(OPERATOR_ROLE, MANAGER_ROLE);
+```
+
+### Fixtures
+
+`tests/rules/fixtures/sol-027-role-admin-graph.sol` and
+`tests/rules/fixtures/sol-027-role-admin-graph.json` cover direct escalation,
+cycles, transitive escalation across inheritance, unprotected proxy
+initializers, and safe hierarchical configurations.
