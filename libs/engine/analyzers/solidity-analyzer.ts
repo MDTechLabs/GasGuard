@@ -16,6 +16,8 @@ import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
 import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
+import { detectBeaconProxyHazards } from "./beacon-proxy-hazard-detector";
+import { detectTokenTransferWrapperReturns } from "./token-transfer-wrapper-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -37,7 +39,10 @@ const APPROVE_RETURN_MESSAGES: Record<string, (callSite: string) => string> = {
     `'${call}' relies on a safe-approval wrapper whose implementation is not available in the analyzed source, so its no-return and false-return handling is unverified.`,
 };
 
-const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<string, (callSite: string) => string> = {
+const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<
+  string,
+  (callSite: string) => string
+> = {
   "unchecked-adjust-call": (call) =>
     `The result of '${call}' is not checked: a token that returns false, or implements the helper differently, leaves the allowance unchanged silently.`,
   "nonstandard-adjust-method": (call) =>
@@ -51,8 +56,10 @@ const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<string, (callSite: string) => string
 };
 
 const FEE_ON_TRANSFER_POLICY_TEXT: Record<string, string> = {
-  "claimed-support": "The contract claims fee-on-transfer support, but this path does not deliver it.",
-  unspecified: "The contract states no fee-on-transfer policy, so this looks like an accidental assumption.",
+  "claimed-support":
+    "The contract claims fee-on-transfer support, but this path does not deliver it.",
+  unspecified:
+    "The contract states no fee-on-transfer policy, so this looks like an accidental assumption.",
 };
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
@@ -294,7 +301,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       severity: Severity.MEDIUM,
       category: "security",
       enabled: true,
-      tags: ["security", "ether", "accounting", "forced-balance", "denial-of-service"],
+      tags: [
+        "security",
+        "ether",
+        "accounting",
+        "forced-balance",
+        "denial-of-service",
+      ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-019",
     },
     {
@@ -305,7 +318,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       severity: Severity.MEDIUM,
       category: "security",
       enabled: true,
-      tags: ["security", "erc20", "approve", "return-value", "token-compatibility"],
+      tags: [
+        "security",
+        "erc20",
+        "approve",
+        "return-value",
+        "token-compatibility",
+      ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-023",
     },
     {
@@ -316,7 +335,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       severity: Severity.MEDIUM,
       category: "security",
       enabled: true,
-      tags: ["security", "erc20", "allowance", "race-condition", "token-compatibility"],
+      tags: [
+        "security",
+        "erc20",
+        "allowance",
+        "race-condition",
+        "token-compatibility",
+      ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-024",
     },
     {
@@ -338,8 +363,42 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       severity: Severity.MEDIUM,
       category: "security",
       enabled: true,
-      tags: ["security", "zero-address", "configuration", "access-control", "upgradeability"],
+      tags: [
+        "security",
+        "zero-address",
+        "configuration",
+        "access-control",
+        "upgradeability",
+      ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
+    },
+    {
+      id: "sol-028",
+      name: "Beacon Proxy Initialization and Upgrade Hazards",
+      description:
+        "Detects uninitialized beacon proxy deployment, unvalidated beacon addresses, unprotected beacon upgrades, and missing initializer disables",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: [
+        "security",
+        "beacon-proxy",
+        "upgradeability",
+        "initialization",
+        "proxy",
+      ],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
+    },
+    {
+      id: "sol-029",
+      name: "Non-standard Token Return Behavior in Transfer Wrappers",
+      description:
+        "Detects high-level transfer calls assuming bool returns, unchecked transfer return values, and flawed low-level transfer wrappers",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "tokens", "transfer", "safe-erc20"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-029",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -350,7 +409,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       category: "security",
       enabled: true,
       tags: ["security", "eip712", "chain-id", "signatures"],
-      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+      documentationUrl:
+        "https://docs.gasguard.dev/rules/signature-authorization",
     },
     {
       id: SIGNATURE_SECURITY_RULES.INCOMPLETE_STRUCT_HASH,
@@ -361,7 +421,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       category: "security",
       enabled: true,
       tags: ["security", "eip712", "struct-hash", "signatures"],
-      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+      documentationUrl:
+        "https://docs.gasguard.dev/rules/signature-authorization",
     },
     {
       id: SIGNATURE_SECURITY_RULES.WEAK_MESSAGE_SIGNING,
@@ -372,7 +433,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       category: "security",
       enabled: true,
       tags: ["security", "personal-sign", "eth-sign", "signatures"],
-      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+      documentationUrl:
+        "https://docs.gasguard.dev/rules/signature-authorization",
     },
     {
       id: SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY,
@@ -383,7 +445,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       category: "security",
       enabled: true,
       tags: ["security", "erc-1271", "smart-wallet", "signatures"],
-      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+      documentationUrl:
+        "https://docs.gasguard.dev/rules/signature-authorization",
     },
   ];
 
@@ -794,7 +857,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-019", config)) {
         const detection = detectEtherAccountingAssumptions(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.assumptions.map((assumption) => ({
@@ -812,7 +878,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
               description:
                 "Do not require the raw contract balance to exactly equal recorded deposits or liabilities. Check that the balance covers liabilities, and handle any surplus explicitly.",
               codeSnippet:
-                "require(address(this).balance >= totalLiabilities, \"Insolvent\");\nuint256 surplus = address(this).balance - totalLiabilities;",
+                'require(address(this).balance >= totalLiabilities, "Insolvent");\nuint256 surplus = address(this).balance - totalLiabilities;',
               documentationUrl: "https://docs.gasguard.dev/rules/sol-019",
             },
             metadata: {
@@ -834,7 +900,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-023", config)) {
         const detection = detectUncheckedApproveReturns(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
@@ -872,12 +941,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-024", config)) {
         const detection = detectAllowanceAdjustmentRisks(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
             ruleId: "sol-024",
-            message: ALLOWANCE_ADJUSTMENT_MESSAGES[finding.kind](finding.callSite),
+            message: ALLOWANCE_ADJUSTMENT_MESSAGES[finding.kind](
+              finding.callSite,
+            ),
             severity: this.getRuleSeverity("sol-024", config),
             location: {
               file: filePath,
@@ -910,7 +984,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-025", config)) {
         const detection = detectFeeOnTransferAccounting(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
@@ -954,7 +1031,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-026", config)) {
         const detection = detectMissingZeroAddressChecks(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
@@ -991,7 +1071,88 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         );
       }
 
-      const signatureConfigErrors = this.validateSignatureSecurityConfig(config);
+      // Rule: sol-028 - Beacon proxy initialization and upgrade hazards
+      if (this.isRuleEnabled("sol-028", config)) {
+        const detection = detectBeaconProxyHazards(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-028",
+            message: `${finding.callableName}: ${finding.reason}`,
+            severity: this.getRuleSeverity("sol-028", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              codeSnippet: "require(beacon.code.length > 0, 'Invalid beacon');",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
+            },
+            metadata: {
+              kind: finding.kind,
+              callableName: finding.callableName,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Beacon proxy deployment and upgrade flaws can allow front-running proxy takeovers or brick all deployed proxies simultaneously when implementation changes are corrupted or unauthenticated.",
+              limitation:
+                "Source-pattern analysis: checks BeaconProxy instantiations, UpgradeableBeacon definitions, and Initializable constructors within the analyzed codebase.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-029 - Non-standard token return behavior in transfer wrappers
+      if (this.isRuleEnabled("sol-029", config)) {
+        const detection = detectTokenTransferWrapperReturns(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-029",
+            message: `${finding.callSite}: ${finding.reason}`,
+            severity: this.getRuleSeverity("sol-029", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              codeSnippet: "IERC20(token).safeTransfer(to, amount);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-029",
+            },
+            metadata: {
+              kind: finding.kind,
+              callSite: finding.callSite,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Non-standard tokens (like USDT or non-reverting tokens) either cause high-level calls to revert when expecting boolean returns or silently fail when returning false, allowing unbacked actions or stuck assets.",
+              limitation:
+                "Source-pattern analysis: inspects transfer calls and low-level call return handling in transfer wrappers.",
+            },
+          })),
+        );
+      }
+
+      const signatureConfigErrors =
+        this.validateSignatureSecurityConfig(config);
       if (signatureConfigErrors.length > 0) {
         errors.push({
           file: filePath,
@@ -1003,7 +1164,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
           this.expectedSignerTypes(config),
         );
         if (signatureAnalysis.diagnostic) {
-          errors.push({ file: filePath, message: signatureAnalysis.diagnostic });
+          errors.push({
+            file: filePath,
+            message: signatureAnalysis.diagnostic,
+          });
         } else {
           findings.push(
             ...signatureAnalysis.findings
@@ -1025,7 +1189,9 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 metadata: {
                   confidence: finding.confidence,
                   evidence: finding.evidence,
-                  ...(finding.issueType ? { issueType: finding.issueType } : {}),
+                  ...(finding.issueType
+                    ? { issueType: finding.issueType }
+                    : {}),
                 },
               })),
           );
@@ -1097,12 +1263,18 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         value.length === 0 ||
         value.some((entry) => entry !== "eoa" && entry !== "contract")
       ) {
-        errors.push(`${path} must be a non-empty array containing only "eoa" and/or "contract"`);
+        errors.push(
+          `${path} must be a non-empty array containing only "eoa" and/or "contract"`,
+        );
       }
     };
     const projectOptions = effective.options?.signatureSecurity;
     if (projectOptions !== undefined) {
-      if (projectOptions === null || typeof projectOptions !== "object" || Array.isArray(projectOptions)) {
+      if (
+        projectOptions === null ||
+        typeof projectOptions !== "object" ||
+        Array.isArray(projectOptions)
+      ) {
         errors.push("options.signatureSecurity must be an object");
       } else if ("expectedSignerTypes" in projectOptions) {
         validateExpectedTypes(
@@ -1129,8 +1301,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
 
   private expectedSignerTypes(config?: AnalyzerConfig): ExpectedSignerType[] {
     const effective = config ?? this.config;
-    const ruleConfig = effective.rules?.[SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY];
-    const perRuleOptions = typeof ruleConfig === "object" ? ruleConfig.options : undefined;
+    const ruleConfig =
+      effective.rules?.[SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY];
+    const perRuleOptions =
+      typeof ruleConfig === "object" ? ruleConfig.options : undefined;
     const projectOptions = effective.options?.signatureSecurity;
     const configured =
       perRuleOptions?.expectedSignerTypes ??
@@ -1139,7 +1313,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         : undefined);
     if (!Array.isArray(configured)) return ["eoa"];
     return configured.filter(
-      (entry): entry is ExpectedSignerType => entry === "eoa" || entry === "contract",
+      (entry): entry is ExpectedSignerType =>
+        entry === "eoa" || entry === "contract",
     );
   }
 
