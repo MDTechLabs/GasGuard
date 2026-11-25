@@ -1,0 +1,17 @@
+{
+  "id": "TOB-REENTRANCY-001",
+  "name": "Trail of Bits Lending Vault Reentrancy Finding",
+  "description": "Audited finding of an unprotected state change after an external low-level transfer call",
+  "auditSource": "Trail of Bits Audit Review",
+  "ruleId": "sol-006",
+  "solidityVersion": "^0.8.0",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract VulnerableLendingPool {\n    mapping(address => uint256) public balances;\n\n    function withdraw(uint256 amount) public {\n        require(balances[msg.sender] >= amount, \"insufficient balance\");\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"transfer failed\");\n        balances[msg.sender] -= amount;\n    }\n}\n",
+  "expected": {
+    "detected": true
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "positive",
+    "tags": ["reentrancy", "lending", "external-call"]
+  }
+}

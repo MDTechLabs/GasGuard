@@ -1,0 +1,18 @@
+{
+  "id": "OZ-UUPS-002-SAFE",
+  "name": "OpenZeppelin UUPS Timelock Protected Implementation",
+  "description": "Audited standard implementation where upgrades are strictly restricted to the timelock address",
+  "auditSource": "OpenZeppelin Contracts Standard",
+  "ruleId": "sol-027",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract AuditedSecureTimelockVault {\n    address public timelock;\n    address public implementation;\n    uint256 public delay = 2 days;\n    uint256 public constant MIN_DELAY = 1 days;\n\n    modifier onlyTimelock() {\n        require(msg.sender == timelock, \"only timelock\");\n        _;\n    }\n\n    function upgradeTo(address newImpl) external onlyTimelock {\n        implementation = newImpl;\n    }\n\n    function setDelay(uint256 newDelay) external onlyTimelock {\n        require(newDelay >= MIN_DELAY, \"delay too short\");\n        delay = newDelay;\n    }\n}\n",
+  "expected": {
+    "detected": false,
+    "count": 0
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "negative",
+    "tags": ["timelock", "upgradeability", "mitigated"]
+  }
+}

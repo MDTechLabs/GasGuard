@@ -1,0 +1,18 @@
+{
+  "id": "OZ-ZERO-ADDR-002",
+  "name": "OpenZeppelin Guarded Implementation Zero Address",
+  "description": "Audited safe pattern where setter validates address(0) using custom error before assigning",
+  "auditSource": "OpenZeppelin Proxy Audits",
+  "ruleId": "sol-026",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract SafeProxyAdminConfig {\n    error ZeroAddress();\n    address public implementation;\n    address public owner;\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"not owner\");\n        _;\n    }\n\n    function setImplementation(address newImplementation) external onlyOwner {\n        if (newImplementation == address(0)) revert ZeroAddress();\n        implementation = newImplementation;\n    }\n}\n",
+  "expected": {
+    "detected": false,
+    "count": 0
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "negative",
+    "tags": ["zero-address", "proxy", "mitigated"]
+  }
+}
