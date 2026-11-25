@@ -17,7 +17,8 @@ import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector"
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
 import { detectTimelockUpgradeBypass } from "./timelock-upgrade-bypass-detector";
-import { detectOwnershipLockout } from "../../../rules/security/access-control/detect-ownership-lockout";
+import { detectBeaconProxyHazards } from "./beacon-proxy-hazard-detector";
+import { detectTokenTransferWrapperReturns } from "./token-transfer-wrapper-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -385,21 +386,31 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
     },
     {
       id: "sol-028",
-      name: "Ownership Lockout Risk",
+      name: "Beacon Proxy Initialization and Upgrade Hazards",
       description:
-        "Detects one-step ownership transfers, broken pending-owner acceptance flows, and renunciation or role-revocation paths that can remove the final administrator",
+        "Detects uninitialized beacon proxy deployment, unvalidated beacon addresses, unprotected beacon upgrades, and missing initializer disables",
       severity: Severity.HIGH,
       category: "security",
       enabled: true,
       tags: [
         "security",
-        "access-control",
-        "ownership",
-        "lockout",
-        "roles",
-        "governance",
+        "beacon-proxy",
+        "upgradeability",
+        "initialization",
+        "proxy",
       ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
+    },
+    {
+      id: "sol-029",
+      name: "Non-standard Token Return Behavior in Transfer Wrappers",
+      description:
+        "Detects high-level transfer calls assuming bool returns, unchecked transfer return values, and flawed low-level transfer wrappers",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "tokens", "transfer", "safe-erc20"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-029",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -1113,54 +1124,83 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         );
       }
 
-      // Rule: sol-028 - Ownership lockout risk
+      // Rule: sol-028 - Beacon proxy initialization and upgrade hazards
       if (this.isRuleEnabled("sol-028", config)) {
-        const detection = detectOwnershipLockout(code);
+        const detection = detectBeaconProxyHazards(code);
         errors.push(
-          ...detection.diagnostics.map((diagnostic) => ({
+          ...detection.diagnostics.map((message) => ({
             file: filePath,
-            message: diagnostic.message,
+            message,
           })),
         );
         findings.push(
-          ...detection.findings.map((finding) => {
-            const statementLength =
-              typeof finding.details?.statementLength === "number"
-                ? finding.details.statementLength
-                : 1;
-            return {
-              ruleId: "sol-028",
-              message: finding.message,
-              severity: this.getRuleSeverity("sol-028", config),
-              location: {
-                file: filePath,
-                startLine: finding.line,
-                endLine: finding.line,
-                startColumn: finding.column,
-                endColumn: finding.column + Math.max(statementLength, 1) - 1,
-              },
-              suggestedFix: {
-                description: finding.remediation,
-                codeSnippet:
-                  "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
-                documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
-              },
-              metadata: {
-                kind: finding.kind,
-                contract: finding.contract,
-                function: finding.function,
-                confidence:
-                  typeof finding.details?.confidence === "number"
-                    ? finding.details.confidence
-                    : 0.65,
-                confidenceEvidence: finding.confidenceEvidence,
-                severityRationale: finding.severityRationale,
-                limitation:
-                  "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
-                ...finding.details,
-              },
-            };
-          }),
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-028",
+            message: `${finding.callableName}: ${finding.reason}`,
+            severity: this.getRuleSeverity("sol-028", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              codeSnippet: "require(beacon.code.length > 0, 'Invalid beacon');",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
+            },
+            metadata: {
+              kind: finding.kind,
+              callableName: finding.callableName,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Beacon proxy deployment and upgrade flaws can allow front-running proxy takeovers or brick all deployed proxies simultaneously when implementation changes are corrupted or unauthenticated.",
+              limitation:
+                "Source-pattern analysis: checks BeaconProxy instantiations, UpgradeableBeacon definitions, and Initializable constructors within the analyzed codebase.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-029 - Non-standard token return behavior in transfer wrappers
+      if (this.isRuleEnabled("sol-029", config)) {
+        const detection = detectTokenTransferWrapperReturns(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-029",
+            message: `${finding.callSite}: ${finding.reason}`,
+            severity: this.getRuleSeverity("sol-029", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              codeSnippet: "IERC20(token).safeTransfer(to, amount);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-029",
+            },
+            metadata: {
+              kind: finding.kind,
+              callSite: finding.callSite,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Non-standard tokens (like USDT or non-reverting tokens) either cause high-level calls to revert when expecting boolean returns or silently fail when returning false, allowing unbacked actions or stuck assets.",
+              limitation:
+                "Source-pattern analysis: inspects transfer calls and low-level call return handling in transfer wrappers.",
+            },
+          })),
         );
       }
 
