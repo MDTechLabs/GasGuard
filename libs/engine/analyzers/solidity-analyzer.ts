@@ -16,7 +16,7 @@ import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
 import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
-import { detectRebasingBalanceAssumptions } from "../../../rules/security/tokens/detect-rebasing-balance-assumptions";
+import { detectTimelockUpgradeBypass } from "./timelock-upgrade-bypass-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -38,7 +38,10 @@ const APPROVE_RETURN_MESSAGES: Record<string, (callSite: string) => string> = {
     `'${call}' relies on a safe-approval wrapper whose implementation is not available in the analyzed source, so its no-return and false-return handling is unverified.`,
 };
 
-const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<string, (callSite: string) => string> = {
+const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<
+  string,
+  (callSite: string) => string
+> = {
   "unchecked-adjust-call": (call) =>
     `The result of '${call}' is not checked: a token that returns false, or implements the helper differently, leaves the allowance unchanged silently.`,
   "nonstandard-adjust-method": (call) =>
@@ -52,8 +55,10 @@ const ALLOWANCE_ADJUSTMENT_MESSAGES: Record<string, (callSite: string) => string
 };
 
 const FEE_ON_TRANSFER_POLICY_TEXT: Record<string, string> = {
-  "claimed-support": "The contract claims fee-on-transfer support, but this path does not deliver it.",
-  unspecified: "The contract states no fee-on-transfer policy, so this looks like an accidental assumption.",
+  "claimed-support":
+    "The contract claims fee-on-transfer support, but this path does not deliver it.",
+  unspecified:
+    "The contract states no fee-on-transfer policy, so this looks like an accidental assumption.",
 };
 
 export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
@@ -295,7 +300,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       severity: Severity.MEDIUM,
       category: "security",
       enabled: true,
-      tags: ["security", "ether", "accounting", "forced-balance", "denial-of-service"],
+      tags: [
+        "security",
+        "ether",
+        "accounting",
+        "forced-balance",
+        "denial-of-service",
+      ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-019",
     },
     {
@@ -306,7 +317,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       severity: Severity.MEDIUM,
       category: "security",
       enabled: true,
-      tags: ["security", "erc20", "approve", "return-value", "token-compatibility"],
+      tags: [
+        "security",
+        "erc20",
+        "approve",
+        "return-value",
+        "token-compatibility",
+      ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-023",
     },
     {
@@ -317,7 +334,13 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       severity: Severity.MEDIUM,
       category: "security",
       enabled: true,
-      tags: ["security", "erc20", "allowance", "race-condition", "token-compatibility"],
+      tags: [
+        "security",
+        "erc20",
+        "allowance",
+        "race-condition",
+        "token-compatibility",
+      ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-024",
     },
     {
@@ -339,18 +362,24 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       severity: Severity.MEDIUM,
       category: "security",
       enabled: true,
-      tags: ["security", "zero-address", "configuration", "access-control", "upgradeability"],
+      tags: [
+        "security",
+        "zero-address",
+        "configuration",
+        "access-control",
+        "upgradeability",
+      ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
     },
     {
       id: "sol-027",
-      name: "Rebasing-Token Stored Balance Assumption",
+      name: "Timelock Upgrade Administration Bypass",
       description:
-        "Detects stored token amounts and balance snapshots that are later paid out as if the token balance could only change through the contract's own transfers",
-      severity: Severity.MEDIUM,
+        "Detects direct owner/admin upgrade functions, emergency upgrade bypasses, and unbounded delay setters that bypass timelock governance delays",
+      severity: Severity.HIGH,
       category: "security",
       enabled: true,
-      tags: ["security", "erc20", "rebasing", "accounting", "vault"],
+      tags: ["security", "upgradeability", "timelock", "governance", "proxy"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
     },
     {
@@ -362,7 +391,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       category: "security",
       enabled: true,
       tags: ["security", "eip712", "chain-id", "signatures"],
-      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+      documentationUrl:
+        "https://docs.gasguard.dev/rules/signature-authorization",
     },
     {
       id: SIGNATURE_SECURITY_RULES.INCOMPLETE_STRUCT_HASH,
@@ -373,7 +403,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       category: "security",
       enabled: true,
       tags: ["security", "eip712", "struct-hash", "signatures"],
-      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+      documentationUrl:
+        "https://docs.gasguard.dev/rules/signature-authorization",
     },
     {
       id: SIGNATURE_SECURITY_RULES.WEAK_MESSAGE_SIGNING,
@@ -384,7 +415,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       category: "security",
       enabled: true,
       tags: ["security", "personal-sign", "eth-sign", "signatures"],
-      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+      documentationUrl:
+        "https://docs.gasguard.dev/rules/signature-authorization",
     },
     {
       id: SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY,
@@ -395,7 +427,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       category: "security",
       enabled: true,
       tags: ["security", "erc-1271", "smart-wallet", "signatures"],
-      documentationUrl: "https://docs.gasguard.dev/rules/signature-authorization",
+      documentationUrl:
+        "https://docs.gasguard.dev/rules/signature-authorization",
     },
   ];
 
@@ -806,7 +839,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-019", config)) {
         const detection = detectEtherAccountingAssumptions(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.assumptions.map((assumption) => ({
@@ -824,7 +860,7 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
               description:
                 "Do not require the raw contract balance to exactly equal recorded deposits or liabilities. Check that the balance covers liabilities, and handle any surplus explicitly.",
               codeSnippet:
-                "require(address(this).balance >= totalLiabilities, \"Insolvent\");\nuint256 surplus = address(this).balance - totalLiabilities;",
+                'require(address(this).balance >= totalLiabilities, "Insolvent");\nuint256 surplus = address(this).balance - totalLiabilities;',
               documentationUrl: "https://docs.gasguard.dev/rules/sol-019",
             },
             metadata: {
@@ -846,7 +882,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-023", config)) {
         const detection = detectUncheckedApproveReturns(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
@@ -884,12 +923,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-024", config)) {
         const detection = detectAllowanceAdjustmentRisks(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
             ruleId: "sol-024",
-            message: ALLOWANCE_ADJUSTMENT_MESSAGES[finding.kind](finding.callSite),
+            message: ALLOWANCE_ADJUSTMENT_MESSAGES[finding.kind](
+              finding.callSite,
+            ),
             severity: this.getRuleSeverity("sol-024", config),
             location: {
               file: filePath,
@@ -922,7 +966,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-025", config)) {
         const detection = detectFeeOnTransferAccounting(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
@@ -966,7 +1013,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       if (this.isRuleEnabled("sol-026", config)) {
         const detection = detectMissingZeroAddressChecks(code);
         errors.push(
-          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
@@ -1003,48 +1053,49 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         );
       }
 
-      // Rule: sol-027 - Rebasing-token stored balance assumption
+      // Rule: sol-027 - Timelock upgrade administration bypass
       if (this.isRuleEnabled("sol-027", config)) {
-        const detection = detectRebasingBalanceAssumptions(code);
+        const detection = detectTimelockUpgradeBypass(code);
         errors.push(
-          ...detection.diagnostics
-            .filter((diagnostic) => diagnostic.level === "error")
-            .map((diagnostic) => ({ file: filePath, message: diagnostic.message })),
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
         );
         findings.push(
           ...detection.findings.map((finding) => ({
             ruleId: "sol-027",
-            message: finding.message,
+            message: `${finding.functionName}: ${finding.reason}`,
             severity: this.getRuleSeverity("sol-027", config),
             location: {
               file: filePath,
               startLine: finding.line,
               endLine: finding.line,
-              startColumn: finding.column,
-              endColumn: finding.column,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
             },
             suggestedFix: {
               description: finding.remediation,
+              codeSnippet:
+                "require(msg.sender == timelock, 'Only timelock can execute upgrade');",
               documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
             },
             metadata: {
               kind: finding.kind,
-              contract: finding.contract,
-              function: finding.function,
-              detectorRuleId: finding.ruleId,
-              detectorSeverity: finding.severity,
+              functionName: finding.functionName,
               confidence: finding.confidence,
-              confidenceEvidence: finding.confidenceEvidence,
-              severityRationale: finding.severityRationale,
-              details: finding.details,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Bypassing timelock delays allows privileged roles or compromised keys to execute immediate, unannounced contract upgrades or logic substitutions without the required community or guardian notice period.",
               limitation:
-                "Source-pattern analysis within one file: token behavior is inferred from identifiers, and a payout is linked to a stored amount only through the same function's parameters and locals. Imported bases and flows through other contracts are not followed.",
+                "Source-pattern analysis: detects presence of timelock mechanisms or claims alongside direct admin-gated upgrade paths or unbounded delay setters within the analyzed contract scope.",
             },
           })),
         );
       }
 
-      const signatureConfigErrors = this.validateSignatureSecurityConfig(config);
+      const signatureConfigErrors =
+        this.validateSignatureSecurityConfig(config);
       if (signatureConfigErrors.length > 0) {
         errors.push({
           file: filePath,
@@ -1056,7 +1107,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
           this.expectedSignerTypes(config),
         );
         if (signatureAnalysis.diagnostic) {
-          errors.push({ file: filePath, message: signatureAnalysis.diagnostic });
+          errors.push({
+            file: filePath,
+            message: signatureAnalysis.diagnostic,
+          });
         } else {
           findings.push(
             ...signatureAnalysis.findings
@@ -1078,7 +1132,9 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 metadata: {
                   confidence: finding.confidence,
                   evidence: finding.evidence,
-                  ...(finding.issueType ? { issueType: finding.issueType } : {}),
+                  ...(finding.issueType
+                    ? { issueType: finding.issueType }
+                    : {}),
                 },
               })),
           );
@@ -1150,12 +1206,18 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         value.length === 0 ||
         value.some((entry) => entry !== "eoa" && entry !== "contract")
       ) {
-        errors.push(`${path} must be a non-empty array containing only "eoa" and/or "contract"`);
+        errors.push(
+          `${path} must be a non-empty array containing only "eoa" and/or "contract"`,
+        );
       }
     };
     const projectOptions = effective.options?.signatureSecurity;
     if (projectOptions !== undefined) {
-      if (projectOptions === null || typeof projectOptions !== "object" || Array.isArray(projectOptions)) {
+      if (
+        projectOptions === null ||
+        typeof projectOptions !== "object" ||
+        Array.isArray(projectOptions)
+      ) {
         errors.push("options.signatureSecurity must be an object");
       } else if ("expectedSignerTypes" in projectOptions) {
         validateExpectedTypes(
@@ -1182,8 +1244,10 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
 
   private expectedSignerTypes(config?: AnalyzerConfig): ExpectedSignerType[] {
     const effective = config ?? this.config;
-    const ruleConfig = effective.rules?.[SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY];
-    const perRuleOptions = typeof ruleConfig === "object" ? ruleConfig.options : undefined;
+    const ruleConfig =
+      effective.rules?.[SIGNATURE_SECURITY_RULES.ERC1271_COMPATIBILITY];
+    const perRuleOptions =
+      typeof ruleConfig === "object" ? ruleConfig.options : undefined;
     const projectOptions = effective.options?.signatureSecurity;
     const configured =
       perRuleOptions?.expectedSignerTypes ??
@@ -1192,7 +1256,8 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         : undefined);
     if (!Array.isArray(configured)) return ["eoa"];
     return configured.filter(
-      (entry): entry is ExpectedSignerType => entry === "eoa" || entry === "contract",
+      (entry): entry is ExpectedSignerType =>
+        entry === "eoa" || entry === "contract",
     );
   }
 

@@ -1,0 +1,19 @@
+{
+  "id": "OZ-UUPS-001-BYPASS",
+  "name": "OpenZeppelin UUPS Upgrade Timelock Bypass",
+  "description": "Audited finding where an upgradeable proxy allows immediate upgrade by owner despite timelock governance",
+  "auditSource": "OpenZeppelin Security Audit",
+  "ruleId": "sol-027",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract AuditedTimelockVault {\n    address public timelock;\n    address public implementation;\n    address public owner;\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"not owner\");\n        _;\n    }\n\n    function scheduleUpgrade(address newImpl) external {\n        require(msg.sender == timelock, \"only timelock\");\n    }\n\n    function upgradeTo(address newImpl) external onlyOwner {\n        implementation = newImpl;\n    }\n}\n",
+  "expected": {
+    "detected": true,
+    "count": 1,
+    "flaggedKinds": ["direct-admin-upgrade"]
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "positive",
+    "tags": ["timelock", "upgradeability", "proxy", "uups"]
+  }
+}
