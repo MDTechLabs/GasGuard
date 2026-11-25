@@ -17,6 +17,11 @@ import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector"
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
 import {
+  ROLE_ADMIN_RULE_ID,
+  RoleAdminGraphOptions,
+  validateRoleAdminGraph,
+} from "./role-admin-graph-validator";
+import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
   SIGNATURE_SECURITY_RULES,
@@ -340,6 +345,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "zero-address", "configuration", "access-control", "upgradeability"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
+    },
+    {
+      id: ROLE_ADMIN_RULE_ID,
+      name: "Privileged Role-Admin Escalation",
+      description:
+        "Validates the Solidity role-admin graph for privilege escalation edges, transitive escalation paths, role-admin cycles, and unprotected role-admin mutations",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "access-control", "role-admin", "proxy", "upgradeability"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -986,6 +1002,53 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "Critical addresses control custody, authorization, pricing, or upgrades. A zero value is usually an unrecoverable misconfiguration (locked privileges, bricked token or oracle calls, burned funds), but it requires a deployer or privileged-role mistake rather than an attacker, hence medium severity.",
               limitation:
                 "Source-pattern analysis: criticality is inferred from parameter and callee names, only external/public entry points are analyzed, and validation is recognised through comparisons with address(0), isContract/code.length checks, local modifiers and helpers, and base-constructor arguments. Callee implementations outside the analyzed source are not inspected. Zero is treated as a sentinel when a comment above the function documents it or the body branches on it.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-027 - Privileged Role-Admin Escalation
+      if (this.isRuleEnabled(ROLE_ADMIN_RULE_ID, config)) {
+        const ruleCfg = (config || this.config)?.rules?.[ROLE_ADMIN_RULE_ID];
+        const roleAdminOptions: RoleAdminGraphOptions | undefined =
+          typeof ruleCfg === "object" && ruleCfg !== null ? ruleCfg.options : undefined;
+        const report = validateRoleAdminGraph(code, roleAdminOptions);
+        errors.push(
+          ...report.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...report.findings.map((finding) => ({
+            ruleId: ROLE_ADMIN_RULE_ID,
+            message: `${finding.contractName}.${finding.functionName} (${finding.issueType}): ${finding.evidence.join(" ")} ${finding.impact}`,
+            severity: this.getRuleSeverity(ROLE_ADMIN_RULE_ID, config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              codeSnippet:
+                "_setRoleAdmin(UPGRADER_ROLE, DEFAULT_ADMIN_ROLE);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
+            },
+            metadata: {
+              issueType: finding.issueType,
+              contractName: finding.contractName,
+              functionName: finding.functionName,
+              role: finding.role,
+              adminRole: finding.adminRole,
+              escalationPath: finding.escalationPath,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              impact: finding.impact,
+              severityRationale: finding.severityRationale,
+              toolchain: report.toolchain,
+              inputDigest: report.inputDigest,
+              limitation:
+                "Static source-pattern analysis: analyzes single-file contracts, inheritance, modifiers, and internal/library helpers without executing solc or repository scripts. Dynamic runtime role-admin mutations or cross-file external definitions are not resolved.",
             },
           })),
         );

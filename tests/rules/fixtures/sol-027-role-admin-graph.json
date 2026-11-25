@@ -1,0 +1,77 @@
+{
+  "id": "sol-027-role-admin-graph",
+  "name": "Privileged role-admin graph validation",
+  "description": "Tests direct escalation edges, role-admin cycles, transitive escalation across inheritance, unprotected role-admin mutations, unprotected proxy initializers, and safe hierarchical controls.",
+  "source": "sol-027-role-admin-graph.sol",
+  "expectedFindings": [
+    {
+      "ruleId": "sol-027",
+      "issueType": "privilege-escalation-edge",
+      "contractName": "VulnerableGovernance",
+      "role": "UPGRADER_ROLE",
+      "adminRole": "OPERATOR_ROLE",
+      "line": 31
+    },
+    {
+      "ruleId": "sol-027",
+      "issueType": "role-admin-cycle",
+      "contractName": "VulnerableGovernance",
+      "role": "MINTER_ROLE",
+      "adminRole": "MINTER_ROLE",
+      "line": 33
+    },
+    {
+      "ruleId": "sol-027",
+      "issueType": "unprotected-role-admin-mutation",
+      "contractName": "VulnerableGovernance",
+      "role": "role",
+      "adminRole": "newAdmin",
+      "line": 38
+    },
+    {
+      "ruleId": "sol-027",
+      "issueType": "privilege-escalation-edge",
+      "contractName": "InheritedBase",
+      "role": "MANAGER_ROLE",
+      "adminRole": "OPERATOR_ROLE",
+      "line": 57
+    },
+    {
+      "ruleId": "sol-027",
+      "issueType": "privilege-escalation-edge",
+      "contractName": "TransitiveEscalationVault",
+      "role": "MANAGER_ROLE",
+      "adminRole": "OPERATOR_ROLE",
+      "line": 57
+    },
+    {
+      "ruleId": "sol-027",
+      "issueType": "transitive-admin-escalation",
+      "contractName": "TransitiveEscalationVault",
+      "role": "UPGRADER_ROLE",
+      "adminRole": "OPERATOR_ROLE",
+      "line": 57
+    },
+    {
+      "ruleId": "sol-027",
+      "issueType": "privilege-escalation-edge",
+      "contractName": "TransitiveEscalationVault",
+      "role": "UPGRADER_ROLE",
+      "adminRole": "MANAGER_ROLE",
+      "line": 66
+    },
+    {
+      "ruleId": "sol-027",
+      "issueType": "unprotected-role-admin-mutation",
+      "contractName": "UnprotectedProxyAdmin",
+      "role": "UPGRADER_ROLE",
+      "adminRole": "NONE",
+      "line": 73
+    }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["role-admin", "access-control", "proxy", "upgradeability"]
+  }
+}
