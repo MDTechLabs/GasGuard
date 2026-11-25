@@ -1,0 +1,29 @@
+{
+  "id": "sol-028-ownership-lockout",
+  "name": "Ownership transfer, renunciation, and last-admin lockout flows",
+  "description": "One-step transfers, broken and stale pending-owner acceptance, renunciation, role revocation, mapping-admin removal, plus safe two-step, guarded role, immutable, permissionless, and documented-exempt variants. Source: sol-028-ownership-lockout.sol",
+  "source": "sol-028-ownership-lockout.sol",
+  "expectedFindings": [
+    { "ruleId": "sol-028", "contract": "UnsafeOneStepOwner", "function": "transferOwnership", "kind": "one-step-ownership-transfer", "line": 14 },
+    { "ruleId": "sol-028", "contract": "BrokenTwoStepOwner", "function": "transferOwnership", "kind": "broken-two-step-transfer", "line": 33 },
+    { "ruleId": "sol-028", "contract": "BrokenTwoStepOwner", "function": "acceptOwnership", "kind": "unprotected-acceptance", "line": 37 },
+    { "ruleId": "sol-028", "contract": "BrokenTwoStepOwner", "function": "acceptOwnership", "kind": "pending-owner-not-cleared", "line": 37 },
+    { "ruleId": "sol-028", "contract": "UnsafeRenounceOwner", "function": "renounceOwnership", "kind": "renounce-lockout", "line": 55 },
+    { "ruleId": "sol-028", "contract": "UnprotectedRenounceOwner", "function": "renounceOwnership", "kind": "unprotected-renunciation", "line": 68 },
+    { "ruleId": "sol-028", "contract": "UnsafeRoleRevocation", "function": "revokeRole", "kind": "last-admin-revocation", "line": 87 },
+    { "ruleId": "sol-028", "contract": "UnsafeMappingAdmin", "function": "removeAdmin", "kind": "last-admin-revocation", "line": 112 },
+    { "ruleId": "sol-028", "contract": "PendingZeroOwner", "function": "transferOwnership", "kind": "pending-owner-zero", "line": 132 },
+    { "ruleId": "sol-028", "contract": "UnprotectedTransferOwner", "function": "transferOwnership", "kind": "unprotected-ownership-transfer", "line": 151 },
+    { "ruleId": "sol-028", "contract": "MissingAcceptanceOwner", "function": "transferOwnership", "kind": "missing-acceptance", "line": 170 },
+    { "ruleId": "sol-028", "contract": "StalePendingOwner", "function": "acceptOwnership", "kind": "pending-owner-not-cleared", "line": 197 }
+  ],
+  "safeContracts": ["SafeTwoStepOwner", "SafeRoleRevocation"],
+  "immutableContracts": ["ImmutableOwner"],
+  "permissionlessContracts": ["PermissionlessVault"],
+  "exemptContracts": ["ExemptOwner"],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["ownership", "access-control", "lockout", "pending-owner", "roles"]
+  }
+}

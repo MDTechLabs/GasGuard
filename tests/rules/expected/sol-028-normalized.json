@@ -1,0 +1,430 @@
+[
+  {
+    "key": "b01728e90c73e4b32373b941b684f75a",
+    "ruleId": "sol-028",
+    "message": "transferOwnership transfers 'owner' directly to 'newOwner' without a pending-owner acceptance step and without rejecting address(0).",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 14,
+      "endLine": 14,
+      "startColumn": 9,
+      "endColumn": 24
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Use a two-step flow: store a pending owner, require the nominee to call acceptOwnership(), and only then assign the owner and clear the pending value. OpenZeppelin Ownable2Step implements this pattern.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "owner",
+      "auth": "msg.sender compared with owner",
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'transferOwnership' writes 'owner' in 'owner = newOwner'.",
+        "No zero-address check for 'newOwner' was found.",
+        "No pending-owner acceptance flow exists in the contract."
+      ],
+      "contract": "UnsafeOneStepOwner",
+      "entryPoint": "transferOwnership",
+      "expression": "newOwner",
+      "function": "transferOwnership",
+      "kind": "one-step-ownership-transfer",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "severityRationale": "A direct ownership transfer has no acceptance step, so a mistaken address permanently loses administrative control.",
+      "statementLength": 16,
+      "zeroCheck": false
+    }
+  },
+  {
+    "key": "19280aef2d3c2e756d5cf9e76e801e83",
+    "ruleId": "sol-028",
+    "message": "transferOwnership writes 'owner' directly even though a pending-owner variable exists, bypassing the acceptance step.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 33,
+      "endLine": 33,
+      "startColumn": 9,
+      "endColumn": 24
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Use a two-step flow: store a pending owner, require the nominee to call acceptOwnership(), and only then assign the owner and clear the pending value. OpenZeppelin Ownable2Step implements this pattern.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "owner",
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'transferOwnership' writes 'owner' in 'owner = newOwner'.",
+        "Pending variables: pendingOwner."
+      ],
+      "contract": "BrokenTwoStepOwner",
+      "entryPoint": "transferOwnership",
+      "function": "transferOwnership",
+      "kind": "broken-two-step-transfer",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "pending": [
+        "pendingOwner"
+      ],
+      "severityRationale": "A direct assignment bypasses the pending-owner consent step, so a typo or compromised key can transfer control irreversibly.",
+      "statementLength": 16
+    }
+  },
+  {
+    "key": "2d7d433bd6ddf18b7e9bf67a3a3ecdaf",
+    "ruleId": "sol-028",
+    "message": "acceptOwnership does not clear 'pendingOwner' after acceptance, leaving a stale pending owner.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 37,
+      "endLine": 37,
+      "startColumn": 9,
+      "endColumn": 28
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Clear the pending owner after acceptance (delete pendingOwner or set it to address(0)).",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "owner",
+      "confidence": 0.65,
+      "confidenceEvidence": [
+        "'acceptOwnership' writes 'owner' in 'owner = pendingOwner'.",
+        "No write of address(0) to 'pendingOwner' was found on the acceptance path."
+      ],
+      "contract": "BrokenTwoStepOwner",
+      "entryPoint": "acceptOwnership",
+      "function": "acceptOwnership",
+      "kind": "pending-owner-not-cleared",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "pending": "pendingOwner",
+      "severityRationale": "A stale pending owner can accept again after ownership changes, allowing a previous nominee to reclaim control.",
+      "statementLength": 20
+    }
+  },
+  {
+    "key": "5b70f0da5376d5484ac31dc86cceeb46",
+    "ruleId": "sol-028",
+    "message": "acceptOwnership accepts ownership without authenticating the pending owner.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 37,
+      "endLine": 37,
+      "startColumn": 9,
+      "endColumn": 28
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Require msg.sender to equal the pending owner in the acceptance function.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "owner",
+      "auth": null,
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'acceptOwnership' writes 'owner' in 'owner = pendingOwner'.",
+        "No effective authorization check was found."
+      ],
+      "contract": "BrokenTwoStepOwner",
+      "entryPoint": "acceptOwnership",
+      "function": "acceptOwnership",
+      "kind": "unprotected-acceptance",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "pending": "pendingOwner",
+      "severityRationale": "Any caller can finalize a staged ownership transfer, allowing front-running or theft of administrative control.",
+      "statementLength": 20
+    }
+  },
+  {
+    "key": "13deeee58d0ddd929bb1e618832ffb5c",
+    "ruleId": "sol-028",
+    "message": "renounceOwnership permanently removes 'owner' while 1 privileged function(s) still depend on it.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 55,
+      "endLine": 55,
+      "startColumn": 9,
+      "endColumn": 26
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Remove the renunciation path, require a replacement administrator or multi-signature recovery, or override renounceOwnership() to revert when the contract is intentionally immutable.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "owner",
+      "auth": "msg.sender compared with owner",
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'renounceOwnership' writes 'owner' in 'owner = address(0)'.",
+        "Authorization evidence: msg.sender compared with owner.",
+        "1 privileged function(s) remain: setFee."
+      ],
+      "contract": "UnsafeRenounceOwner",
+      "entryPoint": "renounceOwnership",
+      "function": "renounceOwnership",
+      "kind": "renounce-lockout",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "recoveryFunctions": [
+        "setFee"
+      ],
+      "severityRationale": "Renouncing the final administrator removes the only authority for privileged maintenance, recovery, or upgrade functions.",
+      "statementLength": 18
+    }
+  },
+  {
+    "key": "387cc3d03c31e33ef7257d4a0b2d1e43",
+    "ruleId": "sol-028",
+    "message": "renounceOwnership can remove 'owner' without authorization, permanently locking privileged functionality.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 68,
+      "endLine": 68,
+      "startColumn": 9,
+      "endColumn": 26
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Restrict renunciation to the current administrator and require a documented recovery or replacement path before removing the final administrator.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "owner",
+      "auth": null,
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'renounceOwnership' writes 'owner' in 'owner = address(0)'.",
+        "No effective authorization check was found.",
+        "1 privileged function(s) remain: setFee."
+      ],
+      "contract": "UnprotectedRenounceOwner",
+      "entryPoint": "renounceOwnership",
+      "function": "renounceOwnership",
+      "kind": "unprotected-renunciation",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "recoveryFunctions": [
+        "setFee"
+      ],
+      "severityRationale": "Any caller can remove the administrator, permanently disabling every function that depends on that privilege.",
+      "statementLength": 18
+    }
+  },
+  {
+    "key": "a3d42866df4f0a355aa4e3ec344766bd",
+    "ruleId": "sol-028",
+    "message": "revokeRole revokes an administrator role without proving another administrator remains.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 87,
+      "endLine": 87,
+      "startColumn": 9,
+      "endColumn": 34
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Before revoking an administrator role, require another administrator to remain, for example require(getRoleMemberCount(role) > 1) with AccessControlEnumerable, or track an administrator count.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "account": "account",
+      "auth": "role or owner check",
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'revokeRole' calls '_revokeRole(role, account)'.",
+        "Authorization evidence: role or owner check.",
+        "No getRoleMemberCount(...) > 1 or administrator-count guard was found."
+      ],
+      "contract": "UnsafeRoleRevocation",
+      "entryPoint": "revokeRole",
+      "function": "revokeRole",
+      "guard": null,
+      "kind": "last-admin-revocation",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "role": "role",
+      "severityRationale": "Revoking the final administrator can leave role-gated recovery and configuration functions permanently unreachable.",
+      "statementLength": 26
+    }
+  },
+  {
+    "key": "ff06ebe9db919c1d84a2a2b04a817fde",
+    "ruleId": "sol-028",
+    "message": "removeAdmin removes an administrator flag without proving another administrator remains.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 112,
+      "endLine": 112,
+      "startColumn": 9,
+      "endColumn": 32
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Before revoking an administrator role, require another administrator to remain, for example require(getRoleMemberCount(role) > 1) with AccessControlEnumerable, or track an administrator count.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "account": "account",
+      "auth": "isAdmin[msg.sender] allow-list",
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'removeAdmin' removes 'account' from 'isAdmin'.",
+        "Authorization evidence: isAdmin[msg.sender] allow-list.",
+        "No administrator-count guard was found."
+      ],
+      "contract": "UnsafeMappingAdmin",
+      "entryPoint": "removeAdmin",
+      "function": "removeAdmin",
+      "guard": null,
+      "kind": "last-admin-revocation",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "mapping": "isAdmin",
+      "severityRationale": "Revoking the final administrator can leave role-gated recovery and configuration functions permanently unreachable.",
+      "statementLength": 24
+    }
+  },
+  {
+    "key": "e93c071152bf06fa23425687d97b2503",
+    "ruleId": "sol-028",
+    "message": "transferOwnership stages 'pendingOwner' from 'newOwner' without rejecting address(0); a zero pending owner cannot complete the transfer.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 132,
+      "endLine": 132,
+      "startColumn": 9,
+      "endColumn": 31
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Reject address(0) when staging a pending owner, and require the pending value to be non-zero before acceptance.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "pendingOwner",
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'transferOwnership' writes 'pendingOwner' in 'pendingOwner = newOwner'.",
+        "No zero-address check for 'newOwner' was found in the function or its modifiers."
+      ],
+      "contract": "PendingZeroOwner",
+      "entryPoint": "transferOwnership",
+      "expression": "newOwner",
+      "function": "transferOwnership",
+      "kind": "pending-owner-zero",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "pending": "pendingOwner",
+      "severityRationale": "A zero pending owner cannot accept ownership, so the transfer cannot complete and administrative recovery is stranded.",
+      "statementLength": 23
+    }
+  },
+  {
+    "key": "d91bd1c44302b9bdb230994519149b98",
+    "ruleId": "sol-028",
+    "message": "transferOwnership changes ownership without a recognized authorization check.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 151,
+      "endLine": 151,
+      "startColumn": 9,
+      "endColumn": 24
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Restrict ownership transfers to the current owner or an administrator role, for example with onlyOwner or onlyRole(DEFAULT_ADMIN_ROLE).",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "owner",
+      "auth": null,
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'transferOwnership' writes 'owner' in 'owner = newOwner'.",
+        "No effective msg.sender, role, or owner check was found."
+      ],
+      "contract": "UnprotectedTransferOwner",
+      "entryPoint": "transferOwnership",
+      "function": "transferOwnership",
+      "kind": "unprotected-ownership-transfer",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "severityRationale": "Any caller can replace the administrator, so an attacker can take control or lock the legitimate administrator out.",
+      "statementLength": 16
+    }
+  },
+  {
+    "key": "f8a066dca63744f622e48f4d0fcf1c4c",
+    "ruleId": "sol-028",
+    "message": "transferOwnership stages 'pendingOwner' but no acceptance function completes the transfer.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 170,
+      "endLine": 170,
+      "startColumn": 5,
+      "endColumn": 21
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Use a two-step flow: store a pending owner, require the nominee to call acceptOwnership(), and only then assign the owner and clear the pending value. OpenZeppelin Ownable2Step implements this pattern.",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "confidence": 0.9,
+      "confidenceEvidence": [
+        "'transferOwnership' writes a pending-owner variable.",
+        "No accept/claim/complete ownership function was found in the contract."
+      ],
+      "contract": "MissingAcceptanceOwner",
+      "entryPoint": "transferOwnership",
+      "function": "transferOwnership",
+      "kind": "missing-acceptance",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "pending": "pendingOwner",
+      "severityRationale": "Staging an owner without an acceptance path makes the transfer incomplete and can strand administrative control.",
+      "statementLength": 17
+    }
+  },
+  {
+    "key": "cab2d2e64df51dbba08f2c491cfb6dc8",
+    "ruleId": "sol-028",
+    "message": "acceptOwnership does not clear 'pendingOwner' after acceptance, leaving a stale pending owner.",
+    "severity": "high",
+    "location": {
+      "file": "tests/rules/fixtures/sol-028-ownership-lockout.sol",
+      "startLine": 197,
+      "endLine": 197,
+      "startColumn": 9,
+      "endColumn": 26
+    },
+    "suggestedFix": {
+      "codeSnippet": "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+      "description": "Clear the pending owner after acceptance (delete pendingOwner or set it to address(0)).",
+      "documentationUrl": "https://docs.gasguard.dev/rules/sol-028"
+    },
+    "metadata": {
+      "admin": "owner",
+      "confidence": 0.65,
+      "confidenceEvidence": [
+        "'acceptOwnership' writes 'owner' in 'owner = msg.sender'.",
+        "No write of address(0) to 'pendingOwner' was found on the acceptance path."
+      ],
+      "contract": "StalePendingOwner",
+      "entryPoint": "acceptOwnership",
+      "function": "acceptOwnership",
+      "kind": "pending-owner-not-cleared",
+      "limitation": "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+      "pending": "pendingOwner",
+      "severityRationale": "A stale pending owner can accept again after ownership changes, allowing a previous nominee to reclaim control.",
+      "statementLength": 18
+    }
+  }
+]

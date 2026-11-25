@@ -369,3 +369,48 @@ For tokens and oracles consider also checking `code.length > 0`.
 setter, and factory configuration with unvalidated, validated (inline, helper, and
 modifier), sentinel, and modelled-callee cases; `sol-026-zero-address.json` lists
 the expected findings.
+
+## Rebasing-Token Stored Balance Assumption
+
+**Rule ID:** `sol-027`  
+**Severity:** medium  
+**Category:** security
+
+Runs the `GG-TOKEN-REBASE-001` detector
+(`rules/security/tokens/detect-rebasing-balance-assumptions.ts`) in the analyzer. It
+reports a stored token amount or balance snapshot that is later paid out as if the
+token balance could only change through the contract's own transfers. The detector's
+own severity, confidence, evidence, and details are kept in the finding metadata.
+Tracing, recognised share-based designs and exclusions, assumptions, and limitations
+are described in [token-rebasing-balance-assumptions.md](token-rebasing-balance-assumptions.md).
+
+### Fixtures
+
+`tests/rules/fixtures/sol-027-rebasing-balance.sol` has two positive patterns (a
+stored deposit and a balance snapshot) and two negative ones (share-based accounting
+and an explicit exclusion); `sol-027-rebasing-balance.json` lists the expected findings.
+
+## Ownership and Last-Admin Lockout
+
+**Rule ID:** `sol-028`  
+**Severity:** high  
+**Category:** security
+
+Reports ownership transfers, renunciations, role revocations, and administrator
+mapping removals that can permanently lock out the contract's administrator or remove
+its recovery path. The detector models two-step ownership transfer, pending-owner
+acceptance, final-admin renunciation, and last-admin role removal, and classifies
+contracts as `risk`, `safe`, `immutable`, `permissionless`, or `exempt`.
+
+The finding kinds, recognized administrator model, annotations, severity rationale,
+confidence evidence, and limitations are described in
+[ownership-lockout.md](ownership-lockout.md).
+
+### Fixtures
+
+`tests/rules/fixtures/sol-028-ownership-lockout.sol` covers one-step and broken
+two-step transfers, zero pending owners, unprotected transfer/acceptance, renunciation,
+role revocation, mapping-admin removal, missing acceptance, stale pending owners, and
+safe or documented-exempt variants. `sol-028-ownership-lockout.json` lists the
+expected findings and `tests/rules/expected/sol-028-normalized.json` records the
+normalized analyzer output.

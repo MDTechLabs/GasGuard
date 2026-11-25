@@ -1,4 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { detectRebasingBalanceAssumptions } from '../detect-rebasing-balance-assumptions';
+import { SolidityAnalyzer } from '../../../../libs/engine/analyzers/solidity-analyzer';
+import { normalizeAnalysisResult } from '../../../../libs/engine/core/result-normalizer';
 
 const run = (src: string, opts?: Parameters<typeof detectRebasingBalanceAssumptions>[1]) => detectRebasingBalanceAssumptions(src, opts);
 
@@ -106,5 +110,40 @@ contract Bank { mapping(address => uint256) public bal;
   it('rejects invalid options and malformed input safely', () => {
     expect(run(STORED, { nonRebasingTokens: [1] as unknown as string[] }).diagnostics.some((d) => d.code === 'invalid-option')).toBe(true);
     for (const bad of ['', 3, 'hello']) expect(run(bad as string).analyzed).toBe(false);
+  });
+});
+
+describe('sol-027 regression fixture and analyzer integration', () => {
+  const fixtureDir = path.resolve(__dirname, '../../../../tests/rules/fixtures');
+  const fixture = JSON.parse(fs.readFileSync(path.join(fixtureDir, 'sol-027-rebasing-balance.json'), 'utf8')) as {
+    expectedFindings: Array<{ kind: string; contract: string; function: string; line: number }>;
+  };
+  const source = fs.readFileSync(path.join(fixtureDir, 'sol-027-rebasing-balance.sol'), 'utf8');
+
+  it('reports exactly the positive patterns in the fixture', () => {
+    const r = run(source);
+    expect(r.findings.map(({ kind, contract, function: fn, line }) => ({ kind, contract, function: fn, line }))).toEqual(
+      fixture.expectedFindings.map(({ kind, contract, function: fn, line }) => ({ kind, contract, function: fn, line })),
+    );
+  });
+
+  it('integrates with the analyzer and the normalized finding schema', async () => {
+    const analyzer = new SolidityAnalyzer();
+    const file = 'tests/rules/fixtures/sol-027-rebasing-balance.sol';
+    const rules = Object.fromEntries(analyzer.getRules().map(({ id }) => [id, { enabled: id === 'sol-027' }]));
+    const result = await analyzer.analyze(source, file, { rules });
+
+    expect(result.findings.map((f) => f.location.startLine)).toEqual(fixture.expectedFindings.map((f) => f.line));
+    expect(result.findings[0]).toMatchObject({
+      ruleId: 'sol-027',
+      location: { file, startLine: 15 },
+      metadata: {
+        kind: 'stale-stored-balance',
+        confidenceEvidence: expect.any(Array),
+        severityRationale: expect.any(String),
+        limitation: expect.any(String),
+      },
+    });
+    expect(normalizeAnalysisResult(result).findings).toHaveLength(fixture.expectedFindings.length);
   });
 });
