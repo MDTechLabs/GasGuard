@@ -16,6 +16,14 @@ import {
   DedupResult,
 } from './types';
 
+const SEVERITY_RANK: Record<string, number> = {
+  [Severity.CRITICAL]: 5,
+  [Severity.HIGH]: 4,
+  [Severity.MEDIUM]: 3,
+  [Severity.LOW]: 2,
+  [Severity.INFO]: 1,
+};
+
 const DEFAULT_CONFIG: Required<DedupConfig> = {
   strategies: [
     DedupStrategy.EXACT_MATCH,
@@ -30,13 +38,19 @@ const DEFAULT_CONFIG: Required<DedupConfig> = {
 };
 
 export class DeduplicationEngine {
-  private config: Required<DedupConfig>;
+  private readonly config: Required<DedupConfig>;
 
   constructor(config?: Partial<DedupConfig>) {
+    const rawStrategies = config?.strategies ?? DEFAULT_CONFIG.strategies;
+    const uniqueStrategies = [...new Set(rawStrategies)];
+    const threshold = config?.fuzzyThreshold ?? DEFAULT_CONFIG.fuzzyThreshold;
+
     this.config = {
       ...DEFAULT_CONFIG,
       ...config,
-      strategies: config?.strategies ?? DEFAULT_CONFIG.strategies,
+      strategies: uniqueStrategies,
+      fuzzyThreshold: Math.min(1, Math.max(0, threshold)),
+      maxGroupSize: Math.max(2, config?.maxGroupSize ?? DEFAULT_CONFIG.maxGroupSize),
     };
   }
 
@@ -122,26 +136,15 @@ export class DeduplicationEngine {
    */
   private areDuplicates(a: Finding, b: Finding): boolean {
     for (const strategy of this.config.strategies) {
-      switch (strategy) {
-        case DedupStrategy.EXACT_MATCH:
-          if (this.isExactMatch(a, b)) return true;
-          break;
-        case DedupStrategy.NORMALIZED_MATCH:
-          if (this.isNormalizedMatch(a, b)) return true;
-          break;
-        case DedupStrategy.FUZZY_MATCH:
-          if (this.isFuzzyMatch(a, b)) return true;
-          break;
-        case DedupStrategy.SAME_LOCATION:
-          if (this.isSameLocation(a, b)) return true;
-          break;
+      if (this.areDuplicateByStrategy(a, b, strategy)) {
+        return true;
       }
     }
     return false;
   }
 
   /**
-   * Exact match: two findings are duplicates if every field is identical.
+   * Exact match: two findings are duplicates if core identity and location fields match.
    */
   private isExactMatch(a: Finding, b: Finding): boolean {
     return (
@@ -158,18 +161,7 @@ export class DeduplicationEngine {
    * Normalized match: compare findings after normalizing whitespace and case.
    */
   private isNormalizedMatch(a: Finding, b: Finding): boolean {
-    const normalize = (s: string): string => {
-      let result = s;
-      if (this.config.normalizeWhitespace) {
-        result = result.replace(/\s+/g, ' ').trim();
-      }
-      if (this.config.ignoreCase) {
-        result = result.toLowerCase();
-      }
-      return result;
-    };
-
-    const messageMatch = normalize(a.message) === normalize(b.message);
+    const messageMatch = this.normalizeText(a.message) === this.normalizeText(b.message);
     const ruleMatch = a.ruleId === b.ruleId;
     const fileMatch = a.location.file === b.location.file;
 
@@ -186,14 +178,14 @@ export class DeduplicationEngine {
   }
 
   /**
-   * Fuzzy match: use a simple string similarity heuristic.
+   * Fuzzy match: evaluate message similarity for findings with matching rule and severity.
    */
   private isFuzzyMatch(a: Finding, b: Finding): boolean {
     if (a.ruleId !== b.ruleId) return false;
     if (a.severity !== b.severity) return false;
 
     const similarity = this.stringSimilarity(a.message, b.message);
-    return similarity >= (this.config.fuzzyThreshold ?? 0.85);
+    return similarity >= this.config.fuzzyThreshold;
   }
 
   /**
@@ -209,64 +201,74 @@ export class DeduplicationEngine {
   }
 
   /**
-   * Simple Levenshtein-based string similarity as a ratio [0, 1].
+   * Normalized Levenshtein-based string similarity in [0, 1].
    */
   private stringSimilarity(a: string, b: string): number {
     const s1 = a.toLowerCase();
     const s2 = b.toLowerCase();
-    const len = Math.max(s1.length, s2.length);
-    if (len === 0) return 1.0;
+    const maxLen = Math.max(s1.length, s2.length);
+    if (maxLen === 0) return 1.0;
 
     const distance = this.levenshteinDistance(s1, s2);
-    return 1.0 - distance / len;
+    return Math.max(0, 1.0 - distance / maxLen);
   }
 
   /**
-   * Compute Levenshtein distance between two strings.
+   * Compute Levenshtein distance using O(min(m, n)) space.
    */
   private levenshteinDistance(a: string, b: string): number {
-    const m = a.length;
-    const n = b.length;
-    const dp: number[][] = Array.from({ length: m + 1 }, () =>
-      Array(n + 1).fill(0),
-    );
+    if (a === b) return 0;
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
 
-    for (let i = 0; i <= m; i++) dp[i][0] = i;
-    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    // Ensure `shorter` is along the DP row so memory stays minimal
+    const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
+    const m = shorter.length;
+    const n = longer.length;
 
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        dp[i][j] = Math.min(
-          dp[i - 1][j] + 1,
-          dp[i][j - 1] + 1,
-          dp[i - 1][j - 1] + cost,
-        );
-      }
+    let prev = new Array<number>(m + 1);
+    let curr = new Array<number>(m + 1);
+
+    for (let i = 0; i <= m; i++) {
+      prev[i] = i;
     }
 
-    return dp[m][n];
+    for (let j = 1; j <= n; j++) {
+      curr[0] = j;
+      const bChar = longer.charCodeAt(j - 1);
+
+      for (let i = 1; i <= m; i++) {
+        const cost = shorter.charCodeAt(i - 1) === bChar ? 0 : 1;
+        const insertion = prev[i] + 1;
+        const deletion = curr[i - 1] + 1;
+        const substitution = prev[i - 1] + cost;
+        curr[i] = Math.min(insertion, deletion, substitution);
+      }
+
+      [prev, curr] = [curr, prev];
+    }
+
+    return prev[m];
   }
 
   /**
-   * Determine which strategy was used for a group (prefer the most specific).
+   * Determine which strategy was used for a group (preferring the most specific).
    */
   private determineStrategy(group: Finding[]): DedupStrategy {
     if (group.length < 2) return DedupStrategy.EXACT_MATCH;
 
-    for (const strategy of [
+    const specificityOrder: DedupStrategy[] = [
       DedupStrategy.EXACT_MATCH,
       DedupStrategy.NORMALIZED_MATCH,
       DedupStrategy.FUZZY_MATCH,
       DedupStrategy.SAME_LOCATION,
-    ]) {
-      let allMatch = true;
-      for (let i = 1; i < group.length; i++) {
-        if (!this.areDuplicateByStrategy(group[0], group[i], strategy)) {
-          allMatch = false;
-          break;
-        }
-      }
+    ];
+
+    for (const strategy of specificityOrder) {
+      const allMatch = group
+        .slice(1)
+        .every((item) => this.areDuplicateByStrategy(group[0], item, strategy));
+
       if (allMatch) return strategy;
     }
 
@@ -296,65 +298,50 @@ export class DeduplicationEngine {
   }
 
   /**
-   * Select the canonical (best) finding from a group. Prefers the most
-   * severe, then the one with the most detail.
+   * Select the canonical (best) finding from a group. Prefers higher
+   * severity, then richer metadata.
    */
   private selectCanonical(group: Finding[]): Finding {
     return group.reduce((best, current) => {
-      const severityOrder: Record<string, number> = {
-        [Severity.CRITICAL]: 5,
-        [Severity.HIGH]: 4,
-        [Severity.MEDIUM]: 3,
-        [Severity.LOW]: 2,
-        [Severity.INFO]: 1,
-      };
+      const bestSeverity = SEVERITY_RANK[best.severity] ?? 0;
+      const currentSeverity = SEVERITY_RANK[current.severity] ?? 0;
 
-      const bestScore = severityOrder[best.severity] ?? 0;
-      const currentScore = severityOrder[current.severity] ?? 0;
+      if (currentSeverity !== bestSeverity) {
+        return currentSeverity > bestSeverity ? current : best;
+      }
 
-      if (currentScore > bestScore) return current;
-      if (currentScore < bestScore) return best;
-
-      // Prefer findings with more metadata
-      const bestMeta = best.metadata ? Object.keys(best.metadata).length : 0;
-      const currentMeta = current.metadata
+      const bestMetaCount = best.metadata ? Object.keys(best.metadata).length : 0;
+      const currentMetaCount = current.metadata
         ? Object.keys(current.metadata).length
         : 0;
 
-      return currentMeta > bestMeta ? current : best;
+      return currentMetaCount > bestMetaCount ? current : best;
     });
   }
 
   /**
-   * Merge finding groups into a single flat list of canonical findings,
-   * including non-duplicate findings that did not form any group.
+   * Merge finding groups into a flat list of canonical findings while
+   * preserving original relative order for ungrouped findings.
    */
   private mergeGroups(groups: FindingGroup[], originalFindings: Finding[]): Finding[] {
-    const merged: Finding[] = [];
-    const groupedIndices = new Set<number>();
+    const groupedFindings = new Set<Finding>();
+    const groupByCanonical = new Map<Finding, FindingGroup>();
 
-    // Track indices of findings that belong to any group
     for (const group of groups) {
-      // Find the index of the canonical finding
-      const canonicalIdx = originalFindings.indexOf(group.canonical);
-      if (canonicalIdx >= 0) {
-        groupedIndices.add(canonicalIdx);
-      }
+      groupedFindings.add(group.canonical);
+      groupByCanonical.set(group.canonical, group);
       for (const dup of group.duplicates) {
-        const dupIdx = originalFindings.indexOf(dup);
-        if (dupIdx >= 0) {
-          groupedIndices.add(dupIdx);
-        }
+        groupedFindings.add(dup);
       }
-
-      const enhanced = this.enhanceCanonical(group);
-      merged.push(enhanced);
     }
 
-    // Add non-duplicate findings that are not in any group
-    for (let i = 0; i < originalFindings.length; i++) {
-      if (!groupedIndices.has(i)) {
-        merged.push(originalFindings[i]);
+    const merged: Finding[] = [];
+    for (const finding of originalFindings) {
+      const matchingGroup = groupByCanonical.get(finding);
+      if (matchingGroup) {
+        merged.push(this.enhanceCanonical(matchingGroup));
+      } else if (!groupedFindings.has(finding)) {
+        merged.push(finding);
       }
     }
 
@@ -362,18 +349,17 @@ export class DeduplicationEngine {
   }
 
   /**
-   * Enhance a canonical finding with metadata from its duplicates.
+   * Enhance a canonical finding with merged messages and metadata from duplicates.
    */
   private enhanceCanonical(group: FindingGroup): Finding {
     const { canonical, duplicates } = group;
 
     if (duplicates.length === 0) return canonical;
 
-    const allMessages = [
+    const mergedMessage = this.mergeMessages([
       canonical.message,
       ...duplicates.map((d) => d.message),
-    ];
-    const mergedMessage = this.mergeMessages(allMessages);
+    ]);
 
     const mergedMetadata: Record<string, unknown> = {
       ...(canonical.metadata ?? {}),
@@ -384,7 +370,8 @@ export class DeduplicationEngine {
       deduplicationMerged: true,
     };
 
-    // Collect unique metadata from duplicates
+    const additionalGasSavings: number[] = [];
+
     for (const dup of duplicates) {
       if (dup.metadata) {
         for (const [key, value] of Object.entries(dup.metadata)) {
@@ -394,8 +381,15 @@ export class DeduplicationEngine {
         }
       }
       if (dup.estimatedGasSavings !== undefined) {
-        mergedMetadata.additionalGasSavings = dup.estimatedGasSavings;
+        additionalGasSavings.push(dup.estimatedGasSavings);
       }
+    }
+
+    if (additionalGasSavings.length > 0) {
+      mergedMetadata.additionalGasSavings =
+        additionalGasSavings.length === 1
+          ? additionalGasSavings[0]
+          : additionalGasSavings;
     }
 
     return {
@@ -423,7 +417,7 @@ export class DeduplicationEngine {
   buildDedupKey(finding: Finding): DedupKey {
     return {
       ruleId: finding.ruleId,
-      normalizedMessage: this.normalizeForDedupKey(finding.message),
+      normalizedMessage: this.normalizeText(finding.message),
       startLine: finding.location.startLine,
       endLine: finding.location.endLine,
       file: finding.location.file,
@@ -431,10 +425,10 @@ export class DeduplicationEngine {
   }
 
   /**
-   * Normalize a message string for use in a DedupKey.
+   * Normalize text according to whitespace and case settings.
    */
-  private normalizeForDedupKey(message: string): string {
-    let normalized = message;
+  private normalizeText(text: string): string {
+    let normalized = text;
     if (this.config.normalizeWhitespace) {
       normalized = normalized.replace(/\s+/g, ' ').trim();
     }
