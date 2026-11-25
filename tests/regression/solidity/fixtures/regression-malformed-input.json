@@ -1,0 +1,18 @@
+{
+  "id": "REGRESSION-MALFORMED-001",
+  "name": "Malformed Syntax and Unterminated Blocks Resilience",
+  "description": "Regression fixture verifying the analyzer safely handles malformed syntax and unsupported constructs without throwing unhandled exceptions",
+  "auditSource": "Fuzzing and AST Edge Corpus",
+  "ruleId": "sol-027",
+  "solidityVersion": "^0.8.0",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract MalformedContract {\n    address public timelock;\n    /* unterminated comment block with keywords: upgradeTo, setDelay\n    function brokenSyntax( {\n",
+  "expected": {
+    "detected": false,
+    "count": 0
+  },
+  "metadata": {
+    "category": "regression",
+    "regressionType": "regression",
+    "tags": ["malformed", "fuzzing", "syntax-error"]
+  }
+}

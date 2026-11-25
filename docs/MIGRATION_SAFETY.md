@@ -50,6 +50,17 @@ node scripts/check-migrations.mjs
 node --test scripts/check-migrations.test.mjs
 ```
 
+## Data model compatibility tests
+
+`apps/api-service/src/database/__tests__/analysis-result-compatibility.spec.ts` reads the `AnalysisResult` entity and the migrations as text (no database is used) and fails when:
+
+- an entity column has no migrated column, or a migrated column has no entity column (matched by snake_case name);
+- nullability differs between the entity and the schema;
+- a migration after the initial one adds a `NOT NULL` column without a `DEFAULT`, which would break existing rows;
+- a migration's `down()` does not drop a column its `up()` added.
+
+The entity uses camelCase properties and the migrations use snake_case columns, so they only line up at runtime under a snake_case naming strategy. The database module does not configure one today; this test checks the names after that mapping and does not check the runtime configuration.
+
 ## Security / operational notes
 
 - Migration runners must use least-privilege DB roles (DDL-capable only in migrate jobs, not the app runtime role).

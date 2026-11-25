@@ -31,7 +31,7 @@ import {
   msgSenderComparands,
   prepareSource,
 } from '../lib/solidity-lite';
-import { leadingComment, buildSourceModel, calleesOf, isWellKnownBase, signatureOf } from '../lib/solidity-inheritance';
+import { leadingComment, buildSourceModel, calleesOf, formatModifierOrder, isWellKnownBase, modifierExecutionOrder, signatureOf } from '../lib/solidity-inheritance';
 
 export const RULE_ID = 'GG-PAUSE-BYPASS-001';
 
@@ -279,7 +279,7 @@ export function detectPauseBypass(input: unknown, options: PauseBypassOptions = 
             ...(unknown.length ? [`bases not visible: ${unknown.join(', ')}`] : []),
           ],
           remediation: `Add a pause guard to ${fn.name}() (or to ${cov.sink.name}()), or document the exemption with "// gasguard-pause-exempt: <reason>" if it must work while paused.`,
-          details: { category, privileged, inherited, definedIn: fn.contract, path: cov.path.map((f) => `${f.name}:${f.line}`), guardedSiblings: siblings, signature: signatureOf(fn) },
+          details: { category, privileged, inherited, definedIn: fn.contract, path: cov.path.map((f) => `${f.name}:${f.line}`), guardedSiblings: siblings, signature: signatureOf(fn), modifierOrder: formatModifierOrder(modifierExecutionOrder(model, fn)) },
         }),
       );
     }
