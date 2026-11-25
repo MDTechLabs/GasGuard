@@ -389,3 +389,28 @@ are described in [token-rebasing-balance-assumptions.md](token-rebasing-balance-
 `tests/rules/fixtures/sol-027-rebasing-balance.sol` has two positive patterns (a
 stored deposit and a balance snapshot) and two negative ones (share-based accounting
 and an explicit exclusion); `sol-027-rebasing-balance.json` lists the expected findings.
+
+## Ownership and Last-Admin Lockout
+
+**Rule ID:** `sol-028`  
+**Severity:** high  
+**Category:** security
+
+Reports ownership transfers, renunciations, role revocations, and administrator
+mapping removals that can permanently lock out the contract's administrator or remove
+its recovery path. The detector models two-step ownership transfer, pending-owner
+acceptance, final-admin renunciation, and last-admin role removal, and classifies
+contracts as `risk`, `safe`, `immutable`, `permissionless`, or `exempt`.
+
+The finding kinds, recognized administrator model, annotations, severity rationale,
+confidence evidence, and limitations are described in
+[ownership-lockout.md](ownership-lockout.md).
+
+### Fixtures
+
+`tests/rules/fixtures/sol-028-ownership-lockout.sol` covers one-step and broken
+two-step transfers, zero pending owners, unprotected transfer/acceptance, renunciation,
+role revocation, mapping-admin removal, missing acceptance, stale pending owners, and
+safe or documented-exempt variants. `sol-028-ownership-lockout.json` lists the
+expected findings and `tests/rules/expected/sol-028-normalized.json` records the
+normalized analyzer output.

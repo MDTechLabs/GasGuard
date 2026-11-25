@@ -1,0 +1,19 @@
+{
+  "id": "GG-OWN-003",
+  "name": "Last-admin mapping removal without remaining-admin guard",
+  "description": "An authorized administrator can remove the final administrator flag without proving another administrator remains, leaving role-gated recovery unreachable.",
+  "auditSource": "GasGuard Ownership Lockout Corpus",
+  "ruleId": "sol-028",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract AdminRegistry {\n    mapping(address => bool) public isAdmin;\n    uint256 public adminCount;\n    uint256 public fee;\n\n    function removeAdmin(address account) external {\n        require(isAdmin[msg.sender], \"not admin\");\n        isAdmin[account] = false;\n        adminCount -= 1;\n    }\n\n    function setFee(uint256 newFee) external {\n        require(isAdmin[msg.sender], \"not admin\");\n        fee = newFee;\n    }\n}\n",
+  "expected": {
+    "detected": true,
+    "count": 1,
+    "flaggedKinds": ["last-admin-revocation"]
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "boundary",
+    "tags": ["admin", "roles", "last-admin", "boundary"]
+  }
+}
