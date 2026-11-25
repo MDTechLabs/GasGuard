@@ -16,6 +16,7 @@ import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
 import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
+import { detectTimelockUpgradeBypass } from "./timelock-upgrade-bypass-detector";
 import { detectBeaconProxyHazards } from "./beacon-proxy-hazard-detector";
 import { detectTokenTransferWrapperReturns } from "./token-transfer-wrapper-detector";
 import {
@@ -371,6 +372,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
         "upgradeability",
       ],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
+    },
+    {
+      id: "sol-027",
+      name: "Timelock Upgrade Administration Bypass",
+      description:
+        "Detects direct owner/admin upgrade functions, emergency upgrade bypasses, and unbounded delay setters that bypass timelock governance delays",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "upgradeability", "timelock", "governance", "proxy"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
     },
     {
       id: "sol-028",
@@ -1066,6 +1078,47 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "Critical addresses control custody, authorization, pricing, or upgrades. A zero value is usually an unrecoverable misconfiguration (locked privileges, bricked token or oracle calls, burned funds), but it requires a deployer or privileged-role mistake rather than an attacker, hence medium severity.",
               limitation:
                 "Source-pattern analysis: criticality is inferred from parameter and callee names, only external/public entry points are analyzed, and validation is recognised through comparisons with address(0), isContract/code.length checks, local modifiers and helpers, and base-constructor arguments. Callee implementations outside the analyzed source are not inspected. Zero is treated as a sentinel when a comment above the function documents it or the body branches on it.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-027 - Timelock upgrade administration bypass
+      if (this.isRuleEnabled("sol-027", config)) {
+        const detection = detectTimelockUpgradeBypass(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-027",
+            message: `${finding.functionName}: ${finding.reason}`,
+            severity: this.getRuleSeverity("sol-027", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              codeSnippet:
+                "require(msg.sender == timelock, 'Only timelock can execute upgrade');",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
+            },
+            metadata: {
+              kind: finding.kind,
+              functionName: finding.functionName,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Bypassing timelock delays allows privileged roles or compromised keys to execute immediate, unannounced contract upgrades or logic substitutions without the required community or guardian notice period.",
+              limitation:
+                "Source-pattern analysis: detects presence of timelock mechanisms or claims alongside direct admin-gated upgrade paths or unbounded delay setters within the analyzed contract scope.",
             },
           })),
         );

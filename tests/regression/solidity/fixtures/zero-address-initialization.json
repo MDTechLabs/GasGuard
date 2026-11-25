@@ -1,0 +1,18 @@
+{
+  "id": "OZ-ZERO-ADDR-001",
+  "name": "OpenZeppelin Unvalidated Implementation Zero Address",
+  "description": "Audited finding where proxy implementation address setter accepts address(0)",
+  "auditSource": "OpenZeppelin Proxy Audits",
+  "ruleId": "sol-026",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract ProxyAdminConfig {\n    address public implementation;\n    address public owner;\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"not owner\");\n        _;\n    }\n\n    function setImplementation(address newImplementation) external onlyOwner {\n        implementation = newImplementation;\n    }\n}\n",
+  "expected": {
+    "detected": true,
+    "count": 1
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "positive",
+    "tags": ["zero-address", "proxy", "implementation"]
+  }
+}

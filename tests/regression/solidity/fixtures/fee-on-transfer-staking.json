@@ -1,0 +1,18 @@
+{
+  "id": "SPEARBIT-FOT-001",
+  "name": "Spearbit Staking Pool Fee-on-Transfer Assumption",
+  "description": "Audited finding where deposited amount is credited directly without balance delta calculation",
+  "auditSource": "Spearbit Security Review",
+  "ruleId": "sol-025",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ninterface IERC20 {\n    function transferFrom(address from, address to, uint256 amount) external returns (bool);\n    function balanceOf(address account) external view returns (uint256);\n}\n\ncontract StakingPool {\n    IERC20 public token;\n    mapping(address => uint256) public balances;\n\n    function deposit(uint256 amount) external {\n        token.transferFrom(msg.sender, address(this), amount);\n        balances[msg.sender] += amount;\n    }\n}\n",
+  "expected": {
+    "detected": true,
+    "count": 1
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "positive",
+    "tags": ["token", "fee-on-transfer", "accounting"]
+  }
+}
