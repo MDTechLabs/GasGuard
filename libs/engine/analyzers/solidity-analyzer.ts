@@ -16,6 +16,7 @@ import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
 import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
+import { detectRebasingBalanceAssumptions } from "../../../rules/security/tokens/detect-rebasing-balance-assumptions";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -340,6 +341,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "zero-address", "configuration", "access-control", "upgradeability"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
+    },
+    {
+      id: "sol-027",
+      name: "Rebasing-Token Stored Balance Assumption",
+      description:
+        "Detects stored token amounts and balance snapshots that are later paid out as if the token balance could only change through the contract's own transfers",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "rebasing", "accounting", "vault"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -986,6 +998,47 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "Critical addresses control custody, authorization, pricing, or upgrades. A zero value is usually an unrecoverable misconfiguration (locked privileges, bricked token or oracle calls, burned funds), but it requires a deployer or privileged-role mistake rather than an attacker, hence medium severity.",
               limitation:
                 "Source-pattern analysis: criticality is inferred from parameter and callee names, only external/public entry points are analyzed, and validation is recognised through comparisons with address(0), isContract/code.length checks, local modifiers and helpers, and base-constructor arguments. Callee implementations outside the analyzed source are not inspected. Zero is treated as a sentinel when a comment above the function documents it or the body branches on it.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-027 - Rebasing-token stored balance assumption
+      if (this.isRuleEnabled("sol-027", config)) {
+        const detection = detectRebasingBalanceAssumptions(code);
+        errors.push(
+          ...detection.diagnostics
+            .filter((diagnostic) => diagnostic.level === "error")
+            .map((diagnostic) => ({ file: filePath, message: diagnostic.message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-027",
+            message: finding.message,
+            severity: this.getRuleSeverity("sol-027", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.column,
+              endColumn: finding.column,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
+            },
+            metadata: {
+              kind: finding.kind,
+              contract: finding.contract,
+              function: finding.function,
+              detectorRuleId: finding.ruleId,
+              detectorSeverity: finding.severity,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.confidenceEvidence,
+              severityRationale: finding.severityRationale,
+              details: finding.details,
+              limitation:
+                "Source-pattern analysis within one file: token behavior is inferred from identifiers, and a payout is linked to a stored amount only through the same function's parameters and locals. Imported bases and flows through other contracts are not followed.",
             },
           })),
         );

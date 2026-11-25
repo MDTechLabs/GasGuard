@@ -1,6 +1,6 @@
 # Rebasing-token balance assumptions in stored accounting (`GG-TOKEN-REBASE-001`)
 
-Detector: `rules/security/tokens/detect-rebasing-balance-assumptions.ts` · Helper: `rules/security/tokens/token-calls.ts` · Tests: `rules/security/tokens/__tests__/detect-rebasing-balance-assumptions.spec.ts`
+Detector: `rules/security/tokens/detect-rebasing-balance-assumptions.ts` · Helper: `rules/security/tokens/token-calls.ts` · Tests: `rules/security/tokens/__tests__/detect-rebasing-balance-assumptions.spec.ts` · Analyzer rule: `sol-027` · Fixture: `tests/rules/fixtures/sol-027-rebasing-balance.sol` / `.json`
 
 ## What it detects
 

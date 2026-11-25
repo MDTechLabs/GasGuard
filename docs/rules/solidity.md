@@ -369,3 +369,23 @@ For tokens and oracles consider also checking `code.length > 0`.
 setter, and factory configuration with unvalidated, validated (inline, helper, and
 modifier), sentinel, and modelled-callee cases; `sol-026-zero-address.json` lists
 the expected findings.
+
+## Rebasing-Token Stored Balance Assumption
+
+**Rule ID:** `sol-027`  
+**Severity:** medium  
+**Category:** security
+
+Runs the `GG-TOKEN-REBASE-001` detector
+(`rules/security/tokens/detect-rebasing-balance-assumptions.ts`) in the analyzer. It
+reports a stored token amount or balance snapshot that is later paid out as if the
+token balance could only change through the contract's own transfers. The detector's
+own severity, confidence, evidence, and details are kept in the finding metadata.
+Tracing, recognised share-based designs and exclusions, assumptions, and limitations
+are described in [token-rebasing-balance-assumptions.md](token-rebasing-balance-assumptions.md).
+
+### Fixtures
+
+`tests/rules/fixtures/sol-027-rebasing-balance.sol` has two positive patterns (a
+stored deposit and a balance snapshot) and two negative ones (share-based accounting
+and an explicit exclusion); `sol-027-rebasing-balance.json` lists the expected findings.
