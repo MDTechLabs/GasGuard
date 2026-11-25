@@ -1,0 +1,18 @@
+{
+  "id": "CD-REENTRANCY-002",
+  "name": "ConsenSys Diligence Mitigated Reentrancy Pattern",
+  "description": "Audited CEI and ReentrancyGuard protected withdrawal pattern",
+  "auditSource": "ConsenSys Diligence Best Practices",
+  "ruleId": "sol-006",
+  "solidityVersion": "^0.8.0",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\n\ncontract ProtectedLendingPool is ReentrancyGuard {\n    mapping(address => uint256) public balances;\n\n    function withdraw(uint256 amount) public nonReentrant {\n        require(balances[msg.sender] >= amount, \"insufficient balance\");\n        balances[msg.sender] -= amount;\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success, \"transfer failed\");\n    }\n}\n",
+  "expected": {
+    "detected": false,
+    "count": 0
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "negative",
+    "tags": ["reentrancy", "guard", "safe"]
+  }
+}
