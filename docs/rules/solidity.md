@@ -369,3 +369,53 @@ For tokens and oracles consider also checking `code.length > 0`.
 setter, and factory configuration with unvalidated, validated (inline, helper, and
 modifier), sentinel, and modelled-callee cases; `sol-026-zero-address.json` lists
 the expected findings.
+
+## Unsafe ERC-721 Safe-Transfer Callback Assumptions
+
+**Rule ID:** `sol-027`  
+**Severity:** high for stateful unauthenticated receiver callbacks; medium for
+state updates after a callback-capable transfer  
+**Category:** security
+
+ERC-721 `safeTransferFrom` invokes `onERC721Received` on contract recipients
+before returning. The receiver callback can also be called directly by any
+contract; the safe-transfer handshake does not authenticate `msg.sender`.
+
+The rule reports:
+
+- `unauthenticated-stateful-receiver`: an external `onERC721Received` callback
+  changes tracked state or invokes a state-changing operation without checking
+  that the caller is an authorized NFT collection.
+- `post-transfer-state-update`: a supported ERC-721 safe-transfer call occurs
+  before a tracked state variable is updated and the function has no recognized
+  reentrancy-guard modifier. A recipient callback can reenter before that update.
+
+Authenticate receiver callbacks against an allowlisted collection (or an
+on-chain registry), and apply state effects before outbound safe transfers or
+protect the function with a reentrancy guard. A callback that only returns the
+ERC-721 selector and makes no state changes is not reported.
+
+### Supported input and limitations
+
+- Solidity source text with no pragma or pragma versions `0.4.x` through `0.8.x`.
+  Source inputs are capped at 1 MiB, 2,500 callables, and 500 contracts. The
+  detector does not invoke `solc`, execute scripts, or read project settings.
+- Recognizes typed or NFT-named `safeTransferFrom` receivers, the
+  `SafeERC721.safeTransferFrom` library form, and `_safeTransfer` in ERC-721
+  implementations. It recognizes common collection checks, allowlist lookups,
+  and reentrancy modifiers.
+- This is lexical analysis, not a call-graph or inheritance resolver. Imported
+  or inherited implementations, aliases, assembly, proxy dispatch, and indirect
+  state changes through arbitrary helper calls may be missed. Naming heuristics
+  can also produce false positives; verify the recipient and call graph.
+- Malformed, unsupported-version, and non-string inputs produce diagnostics
+  rather than findings.
+
+### Fixture and normalized finding output
+
+`tests/rules/fixtures/sol-027-erc721-safe-transfer-callback.sol` contains the
+vulnerable and safe ordering cases, authenticated and unauthenticated receiver
+callbacks, a guard modifier, and a library transfer. The expected normalized
+rule identifiers, kinds, and source lines are listed in the matching JSON file.
+All findings use `sol-027` and include the primary source location, severity
+rationale, confidence evidence, and remediation.

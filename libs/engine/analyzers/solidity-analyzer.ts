@@ -16,6 +16,7 @@ import { detectUncheckedApproveReturns } from "./erc20-approve-return-detector";
 import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector";
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
+import { detectUnsafeErc721SafeTransferCallbacks } from "./erc721-safe-transfer-callback-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -340,6 +341,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "zero-address", "configuration", "access-control", "upgradeability"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-026",
+    },
+    {
+      id: "sol-027",
+      name: "Unsafe ERC-721 Safe-Transfer Callback Assumption",
+      description:
+        "Detects stateful ERC-721 receiver callbacks without collection authentication and state updates after callback-capable safe transfers",
+      severity: Severity.MEDIUM,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc721", "safe-transfer", "callback", "reentrancy"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -988,6 +1000,61 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "Source-pattern analysis: criticality is inferred from parameter and callee names, only external/public entry points are analyzed, and validation is recognised through comparisons with address(0), isContract/code.length checks, local modifiers and helpers, and base-constructor arguments. Callee implementations outside the analyzed source are not inspected. Zero is treated as a sentinel when a comment above the function documents it or the body branches on it.",
             },
           })),
+        );
+      }
+
+      // Rule: sol-027 - Unsafe ERC-721 safe-transfer callback assumptions
+      if (this.isRuleEnabled("sol-027", config)) {
+        const detection = detectUnsafeErc721SafeTransferCallbacks(code);
+        const configuredRule = (config ?? this.config).rules?.["sol-027"];
+        const severityOverride =
+          typeof configuredRule === "object" ? configuredRule.severity : undefined;
+        errors.push(
+          ...detection.diagnostics.map((message) => ({ file: filePath, message })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => {
+            const receiver = finding.kind === "unauthenticated-stateful-receiver";
+            return {
+              ruleId: "sol-027",
+              message: receiver
+                ? `ERC-721 receiver callback '${finding.functionName}' performs stateful work without authenticating the NFT collection caller.`
+                : `ERC-721 safe transfer in '${finding.functionName}' occurs before state '${finding.affectedState}' is updated, allowing the recipient callback to reenter first.`,
+              severity:
+                severityOverride ??
+                (finding.severity === "high" ? Severity.HIGH : Severity.MEDIUM),
+              location: {
+                file: filePath,
+                startLine: finding.line,
+                endLine: finding.line,
+                startColumn: finding.startColumn,
+                endColumn: finding.endColumn,
+              },
+              suggestedFix: {
+                description: receiver
+                  ? "Allowlist the ERC-721 collection by checking msg.sender against a trusted collection address or registry before performing state changes."
+                  : "Apply effects before the safe transfer or protect the entry point with a reentrancy guard; the recipient callback runs before the call returns.",
+                codeSnippet: receiver
+                  ? "require(msg.sender == address(trustedCollection), \"untrusted NFT\");"
+                  : "balances[msg.sender] -= amount;\nnft.safeTransferFrom(address(this), msg.sender, tokenId);",
+                documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
+              },
+              metadata: {
+                kind: finding.kind,
+                functionName: finding.functionName,
+                affectedState: finding.affectedState,
+                confidence: finding.confidence,
+                confidenceEvidence: finding.evidence,
+                severityRationale: receiver
+                  ? finding.severity === "high"
+                    ? "Any contract can call onERC721Received directly; an unauthenticated callback that invokes a privileged or token-moving action can be spoofed, hence high severity."
+                    : "Any contract can call onERC721Received directly; unauthenticated state changes can corrupt receiver accounting, hence medium severity."
+                  : "safeTransferFrom invokes untrusted recipient code before returning; a reentrant call can observe stale state and repeat an action, hence medium severity.",
+                limitation:
+                  "Lexical source analysis supports Solidity 0.4.x–0.8.x and recognizes ERC-721 types/names, state assignments, common callback authentication, and common reentrancy-guard modifiers. It does not resolve imported or inherited implementations, aliases, assembly, indirect state changes through arbitrary helpers, or proxy dispatch; review findings against the actual call graph.",
+              },
+            };
+          }),
         );
       }
 
