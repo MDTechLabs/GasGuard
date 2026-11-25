@@ -1,0 +1,18 @@
+{
+  "id": "GG-OWN-002",
+  "name": "Two-step ownership transfer with zero-address validation",
+  "description": "Owner stages a validated pending owner, the nominee must accept, and the pending value is cleared after acceptance.",
+  "auditSource": "OpenZeppelin Ownable2Step",
+  "ruleId": "sol-028",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract Vault {\n    address public owner;\n    address public pendingOwner;\n    uint256 public fee;\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"not owner\");\n        _;\n    }\n\n    function transferOwnership(address newOwner) external onlyOwner {\n        require(newOwner != address(0), \"zero owner\");\n        pendingOwner = newOwner;\n    }\n\n    function acceptOwnership() external {\n        require(msg.sender == pendingOwner, \"not pending owner\");\n        owner = msg.sender;\n        delete pendingOwner;\n    }\n\n    function setFee(uint256 newFee) external onlyOwner {\n        fee = newFee;\n    }\n}\n",
+  "expected": {
+    "detected": false,
+    "count": 0
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "negative",
+    "tags": ["ownership", "two-step", "mitigated"]
+  }
+}

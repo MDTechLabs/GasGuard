@@ -17,6 +17,7 @@ import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector"
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
 import { detectTimelockUpgradeBypass } from "./timelock-upgrade-bypass-detector";
+import { detectOwnershipLockout } from "../../../rules/security/access-control/detect-ownership-lockout";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -381,6 +382,24 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "upgradeability", "timelock", "governance", "proxy"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
+    },
+    {
+      id: "sol-028",
+      name: "Ownership Lockout Risk",
+      description:
+        "Detects one-step ownership transfers, broken pending-owner acceptance flows, and renunciation or role-revocation paths that can remove the final administrator",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: [
+        "security",
+        "access-control",
+        "ownership",
+        "lockout",
+        "roles",
+        "governance",
+      ],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -1091,6 +1110,57 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "Source-pattern analysis: detects presence of timelock mechanisms or claims alongside direct admin-gated upgrade paths or unbounded delay setters within the analyzed contract scope.",
             },
           })),
+        );
+      }
+
+      // Rule: sol-028 - Ownership lockout risk
+      if (this.isRuleEnabled("sol-028", config)) {
+        const detection = detectOwnershipLockout(code);
+        errors.push(
+          ...detection.diagnostics.map((diagnostic) => ({
+            file: filePath,
+            message: diagnostic.message,
+          })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => {
+            const statementLength =
+              typeof finding.details?.statementLength === "number"
+                ? finding.details.statementLength
+                : 1;
+            return {
+              ruleId: "sol-028",
+              message: finding.message,
+              severity: this.getRuleSeverity("sol-028", config),
+              location: {
+                file: filePath,
+                startLine: finding.line,
+                endLine: finding.line,
+                startColumn: finding.column,
+                endColumn: finding.column + Math.max(statementLength, 1) - 1,
+              },
+              suggestedFix: {
+                description: finding.remediation,
+                codeSnippet:
+                  "address public pendingOwner;\n\nfunction transferOwnership(address newOwner) external onlyOwner {\n    require(newOwner != address(0), \"zero owner\");\n    pendingOwner = newOwner;\n}\n\nfunction acceptOwnership() external {\n    require(msg.sender == pendingOwner, \"not pending owner\");\n    owner = msg.sender;\n    delete pendingOwner;\n}",
+                documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
+              },
+              metadata: {
+                kind: finding.kind,
+                contract: finding.contract,
+                function: finding.function,
+                confidence:
+                  typeof finding.details?.confidence === "number"
+                    ? finding.details.confidence
+                    : 0.65,
+                confidenceEvidence: finding.confidenceEvidence,
+                severityRationale: finding.severityRationale,
+                limitation:
+                  "Source-pattern analysis: it does not execute the contract, query live role membership, or inspect inherited implementations outside the analyzed source. Pending-owner and last-admin conclusions are review prompts, not proofs that a lockout is reachable.",
+                ...finding.details,
+              },
+            };
+          }),
         );
       }
 
