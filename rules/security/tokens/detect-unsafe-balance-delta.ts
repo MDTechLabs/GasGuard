@@ -82,6 +82,40 @@ function inUnchecked(fn: SolFunction, offset: number): boolean {
   return stack.some(Boolean);
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasSubtraction(text: string, left: string, right: string): boolean {
+  return new RegExp(`\\b${escapeRegExp(left)}\\b\\s*-\\s*\\b${escapeRegExp(right)}\\b`).test(text);
+}
+
+function hasTwoSidedConditional(text: string, left: string, right: string): boolean {
+  const question = text.indexOf('?');
+  const colon = text.indexOf(':', question + 1);
+  if (question === -1 || colon === -1) return false;
+  const whenTrue = text.slice(question + 1, colon);
+  const whenFalse = text.slice(colon + 1);
+  return (
+    (hasSubtraction(whenTrue, left, right) && hasSubtraction(whenFalse, right, left)) ||
+    (hasSubtraction(whenTrue, right, left) && hasSubtraction(whenFalse, left, right))
+  );
+}
+
+function hasOrderingGuard(fn: SolFunction, offset: number, minuend: string, subtrahend: string): boolean {
+  const end = Math.max(0, offset - fn.bodyOffset);
+  const before = fn.body.slice(0, end);
+  const guardedCall = /\b(?:require|assert)\s*\((?:[^()]|\([^()]*\))*\)\s*;/g;
+  const comparison = new RegExp(
+    `\\b${escapeRegExp(minuend)}\\b\\s*>=\\s*\\b${escapeRegExp(subtrahend)}\\b`,
+  );
+  let match: RegExpExecArray | null;
+  while ((match = guardedCall.exec(before)) !== null) {
+    if (comparison.test(match[0])) return true;
+  }
+  return false;
+}
+
 export function detectUnsafeBalanceDelta(input: unknown): BalanceDeltaResult {
   const prep = prepareSource(input);
   if (!prep.ok) return { ruleId: RULE_ID, analyzed: false, findings: [], diagnostics: prep.diagnostics, deltas: [] };
@@ -139,8 +173,7 @@ export function detectUnsafeBalanceDelta(input: unknown): BalanceDeltaResult {
 
           const lhs = /^(?:(u?int\d*)\s+)?([A-Za-z_$][\w$]*)\s*=(?!=)/.exec(s.text);
           const resultName = lhs?.[2] ?? '';
-          const intentional = signed || (lhs?.[1] ?? '').startsWith('int') || /\?/.test(s.text) ||
-            new RegExp(`\\b(?:${m[1]}|${m[2]})\\b\\s*(?:>=|<=|>|<)\\s*\\b(?:${m[1]}|${m[2]})\\b`).test(fn.body.replace(s.text, ''));
+          const intentional = signed || (lhs?.[1] ?? '').startsWith('int') || hasTwoSidedConditional(text, m[1], m[2]);
           const earlier = minuend.index <= sub.index ? minuend : sub;
           const later = earlier === minuend ? sub : minuend;
           const form: DeltaEntry['form'] = earlier === sub ? 'after-before' : 'before-after';
@@ -215,7 +248,13 @@ export function detectUnsafeBalanceDelta(input: unknown): BalanceDeltaResult {
                 });
               }
             }
-            if (!intentional && unchecked && form === 'after-before' && !found.some((f) => f.kind === 'reversed-delta')) {
+            if (
+              !intentional &&
+              unchecked &&
+              form === 'after-before' &&
+              !hasOrderingGuard(fn, s.offset, m[1], m[2]) &&
+              !found.some((f) => f.kind === 'reversed-delta')
+            ) {
               found.push({
                 kind: 'unchecked-balance-delta', severity: 'low', confidence: 'low',
                 message: `after - before at line ${s.line} runs without overflow checks and without an ordering guard; a balance that ends lower than it started wraps around.`,

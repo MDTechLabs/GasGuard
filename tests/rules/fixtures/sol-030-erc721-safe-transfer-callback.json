@@ -1,0 +1,16 @@
+{
+  "id": "sol-030-erc721-safe-transfer-callback",
+  "name": "Unsafe ERC-721 safe-transfer callback assumptions",
+  "description": "Reentrancy ordering and stateful unauthenticated receiver callbacks, with safe ordering, authenticated receiver, modifier, and library counterexamples.",
+  "source": "sol-030-erc721-safe-transfer-callback.sol",
+  "expectedFindings": [
+    { "ruleId": "sol-030", "kind": "post-transfer-state-update", "line": 20 },
+    { "ruleId": "sol-030", "kind": "unauthenticated-stateful-receiver", "line": 41 },
+    { "ruleId": "sol-030", "kind": "post-transfer-state-update", "line": 87 }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["erc721", "safe-transfer", "callback", "reentrancy"]
+  }
+}

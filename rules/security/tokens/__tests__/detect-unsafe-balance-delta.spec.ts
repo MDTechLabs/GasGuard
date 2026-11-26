@@ -25,6 +25,18 @@ describe('detectUnsafeBalanceDelta', () => {
     expect(detectUnsafeBalanceDelta(outflow).findings).toEqual([]);
   });
 
+  it('accepts a measured fee collection and a transfer whose token may invoke a callback', () => {
+    const fee = wrap(`    uint256 feeBefore = token.balanceOf(recipient);
+    token.safeTransferFrom(address(this), recipient, amount);
+    uint256 feeCollected = token.balanceOf(recipient) - feeBefore;`);
+    expect(detectUnsafeBalanceDelta(fee).findings).toEqual([]);
+
+    const callback = wrap(`    uint256 before = token.balanceOf(address(this));
+    token.safeTransferFrom(msg.sender, address(this), amount); // token callbacks may run before this returns
+    uint256 received = token.balanceOf(address(this)) - before;`);
+    expect(detectUnsafeBalanceDelta(callback).findings).toEqual([]);
+  });
+
   it('flags a reversed inflow delta, with higher severity when arithmetic is unchecked', () => {
     const reversed = wrap(`${IN}\n    uint256 received = before - token.balanceOf(address(this));`);
     const [f] = detectUnsafeBalanceDelta(reversed).findings;
@@ -83,6 +95,8 @@ describe('detectUnsafeBalanceDelta', () => {
     expect(kinds(unchecked)).toEqual(['unchecked-balance-delta:low']);
     const guarded = wrap(`${IN}\n    uint256 after_ = token.balanceOf(address(this));\n    require(after_ >= before);\n    uint256 received;\n    unchecked { received = after_ - before; }`);
     expect(kinds(guarded)).toEqual([]);
+    const wrongGuard = wrap(`${IN}\n    uint256 after_ = token.balanceOf(address(this));\n    require(before >= after_);\n    uint256 received;\n    unchecked { received = after_ - before; }`);
+    expect(kinds(wrongGuard)).toContain('unchecked-balance-delta:low');
   });
 
   it('accepts intentional signed deltas and two-sided handling', () => {
@@ -91,6 +105,8 @@ describe('detectUnsafeBalanceDelta', () => {
     expect(detectUnsafeBalanceDelta(signed).deltas[0].status).toBe('intentional');
     const branch = wrap(`${IN}\n    uint256 after_ = token.balanceOf(address(this));\n    uint256 diff = after_ > before ? after_ - before : before - after_;`);
     expect(detectUnsafeBalanceDelta(branch).findings).toEqual([]);
+    const oneSided = wrap(`${IN}\n    uint256 after_ = token.balanceOf(address(this));\n    uint256 received = before > after_ ? before - after_ : before - after_;`);
+    expect(kinds(oneSided)).toContain('reversed-delta:medium');
   });
 
   it('fails safely on malformed input', () => {

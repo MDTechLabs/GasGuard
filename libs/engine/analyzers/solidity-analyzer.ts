@@ -19,6 +19,7 @@ import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
 import { detectTimelockUpgradeBypass } from "./timelock-upgrade-bypass-detector";
 import { detectBeaconProxyHazards } from "./beacon-proxy-hazard-detector";
 import { detectTokenTransferWrapperReturns } from "./token-transfer-wrapper-detector";
+import { detectUnsafeErc721SafeTransferCallbacks } from "./erc721-safe-transfer-callback-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -411,6 +412,17 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "erc20", "tokens", "transfer", "safe-erc20"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-029",
+    },
+    {
+      id: "sol-030",
+      name: "Unsafe ERC-721 Safe-Transfer Callback Assumptions",
+      description:
+        "Detects state updates after callback-capable ERC-721 transfers and unauthenticated stateful onERC721Received callbacks",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc721", "callback", "reentrancy"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-030",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -1199,6 +1211,50 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "Non-standard tokens (like USDT or non-reverting tokens) either cause high-level calls to revert when expecting boolean returns or silently fail when returning false, allowing unbacked actions or stuck assets.",
               limitation:
                 "Source-pattern analysis: inspects transfer calls and low-level call return handling in transfer wrappers.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-030 - Unsafe ERC-721 safe-transfer callback assumptions
+      if (this.isRuleEnabled("sol-030", config)) {
+        const detection = detectUnsafeErc721SafeTransferCallbacks(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-030",
+            message: `${finding.functionName}: ERC-721 callback risk (${finding.kind})`,
+            severity: this.getRuleSeverity("sol-030", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description:
+                "Apply state effects before callback-capable transfers or protect the function with a reentrancy guard; authenticate onERC721Received callers.",
+              codeSnippet:
+                "require(msg.sender == address(collection), 'unauthorized receiver');",
+              documentationUrl:
+                "https://docs.gasguard.dev/rules/sol-030",
+            },
+            metadata: {
+              kind: finding.kind,
+              functionName: finding.functionName,
+              affectedState: finding.affectedState,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "ERC-721 safe transfers and direct receiver callbacks can execute external contract code before state effects complete or without collection authentication.",
+              limitation:
+                "Source-pattern analysis: callback receivers and transfer call paths are recognized lexically and do not model imported implementations or indirect calls.",
             },
           })),
         );
