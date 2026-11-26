@@ -1,0 +1,18 @@
+{
+  "id": "SPEARBIT-FOT-002",
+  "name": "Spearbit Mitigated Balance Delta Accounting",
+  "description": "Audited safe pattern measuring actual token balance delta before and after transferFrom",
+  "auditSource": "Spearbit Security Standards",
+  "ruleId": "sol-025",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ninterface IERC20 {\n    function transferFrom(address from, address to, uint256 amount) external returns (bool);\n    function balanceOf(address account) external view returns (uint256);\n}\n\ncontract SafeStakingPool {\n    IERC20 public token;\n    mapping(address => uint256) public balances;\n\n    function deposit(uint256 amount) external {\n        uint256 beforeBal = token.balanceOf(address(this));\n        token.transferFrom(msg.sender, address(this), amount);\n        uint256 received = token.balanceOf(address(this)) - beforeBal;\n        balances[msg.sender] += received;\n    }\n}\n",
+  "expected": {
+    "detected": false,
+    "count": 0
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "negative",
+    "tags": ["token", "fee-on-transfer", "mitigated"]
+  }
+}

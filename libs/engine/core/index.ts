@@ -47,6 +47,7 @@ export * from "./cross-file-resolver";
 
 // Rule-level confidence calibration
 export * from "./confidence-calibration";
+export * from "./rule-accuracy-report";
 
 // AST parser fallback strategy
 export * from "./ast-parser-fallback";

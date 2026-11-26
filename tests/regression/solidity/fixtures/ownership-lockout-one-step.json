@@ -1,0 +1,19 @@
+{
+  "id": "GG-OWN-001",
+  "name": "One-step ownership transfer without acceptance",
+  "description": "Owner can transfer control directly to an arbitrary address, so a typo or compromised key permanently removes administrative access.",
+  "auditSource": "GasGuard Ownership Lockout Corpus",
+  "ruleId": "sol-028",
+  "solidityVersion": "^0.8.20",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract Vault {\n    address public owner;\n    uint256 public fee;\n\n    function transferOwnership(address newOwner) external {\n        require(msg.sender == owner, \"not owner\");\n        owner = newOwner;\n    }\n\n    function setFee(uint256 newFee) external {\n        require(msg.sender == owner, \"not owner\");\n        fee = newFee;\n    }\n}\n",
+  "expected": {
+    "detected": true,
+    "count": 1,
+    "flaggedKinds": ["one-step-ownership-transfer"]
+  },
+  "metadata": {
+    "category": "security",
+    "regressionType": "positive",
+    "tags": ["ownership", "one-step", "access-control"]
+  }
+}

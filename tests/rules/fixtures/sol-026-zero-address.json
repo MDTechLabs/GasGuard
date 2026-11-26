@@ -1,0 +1,26 @@
+{
+  "id": "sol-026-zero-address",
+  "name": "Missing zero-address checks in token and role configuration",
+  "description": "Constructor, initializer, setter, and factory configuration entry points, with validated, sentinel, and unvalidated variants. Source: sol-026-zero-address.sol",
+  "source": "sol-026-zero-address.sol",
+  "expectedFindings": [
+    { "ruleId": "sol-026", "entryPoint": "constructor", "category": "authorization", "parameter": "_owner", "line": 17 },
+    { "ruleId": "sol-026", "entryPoint": "constructor", "category": "custody", "parameter": "_token", "line": 18 },
+    { "ruleId": "sol-026", "entryPoint": "constructor", "category": "pricing", "parameter": "_oracle", "line": 19 },
+    { "ruleId": "sol-026", "entryPoint": "initializer", "category": "authorization", "parameter": "_admin", "line": 49 },
+    { "ruleId": "sol-026", "entryPoint": "initializer", "category": "upgrade", "parameter": "_implementation", "line": 50 },
+    { "ruleId": "sol-026", "entryPoint": "setter", "category": "pricing", "parameter": "newOracle", "line": 94 },
+    { "ruleId": "sol-026", "entryPoint": "setter", "category": "authorization", "parameter": "newOwner", "line": 114 },
+    { "ruleId": "sol-026", "entryPoint": "constructor", "category": "custody", "parameter": "_token", "line": 125 },
+    { "ruleId": "sol-026", "entryPoint": "constructor", "category": "authorization", "parameter": "_owner", "line": 126 },
+    { "ruleId": "sol-026", "entryPoint": "factory", "category": "custody", "parameter": "token", "line": 143 },
+    { "ruleId": "sol-026", "entryPoint": "factory", "category": "authorization", "parameter": "owner", "line": 143 },
+    { "ruleId": "sol-026", "entryPoint": "factory", "category": "custody", "parameter": "token", "line": 153 },
+    { "ruleId": "sol-026", "entryPoint": "factory", "category": "authorization", "parameter": "owner", "line": 153 }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["zero-address", "configuration", "initializer", "constructor", "factory"]
+  }
+}

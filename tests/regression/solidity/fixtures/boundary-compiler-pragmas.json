@@ -1,0 +1,18 @@
+{
+  "id": "BOUNDARY-SOLIDITY-001",
+  "name": "Multi-version and Library Inheritance Boundary",
+  "description": "Boundary fixture verifying library delegation and inheritance across compiler pragmas",
+  "auditSource": "Solidity Reference Test Suite",
+  "ruleId": "sol-027",
+  "solidityVersion": ">=0.7.6 <0.9.0",
+  "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\nlibrary UpgradeLib {\n    function verifyTimelock(address timelock) internal view {\n        require(msg.sender == timelock, \"caller not timelock\");\n    }\n}\n\nabstract contract BaseUpgrade {\n    address public timelock;\n    address public implementation;\n}\n\ncontract ConcreteUpgrade is BaseUpgrade {\n    using UpgradeLib for address;\n\n    function upgradeTo(address newImpl) external {\n        timelock.verifyTimelock();\n        implementation = newImpl;\n    }\n}\n",
+  "expected": {
+    "detected": false,
+    "count": 0
+  },
+  "metadata": {
+    "category": "boundary",
+    "regressionType": "boundary",
+    "tags": ["inheritance", "library", "compiler-versions"]
+  }
+}

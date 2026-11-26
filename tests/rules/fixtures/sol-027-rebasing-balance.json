@@ -1,0 +1,15 @@
+{
+  "id": "sol-027-rebasing-balance",
+  "name": "Rebasing-token stored balance assumption",
+  "description": "Stored deposits and balance snapshots that are later paid out as nominal amounts, next to share-based and explicitly excluded counterexamples. Source: sol-027-rebasing-balance.sol",
+  "source": "sol-027-rebasing-balance.sol",
+  "expectedFindings": [
+    { "ruleId": "sol-027", "kind": "stale-stored-balance", "contract": "Staking", "function": "deposit", "line": 15 },
+    { "ruleId": "sol-027", "kind": "stale-stored-balance", "contract": "Escrow", "function": "lock", "line": 32 }
+  ],
+  "metadata": {
+    "language": "solidity",
+    "category": "security",
+    "tags": ["erc20", "rebasing", "accounting", "vault"]
+  }
+}
