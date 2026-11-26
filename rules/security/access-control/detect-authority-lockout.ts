@@ -50,7 +50,7 @@ import {
 
 export const RULE_ID = 'GG-AUTH-LOCKOUT-001';
 
-export interface OwnershipLockoutOptions {
+export interface AuthorityLockoutOptions {
   /** Contract names that are immutable / ownerless by design. */
   intentionallyImmutable?: string[];
   maxFindings?: number;
@@ -87,7 +87,7 @@ function parseWrite(e: TimelineEvent): Write {
 const isZero = (rhs: string) => /^(address\s*\(\s*0\s*\)|0x0+|0)$/.test(rhs.trim());
 const isSender = (s: string) => /^(msg\.sender|_msgSender\s*\(\s*\))$/.test(s.trim());
 
-export function detectOwnershipLockout(input: string | ProjectSource[], options: OwnershipLockoutOptions = {}): RuleResult {
+export function detectAuthorityLockout(input: string | ProjectSource[], options: AuthorityLockoutOptions = {}): RuleResult {
   const built = buildProjectModel(input);
   if (!built.ok) return { ruleId: RULE_ID, analyzed: false, findings: [], diagnostics: built.diagnostics, limitations: LIMITATIONS };
   const { model } = built;

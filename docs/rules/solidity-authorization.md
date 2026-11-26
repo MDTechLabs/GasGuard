@@ -10,7 +10,7 @@ Authorization and configuration detectors built on the shared toolkit in
 
 | Rule id | Entry point | Source |
 | --- | --- | --- |
-| `GG-AUTH-LOCKOUT-001` | `detectOwnershipLockout` | `rules/security/access-control/detect-ownership-lockout.ts` |
+| `GG-AUTH-LOCKOUT-001` | `detectAuthorityLockout` | `rules/security/access-control/detect-authority-lockout.ts` |
 | `GG-AUTH-PAUSE-001` | `detectPauseAuthority` | `rules/security/access-control/detect-pause-authority.ts` |
 
 ## Supported input and general limitations

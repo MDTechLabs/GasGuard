@@ -13,7 +13,7 @@ import { toNormalizedFindings } from '../../../rules/security/lib/normalize';
 import { RuleResult } from '../../../rules/security/lib/solidity-lite';
 import { detectCrossContractReentrancy, RULE_ID as XCONTRACT_REENTRANCY } from '../../../rules/security/external-calls/detect-cross-contract-reentrancy';
 import { detectExternalCallOrdering, RULE_ID as CALL_ORDERING } from '../../../rules/security/external-calls/detect-external-call-ordering';
-import { detectOwnershipLockout, RULE_ID as OWNERSHIP_LOCKOUT } from '../../../rules/security/access-control/detect-ownership-lockout';
+import { detectAuthorityLockout, RULE_ID as OWNERSHIP_LOCKOUT } from '../../../rules/security/access-control/detect-authority-lockout';
 import { detectPauseAuthority, RULE_ID as PAUSE_AUTHORITY } from '../../../rules/security/access-control/detect-pause-authority';
 
 export interface SecurityDetector {
@@ -57,7 +57,7 @@ export const SECURITY_DETECTORS: SecurityDetector[] = [
   },
   {
     docsSlug: 'solidity-authorization',
-    run: (code, file) => detectOwnershipLockout([{ path: file, content: code }]),
+    run: (code, file) => detectAuthorityLockout([{ path: file, content: code }]),
     rule: {
       id: OWNERSHIP_LOCKOUT,
       name: 'Ownership Transfer Accidental Lockout',

@@ -1,11 +1,11 @@
-import { detectOwnershipLockout, RULE_ID } from '../detect-ownership-lockout';
+import { detectAuthorityLockout, RULE_ID } from '../detect-authority-lockout';
 import { toNormalizedFindings } from '../../lib/normalize';
 import * as fx from './ownership-lockout.fixtures';
 
-const run = (src: Parameters<typeof detectOwnershipLockout>[0], opts?: Parameters<typeof detectOwnershipLockout>[1]) => detectOwnershipLockout(src, opts);
-const kinds = (src: Parameters<typeof detectOwnershipLockout>[0]) => run(src).findings.map((f) => f.kind);
+const run = (src: Parameters<typeof detectAuthorityLockout>[0], opts?: Parameters<typeof detectAuthorityLockout>[1]) => detectAuthorityLockout(src, opts);
+const kinds = (src: Parameters<typeof detectAuthorityLockout>[0]) => run(src).findings.map((f) => f.kind);
 
-describe('detectOwnershipLockout', () => {
+describe('detectAuthorityLockout', () => {
   it('flags a single-step transfer without zero-address check as high', () => {
     const [f] = run(fx.SINGLE_STEP_NO_ZERO_CHECK).findings;
     expect(f.ruleId).toBe(RULE_ID);
