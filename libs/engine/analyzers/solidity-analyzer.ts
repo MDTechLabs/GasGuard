@@ -17,6 +17,8 @@ import { detectAllowanceAdjustmentRisks } from "./allowance-adjustment-detector"
 import { detectFeeOnTransferAccounting } from "./fee-on-transfer-detector";
 import { detectMissingZeroAddressChecks } from "./zero-address-config-detector";
 import { detectTimelockUpgradeBypass } from "./timelock-upgrade-bypass-detector";
+import { detectBeaconProxyHazards } from "./beacon-proxy-hazard-detector";
+import { detectTokenTransferWrapperReturns } from "./token-transfer-wrapper-detector";
 import {
   analyzeSignatureSecurity,
   ExpectedSignerType,
@@ -381,6 +383,34 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
       enabled: true,
       tags: ["security", "upgradeability", "timelock", "governance", "proxy"],
       documentationUrl: "https://docs.gasguard.dev/rules/sol-027",
+    },
+    {
+      id: "sol-028",
+      name: "Beacon Proxy Initialization and Upgrade Hazards",
+      description:
+        "Detects uninitialized beacon proxy deployment, unvalidated beacon addresses, unprotected beacon upgrades, and missing initializer disables",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: [
+        "security",
+        "beacon-proxy",
+        "upgradeability",
+        "initialization",
+        "proxy",
+      ],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
+    },
+    {
+      id: "sol-029",
+      name: "Non-standard Token Return Behavior in Transfer Wrappers",
+      description:
+        "Detects high-level transfer calls assuming bool returns, unchecked transfer return values, and flawed low-level transfer wrappers",
+      severity: Severity.HIGH,
+      category: "security",
+      enabled: true,
+      tags: ["security", "erc20", "tokens", "transfer", "safe-erc20"],
+      documentationUrl: "https://docs.gasguard.dev/rules/sol-029",
     },
     {
       id: SIGNATURE_SECURITY_RULES.CACHED_DOMAIN_SEPARATOR,
@@ -1089,6 +1119,86 @@ export class SolidityAnalyzer extends BaseAnalyzer implements Analyzer {
                 "Bypassing timelock delays allows privileged roles or compromised keys to execute immediate, unannounced contract upgrades or logic substitutions without the required community or guardian notice period.",
               limitation:
                 "Source-pattern analysis: detects presence of timelock mechanisms or claims alongside direct admin-gated upgrade paths or unbounded delay setters within the analyzed contract scope.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-028 - Beacon proxy initialization and upgrade hazards
+      if (this.isRuleEnabled("sol-028", config)) {
+        const detection = detectBeaconProxyHazards(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-028",
+            message: `${finding.callableName}: ${finding.reason}`,
+            severity: this.getRuleSeverity("sol-028", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              codeSnippet: "require(beacon.code.length > 0, 'Invalid beacon');",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-028",
+            },
+            metadata: {
+              kind: finding.kind,
+              callableName: finding.callableName,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Beacon proxy deployment and upgrade flaws can allow front-running proxy takeovers or brick all deployed proxies simultaneously when implementation changes are corrupted or unauthenticated.",
+              limitation:
+                "Source-pattern analysis: checks BeaconProxy instantiations, UpgradeableBeacon definitions, and Initializable constructors within the analyzed codebase.",
+            },
+          })),
+        );
+      }
+
+      // Rule: sol-029 - Non-standard token return behavior in transfer wrappers
+      if (this.isRuleEnabled("sol-029", config)) {
+        const detection = detectTokenTransferWrapperReturns(code);
+        errors.push(
+          ...detection.diagnostics.map((message) => ({
+            file: filePath,
+            message,
+          })),
+        );
+        findings.push(
+          ...detection.findings.map((finding) => ({
+            ruleId: "sol-029",
+            message: `${finding.callSite}: ${finding.reason}`,
+            severity: this.getRuleSeverity("sol-029", config),
+            location: {
+              file: filePath,
+              startLine: finding.line,
+              endLine: finding.line,
+              startColumn: finding.startColumn,
+              endColumn: finding.endColumn,
+            },
+            suggestedFix: {
+              description: finding.remediation,
+              codeSnippet: "IERC20(token).safeTransfer(to, amount);",
+              documentationUrl: "https://docs.gasguard.dev/rules/sol-029",
+            },
+            metadata: {
+              kind: finding.kind,
+              callSite: finding.callSite,
+              confidence: finding.confidence,
+              confidenceEvidence: finding.evidence,
+              severityRationale:
+                "Non-standard tokens (like USDT or non-reverting tokens) either cause high-level calls to revert when expecting boolean returns or silently fail when returning false, allowing unbacked actions or stuck assets.",
+              limitation:
+                "Source-pattern analysis: inspects transfer calls and low-level call return handling in transfer wrappers.",
             },
           })),
         );

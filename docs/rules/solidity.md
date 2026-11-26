@@ -370,52 +370,47 @@ setter, and factory configuration with unvalidated, validated (inline, helper, a
 modifier), sentinel, and modelled-callee cases; `sol-026-zero-address.json` lists
 the expected findings.
 
-## Unsafe ERC-721 Safe-Transfer Callback Assumptions
+## Rebasing-Token Stored Balance Assumption
 
 **Rule ID:** `sol-027`  
-**Severity:** high for stateful unauthenticated receiver callbacks; medium for
-state updates after a callback-capable transfer  
+**Severity:** medium  
 **Category:** security
 
-ERC-721 `safeTransferFrom` invokes `onERC721Received` on contract recipients
-before returning. The receiver callback can also be called directly by any
-contract; the safe-transfer handshake does not authenticate `msg.sender`.
+Runs the `GG-TOKEN-REBASE-001` detector
+(`rules/security/tokens/detect-rebasing-balance-assumptions.ts`) in the analyzer. It
+reports a stored token amount or balance snapshot that is later paid out as if the
+token balance could only change through the contract's own transfers. The detector's
+own severity, confidence, evidence, and details are kept in the finding metadata.
+Tracing, recognised share-based designs and exclusions, assumptions, and limitations
+are described in [token-rebasing-balance-assumptions.md](token-rebasing-balance-assumptions.md).
 
-The rule reports:
+### Fixtures
 
-- `unauthenticated-stateful-receiver`: an external `onERC721Received` callback
-  changes tracked state or invokes a state-changing operation without checking
-  that the caller is an authorized NFT collection.
-- `post-transfer-state-update`: a supported ERC-721 safe-transfer call occurs
-  before a tracked state variable is updated and the function has no recognized
-  reentrancy-guard modifier. A recipient callback can reenter before that update.
+`tests/rules/fixtures/sol-027-rebasing-balance.sol` has two positive patterns (a
+stored deposit and a balance snapshot) and two negative ones (share-based accounting
+and an explicit exclusion); `sol-027-rebasing-balance.json` lists the expected findings.
 
-Authenticate receiver callbacks against an allowlisted collection (or an
-on-chain registry), and apply state effects before outbound safe transfers or
-protect the function with a reentrancy guard. A callback that only returns the
-ERC-721 selector and makes no state changes is not reported.
+## Ownership and Last-Admin Lockout
 
-### Supported input and limitations
+**Rule ID:** `sol-028`  
+**Severity:** high  
+**Category:** security
 
-- Solidity source text with no pragma or pragma versions `0.4.x` through `0.8.x`.
-  Source inputs are capped at 1 MiB, 2,500 callables, and 500 contracts. The
-  detector does not invoke `solc`, execute scripts, or read project settings.
-- Recognizes typed or NFT-named `safeTransferFrom` receivers, the
-  `SafeERC721.safeTransferFrom` library form, and `_safeTransfer` in ERC-721
-  implementations. It recognizes common collection checks, allowlist lookups,
-  and reentrancy modifiers.
-- This is lexical analysis, not a call-graph or inheritance resolver. Imported
-  or inherited implementations, aliases, assembly, proxy dispatch, and indirect
-  state changes through arbitrary helper calls may be missed. Naming heuristics
-  can also produce false positives; verify the recipient and call graph.
-- Malformed, unsupported-version, and non-string inputs produce diagnostics
-  rather than findings.
+Reports ownership transfers, renunciations, role revocations, and administrator
+mapping removals that can permanently lock out the contract's administrator or remove
+its recovery path. The detector models two-step ownership transfer, pending-owner
+acceptance, final-admin renunciation, and last-admin role removal, and classifies
+contracts as `risk`, `safe`, `immutable`, `permissionless`, or `exempt`.
 
-### Fixture and normalized finding output
+The finding kinds, recognized administrator model, annotations, severity rationale,
+confidence evidence, and limitations are described in
+[ownership-lockout.md](ownership-lockout.md).
 
-`tests/rules/fixtures/sol-027-erc721-safe-transfer-callback.sol` contains the
-vulnerable and safe ordering cases, authenticated and unauthenticated receiver
-callbacks, a guard modifier, and a library transfer. The expected normalized
-rule identifiers, kinds, and source lines are listed in the matching JSON file.
-All findings use `sol-027` and include the primary source location, severity
-rationale, confidence evidence, and remediation.
+### Fixtures
+
+`tests/rules/fixtures/sol-028-ownership-lockout.sol` covers one-step and broken
+two-step transfers, zero pending owners, unprotected transfer/acceptance, renunciation,
+role revocation, mapping-admin removal, missing acceptance, stale pending owners, and
+safe or documented-exempt variants. `sol-028-ownership-lockout.json` lists the
+expected findings and `tests/rules/expected/sol-028-normalized.json` records the
+normalized analyzer output.
