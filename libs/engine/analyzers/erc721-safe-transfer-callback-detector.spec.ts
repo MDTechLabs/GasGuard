@@ -6,22 +6,22 @@ import { detectUnsafeErc721SafeTransferCallbacks } from "./erc721-safe-transfer-
 
 const fixtureDir = path.resolve(__dirname, "../../../tests/rules/fixtures");
 const fixture = JSON.parse(
-  fs.readFileSync(path.join(fixtureDir, "sol-027-erc721-safe-transfer-callback.json"), "utf8"),
+  fs.readFileSync(path.join(fixtureDir, "sol-030-erc721-safe-transfer-callback.json"), "utf8"),
 ) as {
   expectedFindings: Array<{ ruleId: string; kind: string; line: number }>;
 };
 const source = fs.readFileSync(
-  path.join(fixtureDir, "sol-027-erc721-safe-transfer-callback.sol"),
+  path.join(fixtureDir, "sol-030-erc721-safe-transfer-callback.sol"),
   "utf8",
 );
 
-describe("sol-027 unsafe ERC-721 safe-transfer callback assumptions", () => {
+describe("sol-030 unsafe ERC-721 safe-transfer callback assumptions", () => {
   it("reports state updates after safe transfers and stateful unauthenticated receiver callbacks", () => {
     const { findings, diagnostics } = detectUnsafeErc721SafeTransferCallbacks(source);
 
     expect(diagnostics).toEqual([]);
-    expect(findings.map(({ kind, line }) => ({ ruleId: "sol-027", kind, line }))).toEqual(
-      fixture.expectedFindings.map(({ kind, line }) => ({ ruleId: "sol-027", kind, line })),
+    expect(findings.map(({ kind, line }) => ({ ruleId: "sol-030", kind, line }))).toEqual(
+      fixture.expectedFindings.map(({ kind, line }) => ({ ruleId: "sol-030", kind, line })),
     );
     expect(findings[0].evidence.join(" ")).toContain("reenter");
     expect(findings[1].evidence.join(" ")).toContain("directly");
@@ -77,16 +77,16 @@ describe("sol-027 unsafe ERC-721 safe-transfer callback assumptions", () => {
 
   it("integrates with the analyzer and normalized finding schema", async () => {
     const analyzer = new SolidityAnalyzer();
-    const file = "tests/rules/fixtures/sol-027-erc721-safe-transfer-callback.sol";
+    const file = "tests/rules/fixtures/sol-030-erc721-safe-transfer-callback.sol";
     const rules = Object.fromEntries(
-      analyzer.getRules().map(({ id }) => [id, { enabled: id === "sol-027" }]),
+      analyzer.getRules().map(({ id }) => [id, { enabled: id === "sol-030" }]),
     );
     const result = await analyzer.analyze(source, file, { rules });
     const normalized = normalizeAnalysisResult(result);
 
     expect(result.findings).toHaveLength(fixture.expectedFindings.length);
     expect(result.findings[0]).toMatchObject({
-      ruleId: "sol-027",
+      ruleId: "sol-030",
       location: { file, startLine: 20 },
       metadata: {
         kind: "post-transfer-state-update",

@@ -414,3 +414,20 @@ role revocation, mapping-admin removal, missing acceptance, stale pending owners
 safe or documented-exempt variants. `sol-028-ownership-lockout.json` lists the
 expected findings and `tests/rules/expected/sol-028-normalized.json` records the
 normalized analyzer output.
+
+## Unsafe ERC-721 Safe-Transfer Callback Assumptions
+
+**Rule ID:** `sol-030`
+**Severity:** high for stateful unauthenticated receiver callbacks; medium for
+post-transfer state updates
+**Category:** security
+
+Reports state updates after callback-capable ERC-721 transfers and unauthenticated,
+stateful `onERC721Received` callbacks. Apply effects before safe transfers, use a
+reentrancy guard, and authenticate the caller against an allowlisted collection.
+
+### Fixtures
+
+`tests/rules/fixtures/sol-030-erc721-safe-transfer-callback.sol` covers unsafe
+transfer ordering, unauthenticated receiver callbacks, effects-before-interactions,
+authenticated receivers, guard modifiers, and library transfers.
