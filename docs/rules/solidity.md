@@ -1,5 +1,9 @@
 # Solidity Rules
 
+Authorization and configuration checks (ownership lockout, pause/unpause authority) are documented in [Solidity Authorization Rules](./solidity-authorization.md).
+
+Control-flow and call-safety checks (cross-contract reentrancy and call ordering) are documented in [Solidity Call-Safety Rules](./solidity-call-safety.md).
+
 Signature and authorization checks are documented in [Solidity Signature and Authorization Rules](./signature-authorization.md).
 
 ## Uint8VsUint256Rule
