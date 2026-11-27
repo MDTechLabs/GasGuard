@@ -62,6 +62,7 @@ describe("CLI Integration", () => {
   describe("getFlagReplacement", () => {
     it("should return replacement for deprecated flag", () => {
       expect(getFlagReplacement("--analyze-local")).toBe("scan");
+      expect(getFlagReplacement("analyze-local")).toBe("scan");
       expect(getFlagReplacement("--no-progress")).toBe("--quiet");
     });
 
