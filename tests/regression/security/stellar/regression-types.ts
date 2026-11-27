@@ -7,6 +7,7 @@ export interface StellarRegressionFixture {
   expected: {
     detected: boolean;
     flaggedFunctions?: string[];
+    repeated?: string[];
     weakRoles?: string[];
     violations?: Array<{ topicCount?: number; hasLargePayload?: boolean }>;
   };

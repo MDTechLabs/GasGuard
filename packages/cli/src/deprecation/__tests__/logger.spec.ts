@@ -249,11 +249,10 @@ describe("DeprecationLogger", () => {
 
   describe("error handling", () => {
     it("should not throw on write errors", () => {
-      const errorStream = new Writable({
-        write(chunk, encoding, callback) {
-          callback(new Error("Write failed"));
-        },
-      }) as NodeJS.WriteStream;
+      const errorStream = new Writable() as NodeJS.WriteStream;
+      jest.spyOn(errorStream, "write").mockImplementation(() => {
+        throw new Error("Write failed");
+      });
 
       const logger = new DeprecationLogger(errorStream);
       
