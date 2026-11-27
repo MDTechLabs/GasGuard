@@ -10,7 +10,11 @@ import {
   withDeprecationCheck,
 } from "../integration";
 import { DEPRECATED_FLAGS } from "../config";
-import { setDeprecationLogger, resetDeprecationLogger } from "../logger";
+import {
+  DeprecationLogger,
+  setDeprecationLogger,
+  resetDeprecationLogger,
+} from "../logger";
 import { resetMetricsCollector } from "../metrics";
 import { Writable } from "stream";
 
@@ -28,7 +32,6 @@ describe("CLI Integration", () => {
     }) as NodeJS.WriteStream;
 
     // Set up custom logger to capture output during tests
-    const { DeprecationLogger } = require("../logger");
     setDeprecationLogger(new DeprecationLogger(mockStream));
   });
 

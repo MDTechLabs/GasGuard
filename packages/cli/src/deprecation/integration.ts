@@ -7,6 +7,7 @@
 
 import { Command } from "commander";
 import { checkDeprecatedFlags } from "./index";
+import { DEPRECATED_FLAGS } from "./config";
 
 /**
  * Attach deprecation checking to a Commander.js program.
@@ -90,7 +91,6 @@ export function withDeprecationCheck<T extends (...args: any[]) => any>(
  * ```
  */
 export function isFlagDeprecated(flag: string): boolean {
-  const { DEPRECATED_FLAGS } = require("./config");
   return DEPRECATED_FLAGS.some((df: any) => df.flag === flag);
 }
 
@@ -101,7 +101,6 @@ export function isFlagDeprecated(flag: string): boolean {
  * @returns Replacement flag/command, or undefined if no replacement
  */
 export function getFlagReplacement(flag: string): string | undefined {
-  const { DEPRECATED_FLAGS } = require("./config");
   const deprecated = DEPRECATED_FLAGS.find((df: any) => df.flag === flag);
   return deprecated?.replacement;
 }

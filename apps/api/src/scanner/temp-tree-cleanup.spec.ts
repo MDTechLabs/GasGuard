@@ -1,4 +1,5 @@
 import * as fs from "fs/promises";
+import * as os from "os";
 import * as path from "path";
 
 import { secureRemoveTree, withTempSourceTree } from "./temp-tree-cleanup";
@@ -28,7 +29,7 @@ describe("withTempSourceTree (#1350)", () => {
   });
 
   it("unlinks symlinks without following them", async () => {
-    const outside = await fs.mkdtemp(path.join(require("os").tmpdir(), "gasguard-outside-"));
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "gasguard-outside-"));
     await fs.writeFile(path.join(outside, "keep.txt"), "keep");
     await withTempSourceTree(async (dir) => {
       await fs.symlink(outside, path.join(dir, "link"));

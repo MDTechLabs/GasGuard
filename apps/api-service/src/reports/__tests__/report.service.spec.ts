@@ -83,7 +83,7 @@ describe("ReportService", () => {
       const period: "weekly" | "monthly" = "weekly";
 
       // Mock merchant repository to return a merchant
-jest.spyOnMerchantRepository().mockResolvedValue({
+      jest.spyOn(merchantRepository, "findOne").mockResolvedValue({
         id: merchantId,
         name: "Test Merchant",
         email: "test@example.com",
@@ -101,14 +101,14 @@ jest.spyOnMerchantRepository().mockResolvedValue({
         scheduledAt: new Date(),
       };
       jest
-.spyOnReportRepository("save")
+        .spyOn(reportRepository, "save")
         .mockResolvedValue(savedReport as any);
 
       const result = await service.generateAdhocReport(merchantId, period);
 
       expect(result).toBeDefined();
       expect(typeof result).toBe("string"); // Should return report ID
-expect(jest.spyOnMerchantRepository("findOne")).toHaveBeenCalledWith({
+      expect(merchantRepository.findOne).toHaveBeenCalledWith({
         where: { id: merchantId },
       });
     });
@@ -117,14 +117,14 @@ expect(jest.spyOnMerchantRepository("findOne")).toHaveBeenCalledWith({
       const merchantId = "test-merchant-id";
       const createdBy = "user-42";
 
-      jest.spyOnMerchantRepository().mockResolvedValue({
+      jest.spyOn(merchantRepository, "findOne").mockResolvedValue({
         id: merchantId,
         name: "Test Merchant",
         email: "test@example.com",
       } as Merchant);
 
       const saveSpy = jest
-        .spyOnReportRepository("save")
+        .spyOn(reportRepository, "save")
         .mockImplementation(async (report: Report) => report);
 
       await service.generateAdhocReport(merchantId, "weekly", createdBy);
@@ -135,7 +135,7 @@ expect(jest.spyOnMerchantRepository("findOne")).toHaveBeenCalledWith({
     });
 
     it("should throw when the merchant does not exist", async () => {
-      jest.spyOnMerchantRepository().mockResolvedValue(null);
+      jest.spyOn(merchantRepository, "findOne").mockResolvedValue(null);
 
       await expect(
         service.generateAdhocReport("missing-merchant", "weekly"),
@@ -156,18 +156,18 @@ expect(jest.spyOnMerchantRepository("findOne")).toHaveBeenCalledWith({
         endDate: new Date(),
       } as Report;
 
-jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
+      jest.spyOn(reportRepository, "findOne").mockResolvedValue(expectedReport);
 
       const result = await service.getReportById(reportId);
 
       expect(result).toEqual(expectedReport);
-      expect(jest.spyOnReportRepository("findOne")).toHaveBeenCalledWith({
+      expect(reportRepository.findOne).toHaveBeenCalledWith({
         where: { id: reportId },
       });
     });
 
     it("should return null when the report does not exist", async () => {
-      jest.spyOnReportRepository("findOne").mockResolvedValue(null);
+      jest.spyOn(reportRepository, "findOne").mockResolvedValue(null);
 
       const result = await service.getReportById("missing");
 
@@ -195,11 +195,11 @@ jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolved(expectedReports),
+        getMany: jest.fn().mockResolvedValue(expectedReports),
       };
 
       jest
-        .spyOnReportRepository("createQueryBuilder")
+        .spyOn(reportRepository, "createQueryBuilder")
         .mockReturnValue(queryBuilderMock as any);
 
       const result = await service.getReportHistory(merchantId);
@@ -222,10 +222,10 @@ jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
         orderBy: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn().mockResolved([[], 0]),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
       };
       return mock;
-    });
+    };
 
     it("should apply default pagination (page=1, limit=10) when not provided", async () => {
       const qb = buildQueryBuilderMock();
@@ -249,7 +249,7 @@ jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
 
     it("should calculate skip and take for a given page and limit", async () => {
       const qb = buildQueryBuilderMock();
-      qb.getManyAndCount.mockResolved([[{ id: "r-1" }], 25]);
+      qb.getManyAndCount.mockResolvedValue([[{ id: "r-1" }], 25]);
       jest
         .spyOn(reportRepository, "createQueryBuilder")
         .mockReturnValue(qb as any);
@@ -258,7 +258,7 @@ jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
         merchantId,
         undefined,
         3,
-        10
+        10,
       );
 
       expect(qb.skip).toHaveBeenCalledWith(20);
@@ -301,7 +301,7 @@ jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
         merchantId,
         undefined,
         -5,
-        10
+        10,
       );
 
       expect(qb.skip).toHaveBeenCalledWith(0);
@@ -328,7 +328,7 @@ jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
 
     it("should return an empty page with correct metadata when there are no reports", async () => {
       const qb = buildQueryBuilderMock();
-      qb.getManyAndCount.mockResolved([[], 0]);
+      qb.getManyAndCount.mockResolvedValue([[], 0]);
       jest
         .spyOn(reportRepository, "createQueryBuilder")
         .mockReturnValue(qb as any);
@@ -343,13 +343,13 @@ jest.spyOnReportRepository("findOne").mockResolvedValue(expectedReport);
     it("should propagate repository errors", async () => {
       const error = new Error("database unavailable");
       const qb = buildQueryBuilderMock();
-      qb.getManyAndCount.mockRejected(error);
+      qb.getManyAndCount.mockRejectedValue(error);
       jest
         .spyOn(reportRepository, "createQueryBuilder")
         .mockReturnValue(qb as any);
 
       await expect(
-        service.getReportHistoryPaginated(merchantId)
+        service.getReportHistoryPaginated(merchantId),
       ).rejects.toThrow(error);
     });
   });

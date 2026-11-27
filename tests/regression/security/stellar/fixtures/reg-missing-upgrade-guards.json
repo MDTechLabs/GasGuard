@@ -1,10 +1,10 @@
 [
   {
     "id": "reg-ug-001",
-    "name": "Contract without upgrade guard",
-    "description": "Positive test: contract with write_storage but no upgrade guard should be flagged",
+    "name": "Contract replaces Wasm without authorization",
+    "description": "Positive test: contract that replaces its Wasm without authorization should be flagged",
     "ruleId": "detect-missing-upgrade-guards",
-    "input": "use soroban_sdk::{contract, contractimpl, Env};\n\n#[contractimpl]\nimpl MyContract {\n    pub fn update(env: Env, val: i128) {\n        env.storage().instance().set(&\"key\", &val);\n    }\n}",
+    "input": "use soroban_sdk::{contract, contractimpl, BytesN, Env};\n\n#[contractimpl]\nimpl MyContract {\n    pub fn update(env: Env, new_wasm_hash: BytesN<32>) {\n        env.deployer().update_current_contract_wasm(new_wasm_hash);\n    }\n}",
     "expected": {
       "detected": true,
       "flaggedFunctions": ["update"]
@@ -17,10 +17,10 @@
   },
   {
     "id": "reg-ug-002",
-    "name": "Contract with upgrade guard",
-    "description": "Negative test: contract with proper upgrade guard should NOT be flagged",
+    "name": "Contract replaces Wasm with authorization",
+    "description": "Negative test: contract that replaces its Wasm validates administrator authorization",
     "ruleId": "detect-missing-upgrade-guards",
-    "input": "use soroban_sdk::{contract, contractimpl, Env};\n\n#[contractimpl]\nimpl MyContract {\n    pub fn __constructor(env: Env) {\n        env.storage().instance().set(&\"upgraded\", &true);\n    }\n\n    pub fn update(env: Env, val: i128) {\n        env.storage().instance().set(&\"key\", &val);\n    }\n}",
+    "input": "use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};\n\n#[contractimpl]\nimpl MyContract {\n    pub fn update(env: Env, admin: Address, new_wasm_hash: BytesN<32>) {\n        admin.require_auth();\n        env.deployer().update_current_contract_wasm(new_wasm_hash);\n    }\n}",
     "expected": {
       "detected": false,
       "flaggedFunctions": []
