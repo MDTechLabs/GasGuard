@@ -209,7 +209,7 @@ export function analyzeFootprintAccess(source: string): FootprintAccessReport {
         suggestion: `Key '${access.key}' is rarely accessed. Consider whether it needs to be in the active footprint or can be lazily loaded.`,
         affectedKeys: [access.key],
         functionName: Array.from(access.functions)[0],
-      );
+      });
     }
 
     if (access.inLoop) {

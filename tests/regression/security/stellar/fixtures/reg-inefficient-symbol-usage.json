@@ -1,13 +1,13 @@
 [
   {
     "id": "reg-sym-001",
-    "name": "Hardcoded symbol string literal",
-    "description": "Positive test: using string literals instead of Symbol::new should be flagged",
+    "name": "Repeated inline symbol construction",
+    "description": "Positive test: repeated construction of the same symbol should be flagged",
     "ruleId": "detect-inefficient-symbol-usage",
-    "input": "use soroban_sdk::{contract, contractimpl, Env};\n\n#[contractimpl]\nimpl Token {\n    pub fn get_balance(env: Env) -> i128 {\n        env.storage().instance().get(&\"balance\").unwrap_or(0)\n    }\n}",
+    "input": "use soroban_sdk::{contract, contractimpl, Env, Symbol};\n\n#[contractimpl]\nimpl Token {\n    pub fn get_balance(env: Env) -> i128 {\n        let first = Symbol::new(&env, \"balance\");\n        let second = Symbol::new(&env, \"balance\");\n        env.storage().instance().get(&first).unwrap_or(0)\n    }\n}",
     "expected": {
       "detected": true,
-      "flaggedExpressions": ["\"balance\""]
+      "repeated": ["balance"]
     },
     "metadata": {
       "category": "optimization",
@@ -20,10 +20,10 @@
     "name": "Correct Symbol::new usage",
     "description": "Negative test: using Symbol::new should NOT be flagged",
     "ruleId": "detect-inefficient-symbol-usage",
-    "input": "use soroban_sdk::{contract, contractimpl, symbol_short, Env};\n\n#[contractimpl]\nimpl Token {\n    pub fn get_balance(env: Env) -> i128 {\n        env.storage().instance().get(&symbol_short!(\"balance\")).unwrap_or(0)\n    }\n}",
+    "input": "use soroban_sdk::{contract, contractimpl, Env, Symbol};\n\n#[contractimpl]\nimpl Token {\n    pub fn get_balance(env: Env) -> i128 {\n        let key = Symbol::new(&env, \"balance\");\n        env.storage().instance().get(&key).unwrap_or(0)\n    }\n}",
     "expected": {
       "detected": false,
-      "flaggedExpressions": []
+      "repeated": []
     },
     "metadata": {
       "category": "optimization",
@@ -33,13 +33,13 @@
   },
   {
     "id": "reg-sym-003",
-    "name": "Multiple hardcoded symbols",
-    "description": "Positive test: multiple string literals in storage keys should all be flagged",
+    "name": "Repeated and distinct symbol names",
+    "description": "Positive test: report repeated names once and ignore names used only once",
     "ruleId": "detect-inefficient-symbol-usage",
-    "input": "use soroban_sdk::{contract, contractimpl, Env};\n\n#[contractimpl]\nimpl Config {\n    pub fn set_value(env: Env, key: &str, val: i128) {\n        env.storage().instance().set(&format!(\"cfg_{}\", key), &val);\n    }\n}",
+    "input": "use soroban_sdk::{contract, contractimpl, Env, Symbol};\n\n#[contractimpl]\nimpl Config {\n    pub fn set_value(env: Env) {\n        let first = Symbol::new(&env, \"cfg\");\n        let second = Symbol::new(&env, \"cfg\");\n        let third = Symbol::new(&env, \"other\");\n    }\n}",
     "expected": {
       "detected": true,
-      "flaggedExpressions": ["\"cfg_{}\""]
+      "repeated": ["cfg"]
     },
     "metadata": {
       "category": "optimization",

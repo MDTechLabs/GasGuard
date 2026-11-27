@@ -5,6 +5,7 @@ import { detectMissingAccessControl, AccessControlResult } from '../../../../rul
 import { detectWeakRoleHierarchies, WeakRoleHierarchyResult } from '../../../../rules/stellar/access-control/detect-weak-role-hierarchies';
 import { detectUnsafeCrossContractInvocation, CrossContractResult } from '../../../../rules/stellar/cross-contract/detect-unsafe-cross-contract-invocation';
 import { detectExcessiveEventTopics, ExcessiveEventTopicsResult } from '../../../../rules/stellar/events/detect-excessive-event-topics';
+import { detectInefficientSymbolUsage, SymbolUsageResult } from '../../../../rules/stellar/optimization/detect-inefficient-symbol-usage';
 import { detectMissingUpgradeGuards, UpgradeGuardResult } from '../../../../rules/stellar/upgradeability/detect-missing-upgrade-guards';
 
 const RULE_REGISTRY: Record<string, (code: string) => any> = {
@@ -12,6 +13,7 @@ const RULE_REGISTRY: Record<string, (code: string) => any> = {
   'detect-weak-role-hierarchies': detectWeakRoleHierarchies,
   'detect-unsafe-cross-contract-invocation': detectUnsafeCrossContractInvocation,
   'detect-excessive-event-topics': detectExcessiveEventTopics,
+  'detect-inefficient-symbol-usage': detectInefficientSymbolUsage,
   'detect-missing-upgrade-guards': detectMissingUpgradeGuards,
 };
 
@@ -83,6 +85,20 @@ export function runFixture(fixture: StellarRegressionFixture): RegressionResult 
         passed: false,
         actualDetected,
         detail: `Flagged functions mismatch. Expected: [${exp.flaggedFunctions.join(', ')}] Actual: [${actual.join(', ')}]${missing.length ? ` Missing: [${missing.join(', ')}]` : ''}${extra.length ? ` Extra: [${extra.join(', ')}]` : ''}`,
+      };
+    }
+  }
+
+  if ('repeated' in exp && Array.isArray(exp.repeated)) {
+    const actual = (result as SymbolUsageResult).repeated;
+    const missing = exp.repeated.filter(name => !actual.includes(name));
+    const extra = actual.filter(name => !exp.repeated!.includes(name));
+    if (missing.length > 0 || extra.length > 0) {
+      return {
+        fixture,
+        passed: false,
+        actualDetected,
+        detail: `Repeated symbols mismatch. Expected: [${exp.repeated.join(', ')}] Actual: [${actual.join(', ')}]`,
       };
     }
   }

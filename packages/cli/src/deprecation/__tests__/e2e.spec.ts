@@ -10,20 +10,20 @@
 
 import { Writable } from "stream";
 import { Command } from "commander";
-import chalk from "chalk";
 
 // Mock dependencies to avoid actual file system operations
-jest.mock("chalk", () => ({
-  yellow: (s: string) => s,
-  red: (s: string) => s,
-  blue: (s: string) => s,
-  cyan: (s: string) => s,
-  green: (s: string) => s,
-  white: (s: string) => s,
-  dim: (s: string) => s,
-  yellowBold: (s: string) => s,
-  redBold: (s: string) => s,
-}));
+jest.mock("chalk", () => {
+  const identity = (value: string) => value;
+  return {
+    yellow: Object.assign(identity, { bold: identity }),
+    red: Object.assign(identity, { bold: identity }),
+    blue: Object.assign(identity, { bold: identity }),
+    cyan: identity,
+    green: identity,
+    white: identity,
+    dim: identity,
+  };
+});
 
 import {
   DeprecationDetector,
